@@ -1,0 +1,40 @@
+.PHONY:  
+
+check-brew:
+	@which brew || ( \
+		echo "Homebrew not found. Installing Homebrew..." && \
+		/bin/bash -c "$$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" \
+	)
+
+# Note: run this to get all available tools in this project.
+tools: check-brew
+	@which go || (echo "Installing go..." && brew install go)
+	@which mockery || (echo "Installing mockery..." && brew install mockery)
+	@which protoc || (echo "Installing protoc..." && brew install protobuf)
+	@which protoc-gen-go || (echo "Installing protoc-gen-go..." && go install google.golang.org/protobuf/cmd/protoc-gen-go@latest)
+	@which protoc-gen-go-grpc || (echo "Installing protoc-gen-go-grpc..." && go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest)
+	@which golangci-lint || (echo "Installing golangci-lint..." && brew install golangci-lint)
+	@which migrate || (echo "Installing migrate..." && go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest)
+	@which docker ||  (echo "Installing docker..." && brew install docker)
+	@which sqlc || (echo "Installing sqlc..." && brew install sqlc)
+
+clean:
+	@echo "cleaning up .bin/"
+	rm -rf .bin/
+
+short-test:
+	@echo "Running short test"
+	go test -short -race ./...
+
+test:
+	@echo "Running test"
+	go test -race -p 12 ./...
+
+build:
+	@echo "Building..."
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X main.commit=`git rev-parse HEAD` -X main.ref=`git rev-parse --abbrev-ref HEAD` -X main.version=`git describe --tags --always`" -o ./bin/server ./cmd/server
+
+run:
+	@echo "Running locally (--env local flag passed)"
+	go run -ldflags "-X main.commit=`git rev-parse HEAD` -X main.ref=`git rev-parse --abbrev-ref HEAD` -X main.version=`git describe --tags --always`" ./cmd/server --env local
+
