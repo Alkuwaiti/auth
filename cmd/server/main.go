@@ -1,6 +1,11 @@
 package main
 
-import "context"
+import (
+	"context"
+	"fmt"
+
+	"github.com/alkuwaiti/auth/internal/config"
+)
 
 var (
 	commit  string
@@ -11,4 +16,10 @@ var (
 
 func main() {
 	ctx := context.Background()
+	cfg := config.Load()
+
+	fmt.Println(ctx)
+	fmt.Println(cfg.LogLevel)
+	fmt.Println(cfg.DatabaseURL)
+	fmt.Println(cfg.TracingCollector)
 }
