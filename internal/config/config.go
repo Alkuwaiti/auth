@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"embed"
 	"errors"
-	"flag"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -14,27 +13,24 @@ import (
 	"github.com/spf13/viper"
 )
 
+//go:embed .config
 var configs embed.FS
 
-var cfg Config
+var (
+	cfg    Config
+	loaded bool
+)
 
 type Config struct {
-	loaded           bool
-	Env              string
+	Environment      string
+	Jurisdiction     string
 	LogLevel         string
 	TracingCollector string
 	DatabaseURL      string
 }
 
-func Load() Config {
-	if !cfg.loaded {
-		envFlag := flag.String("env", "local", "environment to use (local, dev, staging, prod)")
-		jurFlag := flag.String("jur", "", "jur to use (bhr, uae, tur)")
-		flag.Parse()
-
-		env := strings.ToLower(*envFlag)
-		jur := strings.ToLower(*jurFlag)
-
+func Load(env, jur string) Config {
+	if !loaded {
 		switch env {
 		case "local", "dev", "staging", "prod":
 		default:
@@ -73,15 +69,16 @@ func Load() Config {
 			mergeConfigFile(v, envJurFile)
 		}
 
+		v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 		v.AutomaticEnv()
-		v.Set("Env", env)
+		v.Set("Environment", env)
 		v.Set("Jurisdiction", jur)
 
 		if err := v.Unmarshal(&cfg); err != nil {
 			panic(err)
 		}
 
-		cfg.loaded = true
+		loaded = true
 	}
 
 	return cfg
