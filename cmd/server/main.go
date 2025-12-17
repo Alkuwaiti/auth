@@ -4,9 +4,13 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log/slog"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/alkuwaiti/auth/internal/config"
+	"github.com/alkuwaiti/auth/internal/db"
 )
 
 var (
@@ -18,6 +22,7 @@ var (
 
 func main() {
 	ctx := context.Background()
+	fmt.Println(ctx)
 
 	envFlag := flag.String("env", "local", "environment to use (local, dev, staging, prod)")
 	jurFlag := flag.String("jur", "", "jur to use (bhr, uae, tur)")
@@ -25,10 +30,23 @@ func main() {
 
 	cfg := config.Load(strings.ToLower(*envFlag), strings.ToLower(*jurFlag))
 
-	fmt.Println(ctx)
-	fmt.Println(cfg.LogLevel)
+	// Note: unused code.
+	level := slog.LevelInfo
+	if n, err := strconv.Atoi(cfg.LogLevel); err == nil {
+		level = slog.Level(n)
+	} else if err = level.UnmarshalText([]byte(cfg.LogLevel)); err != nil && cfg.LogLevel != "" {
+		panic(err)
+	}
+
+	// TODO: Tracing logic here.
+
 	fmt.Println(cfg.DatabaseURL)
-	fmt.Println(cfg.TracingCollector)
-	fmt.Println(cfg.Environment)
-	fmt.Println(cfg.Jurisdiction)
+
+	dbConn, err := db.New(cfg.DatabaseURL)
+	if err != nil {
+		panic(err)
+	}
+	defer dbConn.Close()
+
+	time.Sleep(5 * time.Second)
 }

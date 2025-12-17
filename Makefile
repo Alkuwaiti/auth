@@ -1,4 +1,4 @@
-.PHONY:  
+.PHONY: test build run tools
 
 check-brew:
 	@which brew || ( \
@@ -36,5 +36,18 @@ build:
 
 run:
 	@echo "Running locally (--env local flag passed)"
-	go run -ldflags "-X main.commit=`git rev-parse HEAD` -X main.ref=`git rev-parse --abbrev-ref HEAD` -X main.version=`git describe --tags --always`" ./cmd/server --env local
+	@docker-compose up -d
+	@$(MAKE) _run_server
+
+_run_server:
+	@bash -c 'trap "echo Stopping docker-compose; docker-compose down" EXIT; \
+		go run -ldflags "-X main.commit=`git rev-parse HEAD` -X main.ref=`git rev-parse --abbrev-ref HEAD` -X main.version=`git describe --tags --always`" ./cmd/server --env local'
+
+mocks:
+	@echo "Generating mocks..."
+	@mockery
+
+lint: 
+	@echo "Running linter..."
+	golangci-lint run --fast
 

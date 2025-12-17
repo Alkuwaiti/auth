@@ -1,0 +1,1 @@
+databaseurl: "postgres://localuser:veryhardpassword123@localhost:5432/authdb?sslmode=disable"
