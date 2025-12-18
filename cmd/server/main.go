@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/alkuwaiti/auth/internal/config"
 	"github.com/alkuwaiti/auth/internal/db"
@@ -40,13 +39,10 @@ func main() {
 
 	// TODO: Tracing logic here.
 
-	fmt.Println(cfg.DatabaseURL)
-
 	dbConn, err := db.New(cfg.DatabaseURL)
 	if err != nil {
 		panic(err)
 	}
 	defer dbConn.Close()
 
-	time.Sleep(5 * time.Second)
 }

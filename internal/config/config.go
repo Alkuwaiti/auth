@@ -39,7 +39,7 @@ func Load(env, jur string) Config {
 
 		if jur != "" {
 			switch jur {
-			case "bhr", "uae", "tur":
+			case "bhr":
 			default:
 				panic(fmt.Sprintf("Invalid jur provided: %s", jur))
 			}

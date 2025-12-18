@@ -1,0 +1,10 @@
+version: "2"
+sql:
+  - name: "auth"
+    engine: "postgresql"
+    queries: "internal/services/auth/repos/queries.sql"
+    schema: "internal/services/auth/repos/migrations"
+    gen:
+      go:
+        package: "pgauth"
+        out: "internal/services/auth/repos/pgauth"

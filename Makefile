@@ -51,3 +51,6 @@ lint:
 	@echo "Running linter..."
 	golangci-lint run --fast
 
+create-migrations:
+	migrate create -ext sql -dir internal/services/auth/repos/migrations $${name:-migration}
+
