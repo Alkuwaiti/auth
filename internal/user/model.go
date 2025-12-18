@@ -1,5 +1,4 @@
-// Package model provides models of the service
-package model
+package user
 
 import (
 	"time"

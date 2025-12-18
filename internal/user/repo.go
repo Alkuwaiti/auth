@@ -1,25 +1,24 @@
-// Package auth uses the db.
-package auth
+// Package user holds user business logic.
+package user
 
 import (
 	"context"
 
-	"github.com/alkuwaiti/auth/internal/auth/model"
-	"github.com/alkuwaiti/auth/internal/db/pgauth"
+	"github.com/alkuwaiti/auth/internal/db/postgres"
 )
 
 type repo struct {
-	queries *pgauth.Queries
+	queries *postgres.Queries
 }
 
-func New(queries *pgauth.Queries) *repo {
+func New(queries *postgres.Queries) *repo {
 	return &repo{
 		queries: queries,
 	}
 }
 
-func (r *repo) GetAllUsers(ctx context.Context, limit, offset int) ([]model.User, error) {
-	dbUsers, err := r.queries.GetAllUsers(ctx, pgauth.GetAllUsersParams{
+func (r *repo) GetAllUsers(ctx context.Context, limit, offset int) ([]User, error) {
+	dbUsers, err := r.queries.GetAllUsers(ctx, postgres.GetAllUsersParams{
 		Limit:  int32(limit),
 		Offset: int32(offset),
 	})
@@ -27,10 +26,10 @@ func (r *repo) GetAllUsers(ctx context.Context, limit, offset int) ([]model.User
 		return nil, err
 	}
 
-	users := make([]model.User, len(dbUsers))
+	users := make([]User, len(dbUsers))
 
 	for i, user := range dbUsers {
-		users[i] = model.User{
+		users[i] = User{
 			ID:              user.ID,
 			Email:           user.Email,
 			Username:        user.Username.String,

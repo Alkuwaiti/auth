@@ -3,7 +3,7 @@
 //   sqlc v1.30.0
 // source: queries.sql
 
-package pgauth
+package postgres
 
 import (
 	"context"
