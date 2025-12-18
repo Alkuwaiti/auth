@@ -20,7 +20,7 @@ tools: check-brew
 
 clean:
 	@echo "cleaning up .bin/"
-	rm -rf .bin/
+	rm -rf bin/
 
 short-test:
 	@echo "Running short test"

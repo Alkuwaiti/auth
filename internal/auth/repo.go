@@ -1,11 +1,11 @@
-// Package repos uses the db.
-package repos
+// Package auth uses the db.
+package auth
 
 import (
 	"context"
 
-	"github.com/alkuwaiti/auth/internal/services/auth/model"
-	"github.com/alkuwaiti/auth/internal/services/auth/repos/pgauth"
+	"github.com/alkuwaiti/auth/internal/auth/model"
+	"github.com/alkuwaiti/auth/internal/db/pgauth"
 )
 
 type repo struct {
