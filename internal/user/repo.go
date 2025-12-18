@@ -17,29 +17,37 @@ func New(queries *postgres.Queries) *repo {
 	}
 }
 
-func (r *repo) GetAllUsers(ctx context.Context, limit, offset int) ([]User, error) {
-	dbUsers, err := r.queries.GetAllUsers(ctx, postgres.GetAllUsersParams{
-		Limit:  int32(limit),
-		Offset: int32(offset),
+func (r *repo) getUserByEmail(ctx context.Context, email string) (User, error) {
+	user, err := r.queries.GetUserByEmail(ctx, email)
+	if err != nil {
+		return User{}, err
+	}
+
+	return toModel(user), nil
+}
+
+func (r *repo) createUser(ctx context.Context, username, email, passwordHash string) (User, error) {
+	user, err := r.queries.CreateUser(ctx, postgres.CreateUserParams{
+		Username:     username,
+		Email:        email,
+		PasswordHash: passwordHash,
 	})
 	if err != nil {
-		return nil, err
+		return User{}, err
 	}
 
-	users := make([]User, len(dbUsers))
+	return toModel(user), nil
+}
 
-	for i, user := range dbUsers {
-		users[i] = User{
-			ID:              user.ID,
-			Email:           user.Email,
-			Username:        user.Username.String,
-			PasswordHash:    user.PasswordHash,
-			IsEmailVerified: user.IsEmailVerified,
-			IsActive:        user.IsActive,
-			CreatedAt:       user.CreatedAt,
-			UpdatedAt:       user.UpdatedAt,
-		}
+func toModel(postgresUser postgres.User) User {
+	return User{
+		ID:              postgresUser.ID,
+		Email:           postgresUser.Email,
+		Username:        postgresUser.Username,
+		PasswordHash:    postgresUser.PasswordHash,
+		IsEmailVerified: postgresUser.IsEmailVerified,
+		IsActive:        postgresUser.IsActive,
+		CreatedAt:       postgresUser.CreatedAt,
+		UpdatedAt:       postgresUser.UpdatedAt,
 	}
-
-	return users, nil
 }

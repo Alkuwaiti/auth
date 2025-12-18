@@ -81,7 +81,7 @@ type TwoFactorMethod struct {
 type User struct {
 	ID              uuid.UUID
 	Email           string
-	Username        sql.NullString
+	Username        string
 	PasswordHash    string
 	IsEmailVerified bool
 	IsActive        bool
