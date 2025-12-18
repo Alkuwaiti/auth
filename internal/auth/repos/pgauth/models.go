@@ -83,10 +83,10 @@ type User struct {
 	Email           string
 	Username        sql.NullString
 	PasswordHash    string
-	IsEmailVerified sql.NullBool
-	IsActive        sql.NullBool
-	CreatedAt       sql.NullTime
-	UpdatedAt       sql.NullTime
+	IsEmailVerified bool
+	IsActive        bool
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 type UserRole struct {

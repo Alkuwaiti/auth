@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/alkuwaiti/auth/internal/auth/repos"
+	"github.com/alkuwaiti/auth/internal/auth/repos/pgauth"
 	"github.com/alkuwaiti/auth/internal/config"
 	"github.com/alkuwaiti/auth/internal/db"
 )
@@ -44,5 +46,7 @@ func main() {
 		panic(err)
 	}
 	defer dbConn.Close()
+
+	authRepo := repos.New(pgauth.New(dbConn))
 
 }
