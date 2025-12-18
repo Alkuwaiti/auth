@@ -8,7 +8,13 @@ import (
 )
 
 type service struct {
-	repo repo
+	repo *repo
+}
+
+func NewService(repo repo) service {
+	return service{
+		&repo,
+	}
 }
 
 func (s *service) RegisterUser(ctx context.Context, username, email, password string) (User, error) {

@@ -3,13 +3,19 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log/slog"
+	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/alkuwaiti/auth/internal/config"
 	"github.com/alkuwaiti/auth/internal/db"
+	"github.com/alkuwaiti/auth/internal/db/postgres"
+	"github.com/alkuwaiti/auth/internal/server/grpc"
+	"github.com/alkuwaiti/auth/internal/user"
 )
 
 var (
@@ -21,7 +27,6 @@ var (
 
 func main() {
 	ctx := context.Background()
-	fmt.Println(ctx)
 
 	envFlag := flag.String("env", "local", "environment to use (local, dev, staging, prod)")
 	jurFlag := flag.String("jur", "", "jur to use (bhr, uae, tur)")
@@ -45,4 +50,37 @@ func main() {
 	}
 	defer dbConn.Close()
 
+	userRepo := user.NewRepo(postgres.New(dbConn))
+
+	userService := user.NewService(*userRepo)
+
+	port := 8081
+
+	srv := grpc.NewServer(grpc.Config{
+		Port: port,
+	}, &userService)
+
+	slog.InfoContext(ctx, "starting grpc server", "port", port, "commit", commit, "ref", ref, "version", version)
+	go func(ctx context.Context) {
+		if err := srv.Start(ctx); err != nil {
+			slog.ErrorContext(ctx, "Server error", "error", err)
+			os.Exit(1)
+		}
+	}(ctx)
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	// This hangs the server.
+	<-sigChan
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	slog.InfoContext(ctx, "Shutting down server")
+	if err := srv.Stop(ctx); err != nil {
+		panic(err)
+	}
+
+	slog.InfoContext(ctx, "Server stopped")
 }

@@ -11,7 +11,7 @@ type repo struct {
 	queries *postgres.Queries
 }
 
-func New(queries *postgres.Queries) *repo {
+func NewRepo(queries *postgres.Queries) *repo {
 	return &repo{
 		queries: queries,
 	}
