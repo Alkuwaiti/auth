@@ -9,13 +9,13 @@ option go_package = "github.com/alkuwaiti/auth/pb/pbuser";
 
 service UserService {
   rpc Ping(google.protobuf.Empty) returns (google.protobuf.Empty) {}
-  rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse) {}
+  rpc RegisterUser(RegisterUserRequest) returns (User) {}
 }
 
 message RegisterUserRequest {
   string username = 1;
-  string email = 1;
-  string password = 1;
+  string email = 2;
+  string password = 3;
 }
 
 message User {
@@ -27,5 +27,4 @@ message User {
   bool is_active = 6;
   google.protobuf.Timestamp created_at = 7;
   google.protobuf.Timestamp updated_at = 8;
-);
 }
