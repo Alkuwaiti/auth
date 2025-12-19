@@ -4,7 +4,7 @@
 // 	protoc        v6.33.2
 // source: .proto/user.proto
 
-package pbuser
+package userv1
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -187,7 +187,7 @@ var File___proto_user_proto protoreflect.FileDescriptor
 
 const file___proto_user_proto_rawDesc = "" +
 	"\n" +
-	"\x11.proto/user.proto\x12\x04user\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"c\n" +
+	"\x11.proto/user.proto\x12\auser.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"c\n" +
 	"\x13RegisterUserRequest\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
@@ -202,11 +202,10 @@ const file___proto_user_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt2\x80\x01\n" +
+	"updated_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt2\x86\x01\n" +
 	"\vUserService\x128\n" +
-	"\x04Ping\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x00\x127\n" +
-	"\fRegisterUser\x12\x19.user.RegisterUserRequest\x1a\n" +
-	".user.User\"\x00B%Z#github.com/alkuwaiti/auth/pb/pbuserb\x06proto3"
+	"\x04Ping\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x00\x12=\n" +
+	"\fRegisterUser\x12\x1c.user.v1.RegisterUserRequest\x1a\r.user.v1.User\"\x00B/Z-github.com/alkuwaiti/auth/pb/pbuser/v1;userv1b\x06proto3"
 
 var (
 	file___proto_user_proto_rawDescOnce sync.Once
@@ -222,18 +221,18 @@ func file___proto_user_proto_rawDescGZIP() []byte {
 
 var file___proto_user_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file___proto_user_proto_goTypes = []any{
-	(*RegisterUserRequest)(nil),   // 0: user.RegisterUserRequest
-	(*User)(nil),                  // 1: user.User
+	(*RegisterUserRequest)(nil),   // 0: user.v1.RegisterUserRequest
+	(*User)(nil),                  // 1: user.v1.User
 	(*timestamppb.Timestamp)(nil), // 2: google.protobuf.Timestamp
 	(*emptypb.Empty)(nil),         // 3: google.protobuf.Empty
 }
 var file___proto_user_proto_depIdxs = []int32{
-	2, // 0: user.User.created_at:type_name -> google.protobuf.Timestamp
-	2, // 1: user.User.updated_at:type_name -> google.protobuf.Timestamp
-	3, // 2: user.UserService.Ping:input_type -> google.protobuf.Empty
-	0, // 3: user.UserService.RegisterUser:input_type -> user.RegisterUserRequest
-	3, // 4: user.UserService.Ping:output_type -> google.protobuf.Empty
-	1, // 5: user.UserService.RegisterUser:output_type -> user.User
+	2, // 0: user.v1.User.created_at:type_name -> google.protobuf.Timestamp
+	2, // 1: user.v1.User.updated_at:type_name -> google.protobuf.Timestamp
+	3, // 2: user.v1.UserService.Ping:input_type -> google.protobuf.Empty
+	0, // 3: user.v1.UserService.RegisterUser:input_type -> user.v1.RegisterUserRequest
+	3, // 4: user.v1.UserService.Ping:output_type -> google.protobuf.Empty
+	1, // 5: user.v1.UserService.RegisterUser:output_type -> user.v1.User
 	4, // [4:6] is the sub-list for method output_type
 	2, // [2:4] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name

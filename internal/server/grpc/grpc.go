@@ -8,11 +8,14 @@ import (
 	"net"
 
 	"github.com/alkuwaiti/auth/internal/user"
+	userv1 "github.com/alkuwaiti/auth/pb/pbuser/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type server struct {
+	userv1.UnimplementedUserServiceServer
+
 	srv         *grpc.Server
 	userService userService
 	cfg         Config
@@ -59,7 +62,7 @@ func (s *server) Start(ctx context.Context) error {
 
 	s.srv = grpc.NewServer()
 
-	// TODO: register pb services here.
+	userv1.RegisterUserServiceServer(s.srv, s)
 
 	if err = s.srv.Serve(lis); err != nil {
 		return err

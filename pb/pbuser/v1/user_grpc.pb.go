@@ -4,7 +4,7 @@
 // - protoc             v6.33.2
 // source: .proto/user.proto
 
-package pbuser
+package userv1
 
 import (
 	context "context"
@@ -20,8 +20,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	UserService_Ping_FullMethodName         = "/user.UserService/Ping"
-	UserService_RegisterUser_FullMethodName = "/user.UserService/RegisterUser"
+	UserService_Ping_FullMethodName         = "/user.v1.UserService/Ping"
+	UserService_RegisterUser_FullMethodName = "/user.v1.UserService/RegisterUser"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -143,7 +143,7 @@ func _UserService_RegisterUser_Handler(srv interface{}, ctx context.Context, dec
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var UserService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "user.UserService",
+	ServiceName: "user.v1.UserService",
 	HandlerType: (*UserServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
