@@ -10,7 +10,7 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
+	_ "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -84,17 +84,12 @@ func (x *RegisterUserRequest) GetPassword() string {
 }
 
 type User struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Email           string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	Username        string                 `protobuf:"bytes,3,opt,name=username,proto3" json:"username,omitempty"`
-	PasswordHash    string                 `protobuf:"bytes,4,opt,name=password_hash,json=passwordHash,proto3" json:"password_hash,omitempty"`
-	IsEmailVerified bool                   `protobuf:"varint,5,opt,name=is_email_verified,json=isEmailVerified,proto3" json:"is_email_verified,omitempty"`
-	IsActive        bool                   `protobuf:"varint,6,opt,name=is_active,json=isActive,proto3" json:"is_active,omitempty"`
-	CreatedAt       *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt       *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	Username      string                 `protobuf:"bytes,3,opt,name=username,proto3" json:"username,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *User) Reset() {
@@ -148,41 +143,6 @@ func (x *User) GetUsername() string {
 	return ""
 }
 
-func (x *User) GetPasswordHash() string {
-	if x != nil {
-		return x.PasswordHash
-	}
-	return ""
-}
-
-func (x *User) GetIsEmailVerified() bool {
-	if x != nil {
-		return x.IsEmailVerified
-	}
-	return false
-}
-
-func (x *User) GetIsActive() bool {
-	if x != nil {
-		return x.IsActive
-	}
-	return false
-}
-
-func (x *User) GetCreatedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.CreatedAt
-	}
-	return nil
-}
-
-func (x *User) GetUpdatedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.UpdatedAt
-	}
-	return nil
-}
-
 var File___proto_user_proto protoreflect.FileDescriptor
 
 const file___proto_user_proto_rawDesc = "" +
@@ -191,18 +151,11 @@ const file___proto_user_proto_rawDesc = "" +
 	"\x13RegisterUserRequest\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
-	"\bpassword\x18\x03 \x01(\tR\bpassword\"\xac\x02\n" +
+	"\bpassword\x18\x03 \x01(\tR\bpassword\"H\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
-	"\busername\x18\x03 \x01(\tR\busername\x12#\n" +
-	"\rpassword_hash\x18\x04 \x01(\tR\fpasswordHash\x12*\n" +
-	"\x11is_email_verified\x18\x05 \x01(\bR\x0fisEmailVerified\x12\x1b\n" +
-	"\tis_active\x18\x06 \x01(\bR\bisActive\x129\n" +
-	"\n" +
-	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
-	"\n" +
-	"updated_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt2\x86\x01\n" +
+	"\busername\x18\x03 \x01(\tR\busername2\x86\x01\n" +
 	"\vUserService\x128\n" +
 	"\x04Ping\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x00\x12=\n" +
 	"\fRegisterUser\x12\x1c.user.v1.RegisterUserRequest\x1a\r.user.v1.User\"\x00B/Z-github.com/alkuwaiti/auth/pb/pbuser/v1;userv1b\x06proto3"
@@ -221,23 +174,20 @@ func file___proto_user_proto_rawDescGZIP() []byte {
 
 var file___proto_user_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file___proto_user_proto_goTypes = []any{
-	(*RegisterUserRequest)(nil),   // 0: user.v1.RegisterUserRequest
-	(*User)(nil),                  // 1: user.v1.User
-	(*timestamppb.Timestamp)(nil), // 2: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),         // 3: google.protobuf.Empty
+	(*RegisterUserRequest)(nil), // 0: user.v1.RegisterUserRequest
+	(*User)(nil),                // 1: user.v1.User
+	(*emptypb.Empty)(nil),       // 2: google.protobuf.Empty
 }
 var file___proto_user_proto_depIdxs = []int32{
-	2, // 0: user.v1.User.created_at:type_name -> google.protobuf.Timestamp
-	2, // 1: user.v1.User.updated_at:type_name -> google.protobuf.Timestamp
-	3, // 2: user.v1.UserService.Ping:input_type -> google.protobuf.Empty
-	0, // 3: user.v1.UserService.RegisterUser:input_type -> user.v1.RegisterUserRequest
-	3, // 4: user.v1.UserService.Ping:output_type -> google.protobuf.Empty
-	1, // 5: user.v1.UserService.RegisterUser:output_type -> user.v1.User
-	4, // [4:6] is the sub-list for method output_type
-	2, // [2:4] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	2, // 0: user.v1.UserService.Ping:input_type -> google.protobuf.Empty
+	0, // 1: user.v1.UserService.RegisterUser:input_type -> user.v1.RegisterUserRequest
+	2, // 2: user.v1.UserService.Ping:output_type -> google.protobuf.Empty
+	1, // 3: user.v1.UserService.RegisterUser:output_type -> user.v1.User
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
+	0, // [0:0] is the sub-list for extension type_name
+	0, // [0:0] is the sub-list for extension extendee
+	0, // [0:0] is the sub-list for field type_name
 }
 
 func init() { file___proto_user_proto_init() }

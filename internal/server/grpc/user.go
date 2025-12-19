@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/alkuwaiti/auth/internal/user"
@@ -23,9 +22,12 @@ func (s *server) RegisterUser(ctx context.Context, req *userv1.RegisterUserReque
 		Password: req.Password,
 	})
 	if err != nil {
-		return nil, err
+		return nil, MapError(err)
 	}
 
-	fmt.Println(res)
-	panic("unimplemented")
+	return &userv1.User{
+		Id:       res.ID.String(),
+		Username: res.Username,
+		Email:    res.Email,
+	}, nil
 }
