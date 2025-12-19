@@ -10,11 +10,15 @@ import (
 	"github.com/alkuwaiti/auth/internal/user"
 	userv1 "github.com/alkuwaiti/auth/pb/pbuser/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type server struct {
-	userv1.UnimplementedUserServiceServer
+	// TODO: change these to unimplemented when the time comes.
+	userv1.UnsafeUserServiceServer
 
 	srv         *grpc.Server
 	userService userService
