@@ -7,8 +7,9 @@ import (
 	"log/slog"
 	"net"
 
-	model "github.com/alkuwaiti/auth/internal/user"
+	"github.com/alkuwaiti/auth/internal/user"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type server struct {
@@ -18,7 +19,7 @@ type server struct {
 }
 
 type userService interface {
-	RegisterUser(ctx context.Context, username, email, password string) (model.User, error)
+	RegisterUser(ctx context.Context, username, email, password string) (user.User, error)
 }
 
 type Config struct {
@@ -86,4 +87,8 @@ func (s *server) Stop(ctx context.Context) error {
 	s.srv = nil
 
 	return nil
+}
+
+func (s *server) Ping(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
+	return &emptypb.Empty{}, nil
 }

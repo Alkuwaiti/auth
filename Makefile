@@ -54,3 +54,10 @@ lint:
 create-migrations:
 	migrate create -ext sql -dir internal/services/auth/repos/migrations $${name:-migration}
 
+proto: tools
+	@echo "Generating proto..."
+	protoc --go_out=. --go_opt=module=github.com/alkuwaiti/auth \
+		--go-grpc_out=. --go-grpc_opt=module=github.com/alkuwaiti/auth \
+		./.proto/*.proto
+
+
