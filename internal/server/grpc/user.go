@@ -2,8 +2,10 @@ package grpc
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
+	"github.com/alkuwaiti/auth/internal/user"
 	userv1 "github.com/alkuwaiti/auth/pb/pbuser/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -14,4 +16,16 @@ func (s *server) RegisterUser(ctx context.Context, req *userv1.RegisterUserReque
 		slog.ErrorContext(ctx, "Invalid request: request is nil")
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
+
+	res, err := s.userService.RegisterUser(ctx, user.RegisterUserInput{
+		Username: req.Username,
+		Email:    req.Email,
+		Password: req.Password,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println(res)
+	panic("unimplemented")
 }

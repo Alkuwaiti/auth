@@ -2,7 +2,9 @@ package user
 
 import (
 	"context"
-	"fmt"
+	"errors"
+
+	"github.com/alkuwaiti/auth/internal/apperrors"
 )
 
 type service struct {
@@ -21,32 +23,46 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 		return User{}, err
 	}
 
-	existingUser, err := s.repo.getUserByEmail(ctx, input.email)
+	if _, err = s.repo.getUserByEmail(ctx, input.Email); err == nil {
+		return User{}, &apperrors.DuplicateError{
+			Resource: "user",
+			Field:    "email",
+			Value:    input.Email,
+		}
+	} else if !errors.Is(err, ErrUserNotFound) {
+		return User{}, &apperrors.InternalError{
+			Msg: "failed to query by email",
+			Err: err,
+		}
+	}
+
+	if _, err = s.repo.getUserByUsername(ctx, input.Username); err == nil {
+		return User{}, &apperrors.DuplicateError{
+			Resource: "user",
+			Field:    "username",
+			Value:    input.Username,
+		}
+	} else if !errors.Is(err, ErrUserNotFound) {
+		return User{}, &apperrors.InternalError{
+			Msg: "failed to query by username",
+			Err: err,
+		}
+	}
+
+	hashedPassword, err := hashPassword(input.Password)
 	if err != nil {
-		return existingUser, fmt.Errorf("failed to query user by email: %w", err)
+		return User{}, &apperrors.InternalError{
+			Msg: "error hashing password",
+			Err: err,
+		}
 	}
 
-	if existingUser.Email == input.email {
-		return User{}, fmt.Errorf("user already exists")
-	}
-
-	existingUser, err = s.repo.getUserByUsername(ctx, input.username)
+	user, err := s.repo.createUser(ctx, input.Username, input.Email, hashedPassword)
 	if err != nil {
-		return existingUser, fmt.Errorf("failed to query user by username: %w", err)
-	}
-
-	if existingUser.Username == input.username {
-		return User{}, fmt.Errorf("user already exists")
-	}
-
-	hashedPassword, err := hashPassword(input.password)
-	if err != nil {
-		return User{}, fmt.Errorf("error hashing password: %w", err)
-	}
-
-	user, err := s.repo.createUser(ctx, input.username, input.email, hashedPassword)
-	if err != nil {
-		return User{}, fmt.Errorf("failed to create a user: %w", err)
+		return User{}, &apperrors.InternalError{
+			Msg: "failed to create a user",
+			Err: err,
+		}
 	}
 
 	return user, nil

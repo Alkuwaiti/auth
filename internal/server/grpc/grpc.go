@@ -10,9 +10,6 @@ import (
 	"github.com/alkuwaiti/auth/internal/user"
 	userv1 "github.com/alkuwaiti/auth/pb/pbuser/v1"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -26,7 +23,7 @@ type server struct {
 }
 
 type userService interface {
-	RegisterUser(ctx context.Context, username, email, password string) (user.User, error)
+	RegisterUser(context.Context, user.RegisterUserInput) (user.User, error)
 }
 
 type Config struct {

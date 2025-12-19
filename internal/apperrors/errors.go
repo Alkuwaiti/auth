@@ -1,0 +1,35 @@
+// Package apperrors provides app wide errors to be re-used.
+package apperrors
+
+import "fmt"
+
+type ValidationError struct {
+	Field string
+	Msg   string
+}
+
+func (e *ValidationError) Error() string {
+	return fmt.Sprintf("%s: %s", e.Field, e.Msg)
+}
+
+type DuplicateError struct {
+	Resource string
+	Field    string
+	Value    string
+}
+
+func (e *DuplicateError) Error() string {
+	return fmt.Sprintf("%s with %s '%s' already exists", e.Resource, e.Field, e.Value)
+}
+
+type InternalError struct {
+	Msg string
+	Err error
+}
+
+func (e *InternalError) Error() string {
+	if e.Err != nil {
+		return fmt.Sprintf("%s: %v", e.Msg, e.Err)
+	}
+	return e.Msg
+}

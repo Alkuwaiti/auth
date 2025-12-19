@@ -3,6 +3,8 @@ package user
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 )
@@ -20,6 +22,9 @@ func NewRepo(queries *postgres.Queries) *repo {
 func (r *repo) getUserByEmail(ctx context.Context, email string) (User, error) {
 	user, err := r.queries.GetUserByEmail(ctx, email)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return User{}, ErrUserNotFound
+		}
 		return User{}, err
 	}
 
@@ -29,6 +34,9 @@ func (r *repo) getUserByEmail(ctx context.Context, email string) (User, error) {
 func (r *repo) getUserByUsername(ctx context.Context, username string) (User, error) {
 	user, err := r.queries.GetUserByUsername(ctx, username)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return User{}, ErrUserNotFound
+		}
 		return User{}, err
 	}
 

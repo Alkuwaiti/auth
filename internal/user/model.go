@@ -1,20 +1,20 @@
 package user
 
 import (
-	"errors"
 	"net/mail"
 	"strings"
 	"time"
 	"unicode"
 
+	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/google/uuid"
 )
 
 type User struct {
 	ID              uuid.UUID `json:"id"`
 	Email           string    `json:"email"`
-	Username        string    `json:"username"`
-	PasswordHash    string    `json:"password_hash"`
+	Username        string    `json:"Username"`
+	PasswordHash    string    `json:"Password_hash"`
 	IsEmailVerified bool      `json:"is_email_verified"`
 	IsActive        bool      `json:"is_active"`
 	CreatedAt       time.Time `json:"created_at"`
@@ -22,22 +22,19 @@ type User struct {
 }
 
 type RegisterUserInput struct {
-	username, email, password string
+	Username, Email, Password string
 }
 
 func (r *RegisterUserInput) validate() error {
-	err := r.validateEmail()
-	if err != nil {
+	if err := r.validateEmail(); err != nil {
 		return err
 	}
 
-	err = r.validateUsername()
-	if err != nil {
+	if err := r.validateUsername(); err != nil {
 		return err
 	}
 
-	err = r.validatePassword()
-	if err != nil {
+	if err := r.validatePassword(); err != nil {
 		return err
 	}
 
@@ -45,45 +42,45 @@ func (r *RegisterUserInput) validate() error {
 }
 
 func (r *RegisterUserInput) validateEmail() error {
-	r.email = strings.TrimSpace(r.email)
+	r.Email = strings.TrimSpace(r.Email)
 
-	if r.email == "" {
-		return errors.New("email cannot be empty")
+	if r.Email == "" {
+		return &apperrors.ValidationError{Field: "email", Msg: "cannot be empty"}
 	}
 
-	if _, err := mail.ParseAddress(r.email); err != nil {
-		return errors.New("email has an invalid format")
+	if _, err := mail.ParseAddress(r.Email); err != nil {
+		return &apperrors.ValidationError{Field: "email", Msg: "email has an invalid format"}
 	}
 
 	return nil
 }
 
 func (r *RegisterUserInput) validateUsername() error {
-	r.username = strings.TrimSpace(r.username)
+	r.Username = strings.TrimSpace(r.Username)
 
-	if r.username == "" {
-		return errors.New("username cannot be empty")
+	if r.Username == "" {
+		return &apperrors.ValidationError{Field: "username", Msg: "cannot be empty"}
 	}
 
-	if len(r.username) < 3 {
-		return errors.New("username must be at least 3 characters")
+	if len(r.Username) < 3 {
+		return &apperrors.ValidationError{Field: "username", Msg: "must be at least 3 characters"}
 	}
 
-	if len(r.username) > 50 {
-		return errors.New("username must not exceed 50 characters")
+	if len(r.Username) > 50 {
+		return &apperrors.ValidationError{Field: "username", Msg: "must not exceed 50 characters"}
 	}
 
 	return nil
 }
 
 func (r *RegisterUserInput) validatePassword() error {
-	if len(r.password) < 8 {
-		return errors.New("password must be at least 8 characters")
+	if len(r.Password) < 8 {
+		return &apperrors.ValidationError{Field: "username", Msg: "must be at least 8 characters"}
 	}
 
 	var hasUpper, hasLower, hasNumber, hasSpecial bool
 
-	for _, c := range r.password {
+	for _, c := range r.Password {
 		switch {
 		case unicode.IsUpper(c):
 			hasUpper = true
@@ -97,16 +94,16 @@ func (r *RegisterUserInput) validatePassword() error {
 	}
 
 	if !hasUpper {
-		return errors.New("password must contain at least one uppercase letter")
+		return &apperrors.ValidationError{Field: "password", Msg: "must contain at least one uppercase letter"}
 	}
 	if !hasLower {
-		return errors.New("password must contain at least one lowercase letter")
+		return &apperrors.ValidationError{Field: "password", Msg: "must contain at least one lowercase letter"}
 	}
 	if !hasNumber {
-		return errors.New("password must contain at least one number")
+		return &apperrors.ValidationError{Field: "password", Msg: "must contain at least one number"}
 	}
 	if !hasSpecial {
-		return errors.New("password must contain at least one special character")
+		return &apperrors.ValidationError{Field: "password", Msg: "must contain at least one special character"}
 	}
 
 	return nil
