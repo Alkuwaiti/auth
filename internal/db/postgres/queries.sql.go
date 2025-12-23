@@ -7,67 +7,24 @@ package postgres
 
 import (
 	"context"
-
-	"github.com/google/uuid"
 )
 
-const createUser = `-- name: CreateUser :one
+const registerUser = `-- name: RegisterUser :one
+
 INSERT INTO users (username, email, password_hash , created_at, updated_at)
 VALUES ($1, $2, $3, NOW(), NOW())
 RETURNING id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at
 `
 
-type CreateUserParams struct {
+type RegisterUserParams struct {
 	Username     string
 	Email        string
 	PasswordHash string
 }
 
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, createUser, arg.Username, arg.Email, arg.PasswordHash)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Email,
-		&i.Username,
-		&i.PasswordHash,
-		&i.IsEmailVerified,
-		&i.IsActive,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at FROM users
-WHERE email = $1
-`
-
-func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Email,
-		&i.Username,
-		&i.PasswordHash,
-		&i.IsEmailVerified,
-		&i.IsActive,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at FROM users 
-WHERE id = $1
-`
-
 // users
-func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUserByID, id)
+func (q *Queries) RegisterUser(ctx context.Context, arg RegisterUserParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, registerUser, arg.Username, arg.Email, arg.PasswordHash)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -82,23 +39,28 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 	return i, err
 }
 
-const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at FROM users
-WHERE username = $1
+const userExistsByEmail = `-- name: UserExistsByEmail :one
+SELECT EXISTS (
+  SELECT 1 FROM users WHERE email = $1
+)
 `
 
-func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUserByUsername, username)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Email,
-		&i.Username,
-		&i.PasswordHash,
-		&i.IsEmailVerified,
-		&i.IsActive,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+func (q *Queries) UserExistsByEmail(ctx context.Context, email string) (bool, error) {
+	row := q.db.QueryRowContext(ctx, userExistsByEmail, email)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const userExistsByUsername = `-- name: UserExistsByUsername :one
+SELECT EXISTS (
+  SELECT 1 FROM users WHERE username = $1
+)
+`
+
+func (q *Queries) UserExistsByUsername(ctx context.Context, username string) (bool, error) {
+	row := q.db.QueryRowContext(ctx, userExistsByUsername, username)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
 }

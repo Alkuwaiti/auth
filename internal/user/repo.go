@@ -19,32 +19,31 @@ func NewRepo(queries *postgres.Queries) *repo {
 	}
 }
 
-func (r *repo) getUserByEmail(ctx context.Context, email string) (User, error) {
-	user, err := r.queries.GetUserByEmail(ctx, email)
+func (r *repo) UserExistsByEmail(ctx context.Context, email string) (bool, error) {
+	exists, err := r.queries.UserExistsByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return User{}, ErrUserNotFound
+			return false, ErrUserNotFound
 		}
-		return User{}, err
+		return false, err
 	}
 
-	return toModel(user), nil
+	return exists, nil
 }
 
-func (r *repo) getUserByUsername(ctx context.Context, username string) (User, error) {
-	user, err := r.queries.GetUserByUsername(ctx, username)
+func (r *repo) UserExistsByUsername(ctx context.Context, username string) (bool, error) {
+	exists, err := r.queries.UserExistsByUsername(ctx, username)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return User{}, ErrUserNotFound
+			return false, ErrUserNotFound
 		}
-		return User{}, err
+		return false, err
 	}
-
-	return toModel(user), nil
+	return exists, nil
 }
 
-func (r *repo) createUser(ctx context.Context, username, email, passwordHash string) (User, error) {
-	user, err := r.queries.CreateUser(ctx, postgres.CreateUserParams{
+func (r *repo) registerUser(ctx context.Context, username, email, passwordHash string) (User, error) {
+	user, err := r.queries.RegisterUser(ctx, postgres.RegisterUserParams{
 		Username:     username,
 		Email:        email,
 		PasswordHash: passwordHash,

@@ -11,9 +11,9 @@ type service struct {
 	repo *repo
 }
 
-func NewService(repo repo) service {
-	return service{
-		&repo,
+func NewService(repo *repo) *service {
+	return &service{
+		repo,
 	}
 }
 
@@ -23,29 +23,33 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 		return User{}, err
 	}
 
-	if _, err = s.repo.getUserByEmail(ctx, input.Email); err == nil {
+	exists, err := s.repo.UserExistsByEmail(ctx, input.Email)
+	if err != nil {
+		return User{}, &apperrors.InternalError{
+			Msg: "failed to check email uniqueness",
+			Err: err,
+		}
+	}
+	if exists {
 		return User{}, &apperrors.DuplicateError{
 			Resource: "user",
 			Field:    "email",
 			Value:    input.Email,
 		}
-	} else if !errors.Is(err, ErrUserNotFound) {
+	}
+
+	exists, err = s.repo.UserExistsByUsername(ctx, input.Username)
+	if err != nil {
 		return User{}, &apperrors.InternalError{
-			Msg: "failed to query by email",
+			Msg: "failed to check username uniqueness",
 			Err: err,
 		}
 	}
-
-	if _, err = s.repo.getUserByUsername(ctx, input.Username); err == nil {
+	if exists {
 		return User{}, &apperrors.DuplicateError{
 			Resource: "user",
 			Field:    "username",
 			Value:    input.Username,
-		}
-	} else if !errors.Is(err, ErrUserNotFound) {
-		return User{}, &apperrors.InternalError{
-			Msg: "failed to query by username",
-			Err: err,
 		}
 	}
 
@@ -57,10 +61,10 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 		}
 	}
 
-	user, err := s.repo.createUser(ctx, input.Username, input.Email, hashedPassword)
+	user, err := s.repo.registerUser(ctx, input.Username, input.Email, hashedPassword)
 	if err != nil {
 		return User{}, &apperrors.InternalError{
-			Msg: "failed to create a user",
+			Msg: "failed to register a user",
 			Err: err,
 		}
 	}

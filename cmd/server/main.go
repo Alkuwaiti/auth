@@ -52,13 +52,13 @@ func main() {
 
 	userRepo := user.NewRepo(postgres.New(dbConn))
 
-	userService := user.NewService(*userRepo)
+	userService := user.NewService(userRepo)
 
 	port := 8081
 
 	srv := grpc.NewServer(grpc.Config{
 		Port: port,
-	}, &userService)
+	}, userService)
 
 	slog.InfoContext(ctx, "starting grpc server", "port", port, "commit", commit, "ref", ref, "version", version)
 	go func(ctx context.Context) {
