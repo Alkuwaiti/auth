@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
 )
@@ -30,6 +31,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 		}
 	}
 	if exists {
+		slog.WarnContext(ctx, "user already exists", "email", input.Email)
 		return User{}, &apperrors.DuplicateError{
 			Resource: "user",
 			Field:    "email",
@@ -45,6 +47,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 		}
 	}
 	if exists {
+		slog.WarnContext(ctx, "user already exists", "username", input.Username)
 		return User{}, &apperrors.DuplicateError{
 			Resource: "user",
 			Field:    "username",
