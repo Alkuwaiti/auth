@@ -2,7 +2,6 @@ package user
 
 import (
 	"context"
-	"errors"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
 )
