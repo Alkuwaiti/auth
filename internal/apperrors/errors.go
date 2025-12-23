@@ -19,7 +19,8 @@ type DuplicateError struct {
 }
 
 func (e *DuplicateError) Error() string {
-	return fmt.Sprintf("%s with %s '%s' already exists", e.Resource, e.Field, e.Value)
+	// NOTE: intentionally left with no data.
+	return "invalid credentials"
 }
 
 type InternalError struct {
