@@ -40,7 +40,7 @@ run:
 	@$(MAKE) _run_server
 
 _run_server:
-	@bash -c 'trap "echo Stopping docker-compose; docker-compose down" EXIT; \
+	@bash -c 'trap "echo Stopping docker-compose; docker-compose stop" EXIT; \
 		go run -ldflags "-X main.commit=`git rev-parse HEAD` -X main.ref=`git rev-parse --abbrev-ref HEAD` -X main.version=`git describe --tags --always`" ./cmd/server --env local'
 
 mocks:
@@ -60,3 +60,8 @@ proto:
 		--go-grpc_out=. --go-grpc_opt=module=github.com/alkuwaiti/auth \
 		./.proto/*.proto
 
+run-migrations:
+	migrate \
+  -path internal/db/migrations \
+  -database "postgres://localuser:veryhardpassword123@localhost:5432/authdb?sslmode=disable" \
+  up
