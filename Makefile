@@ -65,3 +65,9 @@ run-migrations:
   -path internal/db/migrations \
   -database "postgres://localuser:veryhardpassword123@localhost:5432/authdb?sslmode=disable" \
   up
+
+rollback-last-migration:
+	migrate \
+  -path internal/db/migrations \
+  -database "postgres://localuser:veryhardpassword123@localhost:5432/authdb?sslmode=disable" \
+  down 1
