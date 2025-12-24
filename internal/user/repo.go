@@ -5,6 +5,7 @@ import (
 	"context"
 
 	"github.com/alkuwaiti/auth/internal/db/postgres"
+	"github.com/google/uuid"
 )
 
 type repo struct {
@@ -35,7 +36,13 @@ func (r *repo) UserExistsByUsername(ctx context.Context, username string) (bool,
 }
 
 func (r *repo) registerUser(ctx context.Context, username, email, passwordHash string) (User, error) {
+	id, err := uuid.NewV7()
+	if err != nil {
+		return User{}, err
+	}
+
 	user, err := r.queries.RegisterUser(ctx, postgres.RegisterUserParams{
+		ID:           id,
 		Username:     username,
 		Email:        email,
 		PasswordHash: passwordHash,

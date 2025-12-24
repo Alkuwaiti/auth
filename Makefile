@@ -52,7 +52,7 @@ lint:
 	golangci-lint run --fast
 
 create-migrations:
-	migrate create -ext sql -dir internal/services/auth/repos/migrations $${name:-migration}
+	migrate create -ext sql -dir internal/db/migrations $${name:-migration}
 
 proto:
 	@echo "Generating proto..."

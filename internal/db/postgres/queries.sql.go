@@ -7,16 +7,19 @@ package postgres
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const registerUser = `-- name: RegisterUser :one
 
-INSERT INTO users (username, email, password_hash , created_at, updated_at)
-VALUES ($1, $2, $3, NOW(), NOW())
+INSERT INTO users (id, username, email, password_hash , created_at, updated_at)
+VALUES ($1, $2, $3, $4, NOW(), NOW())
 RETURNING id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at
 `
 
 type RegisterUserParams struct {
+	ID           uuid.UUID
 	Username     string
 	Email        string
 	PasswordHash string
@@ -24,7 +27,12 @@ type RegisterUserParams struct {
 
 // users
 func (q *Queries) RegisterUser(ctx context.Context, arg RegisterUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, registerUser, arg.Username, arg.Email, arg.PasswordHash)
+	row := q.db.QueryRowContext(ctx, registerUser,
+		arg.ID,
+		arg.Username,
+		arg.Email,
+		arg.PasswordHash,
+	)
 	var i User
 	err := row.Scan(
 		&i.ID,
