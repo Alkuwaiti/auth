@@ -34,3 +34,18 @@ func (e *InternalError) Error() string {
 	}
 	return e.Msg
 }
+
+type InvalidCredentialsError struct{}
+
+func (e *InvalidCredentialsError) Error() string {
+	return "invalid credentials"
+}
+
+type BadRequestError struct {
+	Field string
+	Msg   string
+}
+
+func (e *BadRequestError) Error() string {
+	return fmt.Sprintf("%s: %s", e.Field, e.Msg)
+}

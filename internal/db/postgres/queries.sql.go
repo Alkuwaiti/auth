@@ -7,9 +7,57 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 )
+
+const createSession = `-- name: CreateSession :exec
+
+INSERT INTO sessions (user_id, refresh_token_hash, user_agent, ip_address, expires_at)
+VALUES ($1, $2, $3, $4, $5)
+`
+
+type CreateSessionParams struct {
+	UserID           uuid.NullUUID
+	RefreshTokenHash string
+	UserAgent        sql.NullString
+	IpAddress        sql.NullString
+	ExpiresAt        time.Time
+}
+
+// sessions
+func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) error {
+	_, err := q.db.ExecContext(ctx, createSession,
+		arg.UserID,
+		arg.RefreshTokenHash,
+		arg.UserAgent,
+		arg.IpAddress,
+		arg.ExpiresAt,
+	)
+	return err
+}
+
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at FROM users WHERE email = $1
+`
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Username,
+		&i.PasswordHash,
+		&i.IsEmailVerified,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
 
 const registerUser = `-- name: RegisterUser :one
 

@@ -32,11 +32,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 	}
 	if exists {
 		slog.WarnContext(ctx, "user already exists", "email", input.Email)
-		return User{}, &apperrors.DuplicateError{
-			Resource: "user",
-			Field:    "email",
-			Value:    input.Email,
-		}
+		return User{}, &apperrors.InvalidCredentialsError{}
 	}
 
 	exists, err = s.repo.userExistsByUsername(ctx, input.Username)
@@ -48,11 +44,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 	}
 	if exists {
 		slog.WarnContext(ctx, "user already exists", "username", input.Username)
-		return User{}, &apperrors.DuplicateError{
-			Resource: "user",
-			Field:    "username",
-			Value:    input.Username,
-		}
+		return User{}, &apperrors.InvalidCredentialsError{}
 	}
 
 	hashedPassword, err := hashPassword(input.Password)
@@ -69,6 +61,15 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 			Msg: "failed to register a user",
 			Err: err,
 		}
+	}
+
+	return user, nil
+}
+
+func (s *service) GetUserByEmail(ctx context.Context, email string) (User, error) {
+	user, err := s.repo.GetUserByEmail(ctx, email)
+	if err != nil {
+		return User{}, err
 	}
 
 	return user, nil

@@ -54,6 +54,15 @@ func (r *repo) registerUser(ctx context.Context, username, email, passwordHash s
 	return toModel(user), nil
 }
 
+func (r *repo) GetUserByEmail(ctx context.Context, email string) (User, error) {
+	user, err := r.queries.GetUserByEmail(ctx, email)
+	if err != nil {
+		return User{}, err
+	}
+
+	return toModel(user), nil
+}
+
 func toModel(postgresUser postgres.User) User {
 	return User{
 		ID:              postgresUser.ID,
