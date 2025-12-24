@@ -23,7 +23,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 		return User{}, err
 	}
 
-	exists, err := s.repo.UserExistsByEmail(ctx, input.Email)
+	exists, err := s.repo.userExistsByEmail(ctx, input.Email)
 	if err != nil {
 		return User{}, &apperrors.InternalError{
 			Msg: "failed to check email uniqueness",
@@ -39,7 +39,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 		}
 	}
 
-	exists, err = s.repo.UserExistsByUsername(ctx, input.Username)
+	exists, err = s.repo.userExistsByUsername(ctx, input.Username)
 	if err != nil {
 		return User{}, &apperrors.InternalError{
 			Msg: "failed to check username uniqueness",

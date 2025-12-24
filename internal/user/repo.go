@@ -18,7 +18,7 @@ func NewRepo(queries *postgres.Queries) *repo {
 	}
 }
 
-func (r *repo) UserExistsByEmail(ctx context.Context, email string) (bool, error) {
+func (r *repo) userExistsByEmail(ctx context.Context, email string) (bool, error) {
 	exists, err := r.queries.UserExistsByEmail(ctx, email)
 	if err != nil {
 		return false, err
@@ -27,7 +27,7 @@ func (r *repo) UserExistsByEmail(ctx context.Context, email string) (bool, error
 	return exists, nil
 }
 
-func (r *repo) UserExistsByUsername(ctx context.Context, username string) (bool, error) {
+func (r *repo) userExistsByUsername(ctx context.Context, username string) (bool, error) {
 	exists, err := r.queries.UserExistsByUsername(ctx, username)
 	if err != nil {
 		return false, err
