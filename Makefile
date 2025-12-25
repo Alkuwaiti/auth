@@ -57,10 +57,11 @@ create-migrations:
 	migrate create -ext sql -dir internal/db/migrations $${name:-migration}
 
 proto:
-	@echo "Generating proto..."
+	@echo "Generating proto...\n"
 	protoc --go_out=. --go_opt=module=github.com/alkuwaiti/auth \
 		--go-grpc_out=. --go-grpc_opt=module=github.com/alkuwaiti/auth \
 		./.proto/*.proto
+	@echo ""
 
 run-migrations:
 	migrate \

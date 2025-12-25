@@ -3,7 +3,6 @@ syntax = "proto3";
 package user.v1;
 
 import "google/protobuf/empty.proto";
-import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/alkuwaiti/auth/pb/pbuser/v1;userv1";
 

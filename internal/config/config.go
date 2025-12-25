@@ -27,6 +27,7 @@ type Config struct {
 	LogLevel         string
 	TracingCollector string
 	DatabaseURL      string
+	JWTKey           string
 }
 
 func Load(env, jur string) Config {

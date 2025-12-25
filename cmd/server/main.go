@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/config"
 	"github.com/alkuwaiti/auth/internal/db"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
@@ -53,6 +54,12 @@ func main() {
 	userRepo := user.NewRepo(postgres.New(dbConn))
 
 	userService := user.NewService(userRepo)
+
+	authRepo := auth.NewRepo(postgres.New(dbConn))
+
+	authService := auth.NewService(authRepo, userService, auth.Config{
+		JWTKey: cfg.JWTKey,
+	})
 
 	port := 8081
 

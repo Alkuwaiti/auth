@@ -3,7 +3,6 @@ syntax = "proto3";
 package auth.v1;
 
 import "google/protobuf/empty.proto";
-import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/alkuwaiti/auth/pb/pbauth/v1;authv1";
 
@@ -22,5 +21,5 @@ message LoginResponse {
   string refresh_token = 2;
   int64 expiresIn = 3;
   string token_type = 4;
-  string user_id = 5
+  string user_id = 5;
 }

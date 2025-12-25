@@ -7,7 +7,10 @@ import (
 	"log/slog"
 	"net"
 
+	"github.com/alkuwaiti/auth/internal/auth"
+	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/user"
+	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
 	userv1 "github.com/alkuwaiti/auth/pb/pbuser/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -16,14 +19,20 @@ import (
 type server struct {
 	// TODO: change these to unimplemented when the time comes.
 	userv1.UnsafeUserServiceServer
+	authv1.UnsafeAuthServiceServer
 
 	srv         *grpc.Server
 	userService userService
+	authService authService
 	cfg         Config
 }
 
 type userService interface {
 	RegisterUser(context.Context, user.RegisterUserInput) (user.User, error)
+}
+
+type authService interface {
+	Login(ctx context.Context, email, password string, meta core.RequestMeta) (auth.TokenPair, error)
 }
 
 type Config struct {
@@ -35,9 +44,13 @@ func (c Config) String() string {
 	return fmt.Sprintf("%s:%d", c.Host, c.Port)
 }
 
-func NewServer(cfg Config, userService userService) *server {
+func NewServer(cfg Config, userService userService, authService authService) *server {
 	if userService == nil {
 		panic("user service is nil")
+	}
+
+	if authService == nil {
+		panic("auth service is nil")
 	}
 
 	if cfg.Port <= 0 {
@@ -47,6 +60,7 @@ func NewServer(cfg Config, userService userService) *server {
 	return &server{
 		cfg:         cfg,
 		userService: userService,
+		authService: authService,
 	}
 }
 
@@ -66,6 +80,7 @@ func (s *server) Start(ctx context.Context) error {
 	)
 
 	userv1.RegisterUserServiceServer(s.srv, s)
+	authv1.RegisterAuthServiceServer(s.srv, s)
 
 	if err = s.srv.Serve(lis); err != nil {
 		return err
