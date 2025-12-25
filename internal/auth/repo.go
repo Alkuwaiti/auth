@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/db/postgres"
@@ -18,13 +19,19 @@ func NewRepo(queries *postgres.Queries) *repo {
 	}
 }
 
-func (r *repo) CreateSession(ctx context.Context, userID uuid.UUID, refreshTokenHash string, expiry time.Time) error {
+func (r *repo) CreateSession(ctx context.Context, userID uuid.UUID, expiry time.Time, refreshTokenHash, IpAddress, userAgent string) error {
 	err := r.queries.CreateSession(ctx, postgres.CreateSessionParams{
 		UserID:           userID,
 		RefreshTokenHash: refreshTokenHash,
-		UserAgent:        "",
-		IpAddress:        "",
-		ExpiresAt:        expiry,
+		UserAgent: sql.NullString{
+			String: userAgent,
+			Valid:  userAgent != "",
+		},
+		IpAddress: sql.NullString{
+			String: IpAddress,
+			Valid:  IpAddress != "",
+		},
+		ExpiresAt: expiry,
 	})
 	if err != nil {
 		return err

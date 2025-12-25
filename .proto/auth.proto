@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package auth.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/alkuwaiti/auth/pb/pbauth/v1;authv1";
+
+service AuthService {
+  rpc Ping(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+  rpc Login(LoginRequest) returns (LoginResponse) {}
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  int64 expiresIn = 3;
+  string token_type = 4;
+  string user_id = 5
+}

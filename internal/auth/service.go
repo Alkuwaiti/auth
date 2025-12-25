@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
+	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/user"
 	"github.com/golang-jwt/jwt"
 	"golang.org/x/crypto/bcrypt"
@@ -35,7 +36,7 @@ type userService interface {
 	GetUserByEmail(ctx context.Context, email string) (user.User, error)
 }
 
-func (s *service) Login(ctx context.Context, email, password string) (TokenPair, error) {
+func (s *service) Login(ctx context.Context, email, password string, meta core.RequestMeta) (TokenPair, error) {
 	user, err := s.userService.GetUserByEmail(ctx, email)
 	if err != nil {
 		// NOTE: this probably leaks sql not found error
@@ -71,7 +72,7 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 	}
 
 	expiresAt := time.Now().Add(7 * 24 * time.Hour)
-	err = s.repo.CreateSession(ctx, user.ID, hashedRefreshToken, expiresAt)
+	err = s.repo.CreateSession(ctx, user.ID, expiresAt, hashedRefreshToken, meta.IPAddress, meta.UserAgent)
 	if err != nil {
 		return TokenPair{}, err
 	}
