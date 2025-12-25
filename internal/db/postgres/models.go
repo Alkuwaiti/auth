@@ -49,7 +49,7 @@ type RolePermission struct {
 
 type Session struct {
 	ID               uuid.UUID
-	UserID           uuid.NullUUID
+	UserID           uuid.UUID
 	RefreshTokenHash string
 	UserAgent        sql.NullString
 	IpAddress        sql.NullString

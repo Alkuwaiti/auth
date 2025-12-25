@@ -19,7 +19,16 @@ func NewRepo(queries *postgres.Queries) *repo {
 }
 
 func (r *repo) CreateSession(ctx context.Context, userID uuid.UUID, refreshTokenHash string, expiry time.Time) error {
-	r.queries.CreateSession(ctx, postgres.CreateSessionParams{
-		UserID: userID.String(),
+	err := r.queries.CreateSession(ctx, postgres.CreateSessionParams{
+		UserID:           userID,
+		RefreshTokenHash: refreshTokenHash,
+		UserAgent:        "",
+		IpAddress:        "",
+		ExpiresAt:        expiry,
 	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

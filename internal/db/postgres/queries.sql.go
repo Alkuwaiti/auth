@@ -20,7 +20,7 @@ VALUES ($1, $2, $3, $4, $5)
 `
 
 type CreateSessionParams struct {
-	UserID           uuid.NullUUID
+	UserID           uuid.UUID
 	RefreshTokenHash string
 	UserAgent        sql.NullString
 	IpAddress        sql.NullString
