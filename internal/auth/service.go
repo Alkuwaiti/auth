@@ -5,12 +5,13 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"log/slog"
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/core"
-	"github.com/alkuwaiti/auth/internal/user"
+	userDomain "github.com/alkuwaiti/auth/internal/user"
 	"github.com/golang-jwt/jwt"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -33,13 +34,18 @@ func NewService(repo *repo, userService userService, config Config) *service {
 }
 
 type userService interface {
-	GetUserByEmail(ctx context.Context, email string) (user.User, error)
+	GetUserByEmail(ctx context.Context, email string) (userDomain.User, error)
 }
 
 func (s *service) Login(ctx context.Context, email, password string, meta core.RequestMeta) (TokenPair, error) {
+
 	user, err := s.userService.GetUserByEmail(ctx, email)
 	if err != nil {
-		// NOTE: this probably leaks sql not found error
+		if errors.Is(err, core.ErrUserNotFound) {
+			return TokenPair{}, &apperrors.InvalidCredentialsError{}
+		}
+
+		slog.ErrorContext(ctx, "login failed: user lookup error", "err", err)
 		return TokenPair{}, err
 	}
 

@@ -19,7 +19,7 @@ func NewRepo(queries *postgres.Queries) *repo {
 	}
 }
 
-func (r *repo) CreateSession(ctx context.Context, userID uuid.UUID, expiry time.Time, refreshTokenHash, IpAddress, userAgent string) error {
+func (r *repo) CreateSession(ctx context.Context, userID uuid.UUID, expiry time.Time, refreshTokenHash, IPAddress, userAgent string) error {
 	err := r.queries.CreateSession(ctx, postgres.CreateSessionParams{
 		UserID:           userID,
 		RefreshTokenHash: refreshTokenHash,
@@ -28,8 +28,8 @@ func (r *repo) CreateSession(ctx context.Context, userID uuid.UUID, expiry time.
 			Valid:  userAgent != "",
 		},
 		IpAddress: sql.NullString{
-			String: IpAddress,
-			Valid:  IpAddress != "",
+			String: IPAddress,
+			Valid:  IPAddress != "",
 		},
 		ExpiresAt: expiry,
 	})

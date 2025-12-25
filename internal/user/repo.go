@@ -3,7 +3,10 @@ package user
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 
+	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/google/uuid"
 )
@@ -57,6 +60,9 @@ func (r *repo) registerUser(ctx context.Context, username, email, passwordHash s
 func (r *repo) GetUserByEmail(ctx context.Context, email string) (User, error) {
 	user, err := r.queries.GetUserByEmail(ctx, email)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return User{}, core.ErrUserNotFound
+		}
 		return User{}, err
 	}
 

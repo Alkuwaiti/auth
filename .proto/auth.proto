@@ -19,7 +19,7 @@ message LoginRequest {
 message LoginResponse {
   string access_token = 1;
   string refresh_token = 2;
-  int64 expiresIn = 3;
+  int64 expires_in = 3;
   string token_type = 4;
   string user_id = 5;
 }

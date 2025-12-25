@@ -65,7 +65,7 @@ func main() {
 
 	srv := grpc.NewServer(grpc.Config{
 		Port: port,
-	}, userService)
+	}, userService, authService)
 
 	slog.InfoContext(ctx, "starting grpc server", "port", port, "commit", commit, "ref", ref, "version", version)
 	go func(ctx context.Context) {

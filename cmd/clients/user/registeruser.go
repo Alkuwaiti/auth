@@ -24,7 +24,6 @@ func main() {
 		Email:    "alkuwaitiqasim@gmail.com",
 		Password: "Supersecretpassword1!",
 	})
-
 	if err != nil {
 		fmt.Println(err)
 	}

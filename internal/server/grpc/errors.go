@@ -24,6 +24,12 @@ func MapError(err error) error {
 	case errors.As(err, new(*apperrors.InternalError)):
 		return status.Error(codes.Internal, err.Error())
 
+	case errors.As(err, new(*apperrors.InvalidCredentialsError)):
+		return status.Error(codes.InvalidArgument, err.Error())
+
+	case errors.As(err, new(*apperrors.BadRequestError)):
+		return status.Error(codes.InvalidArgument, err.Error())
+
 	default:
 		slog.Error("unexpected service error", "error", err)
 		return status.Error(codes.Internal, "internal server error")
