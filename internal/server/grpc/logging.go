@@ -22,10 +22,7 @@ func (h *ContextHandler) Enabled(ctx context.Context, level slog.Level) bool {
 func (h *ContextHandler) Handle(ctx context.Context, r slog.Record) error {
 	// Extract request metadata
 	if meta, ok := ctx.Value(requestMetaKey).(core.RequestMeta); ok {
-		r.AddAttrs(
-			slog.String("ip", meta.IPAddress),
-			slog.String("user_agent", meta.UserAgent),
-		)
+		r.AddAttrs(meta.LogAttrs()...)
 	}
 
 	return h.next.Handle(ctx, r)

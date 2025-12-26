@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"log/slog"
 	"net"
 
 	"github.com/alkuwaiti/auth/internal/core"
@@ -11,44 +10,42 @@ import (
 )
 
 const (
-	headerClientIP  = "x-client-ip"
-	headerClientUA  = "x-client-user-agent"
-	headerUserAgent = "user-agent"
+	headerClientIP      = "x-client-ip"
+	headerClientUA      = "x-client-user-agent"
+	headerUserAgent     = "user-agent"
+	headerXForwardedFor = "x-forwarded-for"
+	headerRequestID     = "request-id"
 )
 
 type requestMetaKeyType struct{}
 
 var requestMetaKey = requestMetaKeyType{}
 
+// TODO: change this function when you have an api-gateway.
+
 func ExtractRequestMeta(ctx context.Context) core.RequestMeta {
 	md, _ := metadata.FromIncomingContext(ctx)
 
-	// 1️⃣ Preferred: gateway-injected metadata
-	if ip := md.Get(headerClientIP); len(ip) > 0 {
-		ua := ""
-		if v := md.Get(headerClientUA); len(v) > 0 {
-			ua = v[0]
-		}
-
-		return core.RequestMeta{
-			IPAddress: ip[0],
-			UserAgent: ua,
-		}
+	meta := core.RequestMeta{
+		XForwardedFor: first(md.Get(headerXForwardedFor)),
+		RequestID:     first(md.Get(headerRequestID)),
 	}
 
-	// 2️⃣ Fallback: direct gRPC call (no gateway yet)
-	meta := core.RequestMeta{}
-	slog.InfoContext(ctx, "made it to fallback")
+	// Preferred: gateway-injected client metadata
+	if ip := first(md.Get(headerClientIP)); ip != "" {
+		meta.IPAddress = ip
+		meta.UserAgent = first(md.Get(headerClientUA))
+		return meta
+	}
 
+	// Fallback: direct gRPC client
 	if p, ok := peer.FromContext(ctx); ok {
 		if tcp, ok := p.Addr.(*net.TCPAddr); ok {
 			meta.IPAddress = tcp.IP.String()
 		}
 	}
 
-	if ua := md.Get(headerUserAgent); len(ua) > 0 {
-		meta.UserAgent = ua[0]
-	}
+	meta.UserAgent = first(md.Get(headerUserAgent))
 
 	return meta
 }
@@ -58,4 +55,11 @@ func RequestMetaFromContext(ctx context.Context) core.RequestMeta {
 		return meta
 	}
 	return core.RequestMeta{}
+}
+
+func first(v []string) string {
+	if len(v) > 0 {
+		return v[0]
+	}
+	return ""
 }
