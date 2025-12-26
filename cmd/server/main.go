@@ -72,7 +72,7 @@ func main() {
 	authRepo := auth.NewRepo(postgres.New(dbConn))
 
 	authService := auth.NewService(authRepo, userService, auth.Config{
-		JWTKey: cfg.JWTKey,
+		JWTKey: []byte(cfg.JWTKey),
 	})
 
 	port := 8081

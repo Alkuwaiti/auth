@@ -23,13 +23,14 @@ type service struct {
 }
 
 type Config struct {
-	JWTKey string
+	JWTKey []byte
 }
 
 func NewService(repo *repo, userService userService, config Config) *service {
 	return &service{
 		repo:        repo,
 		userService: userService,
+		config:      config,
 	}
 }
 
@@ -67,7 +68,7 @@ func (s *service) Login(ctx context.Context, email, password string, meta core.R
 		}
 	}
 
-	accessToken, err := generateAccessToken(user.ID.String(), []byte(s.config.JWTKey))
+	accessToken, err := generateAccessToken(user.ID.String(), user.Email, s.config.JWTKey)
 	if err != nil {
 		return TokenPair{}, err
 	}
@@ -97,11 +98,12 @@ func checkPasswordHash(password, hash string) bool {
 	return err == nil
 }
 
-func generateAccessToken(userID string, secret []byte) (string, error) {
+func generateAccessToken(userID, email string, secret []byte) (string, error) {
 	claims := jwt.MapClaims{
-		"sub": userID,
-		"exp": time.Now().Add(15 * time.Minute).Unix(),
-		"iat": time.Now().Unix(),
+		"sub":   userID,
+		"email": email,
+		"exp":   time.Now().Add(15 * time.Minute).Unix(),
+		"iat":   time.Now().Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
