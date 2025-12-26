@@ -73,13 +73,13 @@ func (s *service) Login(ctx context.Context, email, password string, meta core.R
 		return TokenPair{}, err
 	}
 
-	refreshToken, hashedRefreshToken, err := generateRefreshToken()
+	refreshToken, err := generateRefreshToken()
 	if err != nil {
 		return TokenPair{}, err
 	}
 
 	expiresAt := time.Now().Add(7 * 24 * time.Hour)
-	err = s.repo.CreateSession(ctx, user.ID, expiresAt, hashedRefreshToken, meta.IPAddress, meta.UserAgent)
+	err = s.repo.CreateSession(ctx, user.ID, expiresAt, refreshToken, meta.IPAddress, meta.UserAgent)
 	if err != nil {
 		return TokenPair{}, err
 	}
@@ -110,16 +110,14 @@ func generateAccessToken(userID, email string, secret []byte) (string, error) {
 	return token.SignedString(secret)
 }
 
-func generateRefreshToken() (string, string, error) {
+func generateRefreshToken() (string, error) {
 	b := make([]byte, 32)
 	_, err := rand.Read(b)
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
+
 	token := base64.URLEncoding.EncodeToString(b)
-	hashedToken, err := bcrypt.GenerateFromPassword([]byte(token), bcrypt.DefaultCost)
-	if err != nil {
-		return "", "", err
-	}
-	return token, string(hashedToken), nil
+
+	return token, nil
 }
