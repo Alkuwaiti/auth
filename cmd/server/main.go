@@ -45,6 +45,20 @@ func main() {
 
 	// TODO: Tracing logic here.
 
+	base := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: level,
+	})
+
+	handler := grpc.NewContextHandler(base)
+
+	logger := slog.New(handler).
+		With(
+			slog.String("service", name),
+			slog.String("env", cfg.Environment),
+		)
+
+	slog.SetDefault(logger)
+
 	dbConn, err := db.New(cfg.DatabaseURL)
 	if err != nil {
 		panic(err)

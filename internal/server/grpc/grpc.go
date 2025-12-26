@@ -76,7 +76,7 @@ func (s *server) Start(ctx context.Context) error {
 	}
 
 	s.srv = grpc.NewServer(
-		grpc.ChainUnaryInterceptor(RequestMetaInterceptor()),
+		grpc.ChainUnaryInterceptor(RequestMetaInterceptor(), LoggingInterceptor()),
 	)
 
 	userv1.RegisterUserServiceServer(s.srv, s)
