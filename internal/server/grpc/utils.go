@@ -2,10 +2,10 @@ package grpc
 
 import (
 	"context"
+	"log/slog"
 	"net"
 
 	"github.com/alkuwaiti/auth/internal/core"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 )
@@ -19,23 +19,6 @@ const (
 type requestMetaKeyType struct{}
 
 var requestMetaKey = requestMetaKeyType{}
-
-// RequestMetaInterceptor enriches the context with request metadata.
-func RequestMetaInterceptor() grpc.UnaryServerInterceptor {
-	return func(
-		ctx context.Context,
-		req any,
-		info *grpc.UnaryServerInfo,
-		handler grpc.UnaryHandler,
-	) (any, error) {
-
-		meta := ExtractRequestMeta(ctx)
-
-		ctx = context.WithValue(ctx, requestMetaKey, meta)
-
-		return handler(ctx, req)
-	}
-}
 
 func ExtractRequestMeta(ctx context.Context) core.RequestMeta {
 	md, _ := metadata.FromIncomingContext(ctx)
@@ -55,6 +38,7 @@ func ExtractRequestMeta(ctx context.Context) core.RequestMeta {
 
 	// 2️⃣ Fallback: direct gRPC call (no gateway yet)
 	meta := core.RequestMeta{}
+	slog.InfoContext(ctx, "made it to fallback")
 
 	if p, ok := peer.FromContext(ctx); ok {
 		if tcp, ok := p.Addr.(*net.TCPAddr); ok {
