@@ -17,7 +17,7 @@ func main() {
 		"x-forwarded-for":     "203.0.113.10",
 		"x-client-user-agent": "auth-cli/1.0",
 		"request-id":          "req-123456",
-		"x-client-ip":         "1.1.1.1",
+		"x-client-ip":         "2.2.2.2",
 	})
 
 	ctx = metadata.NewOutgoingContext(ctx, md)
@@ -30,7 +30,7 @@ func main() {
 	}()
 
 	res, err := client.RefreshToken(ctx, &authv1.RefreshTokenRequest{
-		RefreshToken: "NAQUhO2pXBfy6dV_PFXi_7OOuvyDkO439mhP4ZSTl5A=",
+		RefreshToken: "Yh3jen8JnZhfpViQjR82N8MB1TLF1Jzzc4tdYVOXbhw=",
 	})
 	if err != nil {
 		fmt.Println(err)
