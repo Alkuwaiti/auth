@@ -11,6 +11,7 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/core"
+	"github.com/alkuwaiti/auth/internal/user"
 	userDomain "github.com/alkuwaiti/auth/internal/user"
 	"github.com/golang-jwt/jwt"
 	"golang.org/x/crypto/bcrypt"
@@ -36,6 +37,7 @@ func NewService(repo *repo, userService userService, config Config) *service {
 
 type userService interface {
 	GetUserByEmail(ctx context.Context, email string) (userDomain.User, error)
+	GetUserByID(ctx context.Context, userID string) (user.User, error)
 }
 
 func (s *service) Login(ctx context.Context, email, password string, meta core.RequestMeta) (TokenPair, error) {
@@ -90,7 +92,6 @@ func (s *service) Login(ctx context.Context, email, password string, meta core.R
 		RefreshExpiresAt: expiresAt,
 		UserID:           user.ID,
 	}, nil
-
 }
 
 func checkPasswordHash(password, hash string) bool {
@@ -120,4 +121,57 @@ func generateRefreshToken() (string, error) {
 	token := base64.URLEncoding.EncodeToString(b)
 
 	return token, nil
+}
+
+func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta core.RequestMeta) (TokenPair, error) {
+	session, err := s.repo.GetSessionByRefreshToken(ctx, refreshToken)
+	if err != nil {
+		if errors.Is(err, core.ErrSessionNotFound) {
+			return TokenPair{}, &apperrors.InvalidCredentialsError{}
+		}
+		return TokenPair{}, err
+	}
+
+	if !session.RevokedAt.IsZero() {
+		slog.WarnContext(ctx, "refresh token reuse detected")
+		return TokenPair{}, &apperrors.InvalidCredentialsError{}
+	}
+
+	if session.ExpiresAt.Before(time.Now()) {
+		slog.WarnContext(ctx, "session expired")
+		return TokenPair{}, &apperrors.InvalidCredentialsError{}
+	}
+
+	user, err := s.userService.GetUserByID(ctx, session.UserID.String())
+	if err != nil {
+		if errors.Is(err, core.ErrUserNotFound) {
+			return TokenPair{}, &apperrors.InvalidCredentialsError{}
+		}
+		return TokenPair{}, err
+	}
+
+	newRefreshToken, err := generateRefreshToken()
+	if err != nil {
+		return TokenPair{}, err
+	}
+
+	if err = s.repo.RevokeSession(ctx, session.ID); err != nil {
+		return TokenPair{}, err
+	}
+
+	if err = s.repo.CreateSession(ctx, user.ID, session.ExpiresAt, newRefreshToken, meta.IPAddress, meta.UserAgent); err != nil {
+		return TokenPair{}, err
+	}
+
+	accessToken, err := generateAccessToken(user.ID.String(), user.Email, s.config.JWTKey)
+	if err != nil {
+		return TokenPair{}, err
+	}
+
+	return TokenPair{
+		AccessToken:      accessToken,
+		RefreshToken:     newRefreshToken,
+		RefreshExpiresAt: session.ExpiresAt,
+		UserID:           user.ID,
+	}, nil
 }

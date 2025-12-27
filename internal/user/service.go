@@ -74,3 +74,12 @@ func (s *service) GetUserByEmail(ctx context.Context, email string) (User, error
 
 	return user, nil
 }
+
+func (s *service) GetUserByID(ctx context.Context, userID string) (User, error) {
+	user, err := s.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		return User{}, err
+	}
+
+	return user, nil
+}

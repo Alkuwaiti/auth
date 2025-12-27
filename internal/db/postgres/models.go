@@ -48,14 +48,14 @@ type RolePermission struct {
 }
 
 type Session struct {
-	ID               uuid.UUID
-	UserID           uuid.UUID
-	RefreshTokenHash string
-	UserAgent        sql.NullString
-	IpAddress        sql.NullString
-	CreatedAt        sql.NullTime
-	ExpiresAt        time.Time
-	RevokedAt        sql.NullTime
+	ID           uuid.UUID
+	UserID       uuid.UUID
+	RefreshToken string
+	UserAgent    sql.NullString
+	IpAddress    sql.NullString
+	CreatedAt    sql.NullTime
+	ExpiresAt    time.Time
+	RevokedAt    sql.NullTime
 }
 
 type SocialAccount struct {
