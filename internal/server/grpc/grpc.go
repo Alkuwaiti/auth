@@ -33,6 +33,7 @@ type userService interface {
 
 type authService interface {
 	Login(ctx context.Context, email, password string, meta core.RequestMeta) (auth.TokenPair, error)
+	RefreshToken(ctx context.Context, refreshToken string, meta core.RequestMeta) (auth.TokenPair, error)
 }
 
 type Config struct {

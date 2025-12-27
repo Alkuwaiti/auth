@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/alkuwaiti/auth/cmd/clients/auth"
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
 	"google.golang.org/grpc/metadata"
 )
@@ -21,7 +22,7 @@ func main() {
 
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	client := Must(ctx, "localhost:8081")
+	client := auth.Must(ctx, "localhost:8081")
 	defer func() {
 		if err := client.Close(); err != nil {
 			log.Printf("failed to close client: %v", err)

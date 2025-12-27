@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/alkuwaiti/auth/cmd/clients/user"
 	userv1 "github.com/alkuwaiti/auth/pb/pbuser/v1"
 )
 
 func main() {
 	ctx := context.Background()
 
-	client := Must(ctx, "localhost:8081")
+	client := user.Must(ctx, "localhost:8081")
 
 	defer func() {
 		if err := client.Close(); err != nil {
