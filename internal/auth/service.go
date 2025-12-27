@@ -155,11 +155,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta co
 		return TokenPair{}, err
 	}
 
-	if err = s.repo.RevokeSession(ctx, session.ID); err != nil {
-		return TokenPair{}, err
-	}
-
-	if err = s.repo.CreateSession(ctx, user.ID, session.ExpiresAt, newRefreshToken, meta.IPAddress, meta.UserAgent); err != nil {
+	if err = s.repo.RotateSession(ctx, session.ID, user.ID, session.ExpiresAt, newRefreshToken, meta.IPAddress, meta.UserAgent); err != nil {
 		return TokenPair{}, err
 	}
 
