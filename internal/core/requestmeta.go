@@ -8,6 +8,8 @@ type RequestMeta struct {
 	RequestID     string
 	IPAddress     string
 	UserAgent     string
+	TraceID       string
+	SpanID        string
 }
 
 func (m RequestMeta) LogAttrs() []slog.Attr {
@@ -24,6 +26,12 @@ func (m RequestMeta) LogAttrs() []slog.Attr {
 	}
 	if m.UserAgent != "" {
 		attrs = append(attrs, slog.String("user_agent", m.UserAgent))
+	}
+	if m.TraceID != "" {
+		attrs = append(attrs, slog.String("trace_id", m.TraceID))
+	}
+	if m.SpanID != "" {
+		attrs = append(attrs, slog.String("span_id", m.SpanID))
 	}
 
 	return attrs

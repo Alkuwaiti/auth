@@ -28,6 +28,7 @@ type Config struct {
 	TracingCollector string
 	DatabaseURL      string
 	JWTKey           string
+	OTLPEndpoint     string
 }
 
 func Load(env, jur string) Config {

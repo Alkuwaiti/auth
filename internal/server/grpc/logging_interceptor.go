@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 )
 
@@ -15,6 +16,12 @@ func LoggingInterceptor() grpc.UnaryServerInterceptor {
 	) (any, error) {
 
 		meta := ExtractRequestMeta(ctx)
+
+		span := trace.SpanFromContext(ctx)
+		if sc := span.SpanContext(); sc.IsValid() {
+			meta.TraceID = sc.TraceID().String()
+			meta.SpanID = sc.SpanID().String()
+		}
 
 		ctx = context.WithValue(ctx, requestMetaKey, meta)
 

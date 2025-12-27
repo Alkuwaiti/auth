@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"log"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -15,6 +16,7 @@ import (
 	"github.com/alkuwaiti/auth/internal/config"
 	"github.com/alkuwaiti/auth/internal/db"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
+	"github.com/alkuwaiti/auth/internal/observability"
 	"github.com/alkuwaiti/auth/internal/server/grpc"
 	"github.com/alkuwaiti/auth/internal/user"
 )
@@ -43,7 +45,20 @@ func main() {
 		panic(err)
 	}
 
-	// TODO: Tracing logic here.
+	tp, err := telemetry.InitTracer(
+		ctx,
+		name,
+		cfg.Environment,
+		cfg.OTLPEndpoint,
+	)
+	if err != nil {
+		log.Fatal("failed to initialize tracer:", err)
+	}
+	defer func() {
+		if err = telemetry.Shutdown(ctx, tp); err != nil {
+			slog.Error("failed to shutdown tracer", "err", err)
+		}
+	}()
 
 	base := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: level,

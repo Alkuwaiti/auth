@@ -12,6 +12,7 @@ import (
 	"github.com/alkuwaiti/auth/internal/user"
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
 	userv1 "github.com/alkuwaiti/auth/pb/pbuser/v1"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -77,7 +78,10 @@ func (s *server) Start(ctx context.Context) error {
 	}
 
 	s.srv = grpc.NewServer(
-		grpc.ChainUnaryInterceptor(LoggingInterceptor()),
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+		grpc.ChainUnaryInterceptor(
+			LoggingInterceptor(),
+		),
 	)
 
 	userv1.RegisterUserServiceServer(s.srv, s)
