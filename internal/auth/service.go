@@ -12,8 +12,8 @@ import (
 	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/user"
-	userDomain "github.com/alkuwaiti/auth/internal/user"
 	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -36,8 +36,8 @@ func NewService(repo *repo, userService userService, config Config) *service {
 }
 
 type userService interface {
-	GetUserByEmail(ctx context.Context, email string) (userDomain.User, error)
-	GetUserByID(ctx context.Context, userID string) (user.User, error)
+	GetUserByEmail(ctx context.Context, email string) (user.User, error)
+	GetUserByID(ctx context.Context, userID uuid.UUID) (user.User, error)
 }
 
 func (s *service) Login(ctx context.Context, email, password string, meta core.RequestMeta) (TokenPair, error) {
@@ -142,7 +142,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta co
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
-	user, err := s.userService.GetUserByID(ctx, session.UserID.String())
+	user, err := s.userService.GetUserByID(ctx, session.UserID)
 	if err != nil {
 		if errors.Is(err, core.ErrUserNotFound) {
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
