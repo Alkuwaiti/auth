@@ -69,6 +69,18 @@ func (r *repo) GetUserByEmail(ctx context.Context, email string) (User, error) {
 	return toModel(user), nil
 }
 
+func (r *repo) GetUserByID(ctx context.Context, userID uuid.UUID) (User, error) {
+	user, err := r.queries.GetUserByID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return User{}, core.ErrUserNotFound
+		}
+		return User{}, err
+	}
+
+	return toModel(user), nil
+}
+
 func toModel(postgresUser postgres.User) User {
 	return User{
 		ID:              postgresUser.ID,

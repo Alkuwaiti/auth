@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
+	"github.com/google/uuid"
 )
 
 type service struct {
@@ -68,6 +69,15 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 
 func (s *service) GetUserByEmail(ctx context.Context, email string) (User, error) {
 	user, err := s.repo.GetUserByEmail(ctx, email)
+	if err != nil {
+		return User{}, err
+	}
+
+	return user, nil
+}
+
+func (s *service) GetUserByID(ctx context.Context, userID uuid.UUID) (User, error) {
+	user, err := s.repo.GetUserByID(ctx, userID)
 	if err != nil {
 		return User{}, err
 	}

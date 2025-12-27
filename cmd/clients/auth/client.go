@@ -1,4 +1,5 @@
-package main
+// Package auth has the auth client stub.
+package auth
 
 import (
 	"context"

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/alkuwaiti/auth/cmd/clients/auth"
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
 	"google.golang.org/grpc/metadata"
 )
@@ -16,21 +17,20 @@ func main() {
 		"x-forwarded-for":     "203.0.113.10",
 		"x-client-user-agent": "auth-cli/1.0",
 		"request-id":          "req-123456",
-		"x-client-ip":         "1.1.1.1",
+		"x-client-ip":         "2.2.2.2",
 	})
 
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	client := Must(ctx, "localhost:8081")
+	client := auth.Must(ctx, "localhost:8081")
 	defer func() {
 		if err := client.Close(); err != nil {
 			log.Printf("failed to close client: %v", err)
 		}
 	}()
 
-	res, err := client.Login(ctx, &authv1.LoginRequest{
-		Email:    "alkuwaitiqasim@gmail.com",
-		Password: "Supersecretpassword1!",
+	res, err := client.RefreshToken(ctx, &authv1.RefreshTokenRequest{
+		RefreshToken: "Yh3jen8JnZhfpViQjR82N8MB1TLF1Jzzc4tdYVOXbhw=",
 	})
 	if err != nil {
 		fmt.Println(err)

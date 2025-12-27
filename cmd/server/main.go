@@ -69,7 +69,7 @@ func main() {
 
 	userService := user.NewService(userRepo)
 
-	authRepo := auth.NewRepo(postgres.New(dbConn))
+	authRepo := auth.NewRepo(dbConn)
 
 	authService := auth.NewService(authRepo, userService, auth.Config{
 		JWTKey: []byte(cfg.JWTKey),

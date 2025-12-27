@@ -8,7 +8,8 @@ option go_package = "github.com/alkuwaiti/auth/pb/pbauth/v1;authv1";
 
 service AuthService {
   rpc Ping(google.protobuf.Empty) returns (google.protobuf.Empty) {}
-  rpc Login(LoginRequest) returns (LoginResponse) {}
+  rpc Login(LoginRequest) returns (TokenPair) {}
+  rpc RefreshToken(RefreshTokenRequest) returns (TokenPair) {}
 }
 
 message LoginRequest {
@@ -16,10 +17,14 @@ message LoginRequest {
   string password = 2;
 }
 
-message LoginResponse {
+message TokenPair {
   string access_token = 1;
   string refresh_token = 2;
   int64 expires_in = 3;
   string token_type = 4;
   string user_id = 5;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
 }

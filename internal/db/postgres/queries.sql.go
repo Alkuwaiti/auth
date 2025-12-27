@@ -15,28 +15,48 @@ import (
 
 const createSession = `-- name: CreateSession :exec
 
-INSERT INTO sessions (user_id, refresh_token_hash, user_agent, ip_address, expires_at)
+INSERT INTO sessions (user_id, refresh_token, user_agent, ip_address, expires_at)
 VALUES ($1, $2, $3, $4, $5)
 `
 
 type CreateSessionParams struct {
-	UserID           uuid.UUID
-	RefreshTokenHash string
-	UserAgent        sql.NullString
-	IpAddress        sql.NullString
-	ExpiresAt        time.Time
+	UserID       uuid.UUID
+	RefreshToken string
+	UserAgent    sql.NullString
+	IpAddress    sql.NullString
+	ExpiresAt    time.Time
 }
 
 // sessions
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) error {
 	_, err := q.db.ExecContext(ctx, createSession,
 		arg.UserID,
-		arg.RefreshTokenHash,
+		arg.RefreshToken,
 		arg.UserAgent,
 		arg.IpAddress,
 		arg.ExpiresAt,
 	)
 	return err
+}
+
+const getSessionByRefreshToken = `-- name: GetSessionByRefreshToken :one
+SELECT id, user_id, refresh_token, user_agent, ip_address, created_at, expires_at, revoked_at FROM sessions WHERE refresh_token = $1
+`
+
+func (q *Queries) GetSessionByRefreshToken(ctx context.Context, refreshToken string) (Session, error) {
+	row := q.db.QueryRowContext(ctx, getSessionByRefreshToken, refreshToken)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.RefreshToken,
+		&i.UserAgent,
+		&i.IpAddress,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+		&i.RevokedAt,
+	)
+	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
@@ -45,6 +65,26 @@ SELECT id, email, username, password_hash, is_email_verified, is_active, created
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Username,
+		&i.PasswordHash,
+		&i.IsEmailVerified,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByID = `-- name: GetUserByID :one
+SELECT id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at FROM users WHERE id = $1
+`
+
+func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByID, id)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -93,6 +133,17 @@ func (q *Queries) RegisterUser(ctx context.Context, arg RegisterUserParams) (Use
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const revokeSession = `-- name: RevokeSession :exec
+UPDATE sessions 
+SET revoked_at = NOW() 
+WHERE id = $1
+`
+
+func (q *Queries) RevokeSession(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, revokeSession, id)
+	return err
 }
 
 const userExistsByEmail = `-- name: UserExistsByEmail :one
