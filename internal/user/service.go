@@ -2,11 +2,10 @@ package user
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"log/slog"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
+	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -31,7 +30,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 
 	span.SetAttributes(
 		attribute.String("user.username", input.Username),
-		attribute.String("user.email_hash", hashForTelemetry(input.Email)), // optional
+		attribute.String("user.email_hash", core.HashForTelemetry(input.Email)), // optional
 	)
 
 	if err := input.validate(); err != nil {
@@ -103,7 +102,7 @@ func (s *service) GetUserByEmail(ctx context.Context, email string) (User, error
 	defer span.End()
 
 	span.SetAttributes(
-		attribute.String("user.email_hash", hashForTelemetry(email)),
+		attribute.String("user.email_hash", core.HashForTelemetry(email)),
 	)
 
 	user, err := s.repo.GetUserByEmail(ctx, email)
@@ -135,9 +134,4 @@ func (s *service) GetUserByID(ctx context.Context, userID uuid.UUID) (User, erro
 
 	span.SetStatus(codes.Ok, "user fetched")
 	return user, nil
-}
-
-func hashForTelemetry(value string) string {
-	sum := sha256.Sum256([]byte(value))
-	return hex.EncodeToString(sum[:8])
 }

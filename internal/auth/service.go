@@ -4,9 +4,7 @@ package auth
 import (
 	"context"
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
 	"errors"
 	"log/slog"
 	"time"
@@ -52,7 +50,7 @@ func (s *service) Login(ctx context.Context, email, password string, meta core.R
 	defer span.End()
 
 	span.SetAttributes(
-		attribute.String("user.email_hash", hashForTelemetry(email)),
+		attribute.String("user.email_hash", core.HashForTelemetry(email)),
 	)
 
 	user, err := s.userService.GetUserByEmail(ctx, email)
@@ -240,9 +238,4 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta co
 		RefreshExpiresAt: session.ExpiresAt,
 		UserID:           user.ID,
 	}, nil
-}
-
-func hashForTelemetry(value string) string {
-	sum := sha256.Sum256([]byte(value))
-	return hex.EncodeToString(sum[:8])
 }
