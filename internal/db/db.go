@@ -3,12 +3,26 @@ package db
 
 import (
 	"database/sql"
-	_ "github.com/lib/pq"
 	"time"
+
+	"github.com/XSAM/otelsql"
+	_ "github.com/lib/pq"
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 )
 
 func New(dsn string) (*sql.DB, error) {
-	db, err := sql.Open("postgres", dsn)
+	db, err := otelsql.Open(
+		"postgres",
+		dsn,
+		otelsql.WithAttributes(
+			semconv.DBSystemPostgreSQL,
+		),
+		otelsql.WithSpanOptions(
+			otelsql.SpanOptions{
+				DisableErrSkip: true,
+			},
+		),
+	)
 	if err != nil {
 		return nil, err
 	}

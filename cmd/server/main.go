@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"log"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -15,6 +16,7 @@ import (
 	"github.com/alkuwaiti/auth/internal/config"
 	"github.com/alkuwaiti/auth/internal/db"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
+	"github.com/alkuwaiti/auth/internal/observability"
 	"github.com/alkuwaiti/auth/internal/server/grpc"
 	"github.com/alkuwaiti/auth/internal/user"
 )
@@ -35,15 +37,12 @@ func main() {
 
 	cfg := config.Load(strings.ToLower(*envFlag), strings.ToLower(*jurFlag))
 
-	// Note: unused code.
 	level := slog.LevelInfo
 	if n, err := strconv.Atoi(cfg.LogLevel); err == nil {
 		level = slog.Level(n)
 	} else if err = level.UnmarshalText([]byte(cfg.LogLevel)); err != nil && cfg.LogLevel != "" {
 		panic(err)
 	}
-
-	// TODO: Tracing logic here.
 
 	base := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: level,
@@ -58,6 +57,24 @@ func main() {
 		)
 
 	slog.SetDefault(logger)
+
+	tp, err := telemetry.InitTracer(
+		ctx,
+		telemetry.Config{
+			ServiceName:  name,
+			Environment:  cfg.Environment,
+			Version:      version,
+			OTLPEndpoint: cfg.OTLPEndpoint,
+		},
+	)
+	if err != nil {
+		log.Fatal("failed to initialize tracer:", err)
+	}
+	defer func() {
+		if err = telemetry.Shutdown(ctx, tp); err != nil {
+			slog.Error("failed to shutdown tracer", "err", err)
+		}
+	}()
 
 	dbConn, err := db.New(cfg.DatabaseURL)
 	if err != nil {
