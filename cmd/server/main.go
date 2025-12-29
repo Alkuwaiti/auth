@@ -60,10 +60,12 @@ func main() {
 
 	tp, err := telemetry.InitTracer(
 		ctx,
-		name,
-		cfg.Environment,
-		version,
-		cfg.OTLPEndpoint,
+		telemetry.Config{
+			ServiceName:  name,
+			Environment:  cfg.Environment,
+			Version:      version,
+			OTLPEndpoint: cfg.OTLPEndpoint,
+		},
 	)
 	if err != nil {
 		log.Fatal("failed to initialize tracer:", err)

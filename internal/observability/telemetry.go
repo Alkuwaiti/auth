@@ -13,12 +13,16 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 )
 
-func InitTracer(ctx context.Context, serviceName, environment, version, otlpEndpoint string) (*sdktrace.TracerProvider, error) {
+type Config struct {
+	ServiceName, Environment, Version, OTLPEndpoint string
+}
+
+func InitTracer(ctx context.Context, config Config) (*sdktrace.TracerProvider, error) {
 	res, err := resource.New(ctx,
 		resource.WithAttributes(
-			semconv.ServiceName(serviceName),
-			semconv.ServiceVersion(version),
-			semconv.DeploymentEnvironment(environment),
+			semconv.ServiceName(config.ServiceName),
+			semconv.ServiceVersion(config.Version),
+			semconv.DeploymentEnvironment(config.Environment),
 		),
 	)
 	if err != nil {
@@ -26,7 +30,7 @@ func InitTracer(ctx context.Context, serviceName, environment, version, otlpEndp
 	}
 
 	exporter, err := otlptracegrpc.New(ctx,
-		otlptracegrpc.WithEndpoint(otlpEndpoint),
+		otlptracegrpc.WithEndpoint(config.OTLPEndpoint),
 		otlptracegrpc.WithInsecure(), // Use WithTLSCredentials() in production
 	)
 	if err != nil {
@@ -41,7 +45,7 @@ func InitTracer(ctx context.Context, serviceName, environment, version, otlpEndp
 
 	otel.SetTracerProvider(tp)
 
-	slog.Info("tracer initialized", "service", serviceName, "endpoint", otlpEndpoint)
+	slog.Info("tracer initialized", "service", config.ServiceName, "endpoint", config.OTLPEndpoint)
 	return tp, nil
 }
 
