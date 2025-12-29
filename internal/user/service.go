@@ -30,7 +30,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 
 	span.SetAttributes(
 		attribute.String("user.username", input.Username),
-		attribute.String("user.email_hash", core.HashForTelemetry(input.Email)), // optional
+		attribute.String("user.email_hash", core.HashForTelemetry(input.Email)),
 	)
 
 	if err := input.validate(); err != nil {

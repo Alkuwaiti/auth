@@ -66,11 +66,7 @@ func (s *service) Login(ctx context.Context, email, password string, meta core.R
 		return TokenPair{}, err
 	}
 
-	_, pwdSpan := tracer.Start(ctx, "AuthService.VerifyPassword")
-	ok := checkPasswordHash(password, user.PasswordHash)
-	pwdSpan.End()
-
-	if !ok {
+	if !checkPasswordHash(password, user.PasswordHash) {
 		span.SetStatus(codes.Error, "invalid credentials")
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email)
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
@@ -89,9 +85,7 @@ func (s *service) Login(ctx context.Context, email, password string, meta core.R
 		}
 	}
 
-	_, tokenSpan := tracer.Start(ctx, "AuthService.GenerateAccessToken")
 	accessToken, err := generateAccessToken(user.ID.String(), user.Email, s.config.JWTKey)
-	tokenSpan.End()
 
 	if err != nil {
 		span.RecordError(err)
