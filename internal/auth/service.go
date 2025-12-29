@@ -4,7 +4,9 @@ package auth
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"log/slog"
 	"time"
@@ -14,6 +16,9 @@ import (
 	"github.com/alkuwaiti/auth/internal/user"
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -40,10 +45,21 @@ type userService interface {
 	GetUserByID(ctx context.Context, userID uuid.UUID) (user.User, error)
 }
 
+var tracer = otel.Tracer("auth-service/auth")
+
 func (s *service) Login(ctx context.Context, email, password string, meta core.RequestMeta) (TokenPair, error) {
+	ctx, span := tracer.Start(ctx, "AuthService.Login")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("user.email_hash", hashForTelemetry(email)),
+	)
 
 	user, err := s.userService.GetUserByEmail(ctx, email)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "user lookup failed")
+
 		if errors.Is(err, core.ErrUserNotFound) {
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
 		}
@@ -52,39 +68,65 @@ func (s *service) Login(ctx context.Context, email, password string, meta core.R
 		return TokenPair{}, err
 	}
 
-	// always check password hash first to cripple timing attacks.
-	if !checkPasswordHash(password, user.PasswordHash) {
-		slog.ErrorContext(ctx, "failed login attempt", "email", user.Email)
+	_, pwdSpan := tracer.Start(ctx, "AuthService.VerifyPassword")
+	ok := checkPasswordHash(password, user.PasswordHash)
+	pwdSpan.End()
+
+	if !ok {
+		span.SetStatus(codes.Error, "invalid credentials")
+		slog.WarnContext(ctx, "failed login attempt", "email", user.Email)
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
 	if !user.IsActive {
-		slog.ErrorContext(ctx, "failed login attempt", "is_active", user.IsActive)
+		span.SetStatus(codes.Error, "user inactive")
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
 	if !user.IsEmailVerified {
+		span.SetStatus(codes.Error, "email unverified")
 		return TokenPair{}, &apperrors.BadRequestError{
 			Field: "email",
 			Msg:   "email unverified",
 		}
 	}
 
+	_, tokenSpan := tracer.Start(ctx, "AuthService.GenerateAccessToken")
 	accessToken, err := generateAccessToken(user.ID.String(), user.Email, s.config.JWTKey)
+	tokenSpan.End()
+
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "access token generation failed")
 		return TokenPair{}, err
 	}
 
 	refreshToken, err := generateRefreshToken()
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "refresh token generation failed")
 		return TokenPair{}, err
 	}
 
 	expiresAt := time.Now().Add(7 * 24 * time.Hour)
-	err = s.repo.CreateSession(ctx, user.ID, expiresAt, refreshToken, meta.IPAddress, meta.UserAgent)
-	if err != nil {
+	if err := s.repo.CreateSession(
+		ctx,
+		user.ID,
+		expiresAt,
+		refreshToken,
+		meta.IPAddress,
+		meta.UserAgent,
+	); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "session creation failed")
 		return TokenPair{}, err
 	}
+
+	span.SetAttributes(
+		attribute.String("user.id", user.ID.String()),
+	)
+
+	span.SetStatus(codes.Ok, "login successful")
 
 	return TokenPair{
 		AccessToken:      accessToken,
@@ -124,8 +166,14 @@ func generateRefreshToken() (string, error) {
 }
 
 func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta core.RequestMeta) (TokenPair, error) {
+	ctx, span := tracer.Start(ctx, "AuthService.RefreshToken")
+	defer span.End()
+
 	session, err := s.repo.GetSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "session lookup failed")
+
 		if errors.Is(err, core.ErrSessionNotFound) {
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
 		}
@@ -133,17 +181,20 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta co
 	}
 
 	if !session.RevokedAt.IsZero() {
-		slog.WarnContext(ctx, "refresh token reuse detected")
+		span.SetStatus(codes.Error, "refresh token reuse detected")
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
 	if session.ExpiresAt.Before(time.Now()) {
-		slog.WarnContext(ctx, "session expired")
+		span.SetStatus(codes.Error, "session expired")
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
 	user, err := s.userService.GetUserByID(ctx, session.UserID)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "user lookup failed")
+
 		if errors.Is(err, core.ErrUserNotFound) {
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
 		}
@@ -152,17 +203,36 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta co
 
 	newRefreshToken, err := generateRefreshToken()
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "refresh token generation failed")
 		return TokenPair{}, err
 	}
 
-	if err = s.repo.RotateSession(ctx, session.ID, user.ID, session.ExpiresAt, newRefreshToken, meta.IPAddress, meta.UserAgent); err != nil {
+	if err = s.repo.RotateSession(
+		ctx,
+		session.ID,
+		user.ID,
+		session.ExpiresAt,
+		newRefreshToken,
+		meta.IPAddress,
+		meta.UserAgent,
+	); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "session rotation failed")
 		return TokenPair{}, err
 	}
 
 	accessToken, err := generateAccessToken(user.ID.String(), user.Email, s.config.JWTKey)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "access token generation failed")
 		return TokenPair{}, err
 	}
+
+	span.SetAttributes(
+		attribute.String("user.id", user.ID.String()),
+	)
+	span.SetStatus(codes.Ok, "token refreshed")
 
 	return TokenPair{
 		AccessToken:      accessToken,
@@ -170,4 +240,9 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta co
 		RefreshExpiresAt: session.ExpiresAt,
 		UserID:           user.ID,
 	}, nil
+}
+
+func hashForTelemetry(value string) string {
+	sum := sha256.Sum256([]byte(value))
+	return hex.EncodeToString(sum[:8])
 }
