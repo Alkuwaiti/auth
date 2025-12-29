@@ -1,3 +1,4 @@
+// Package user holds the client for the user client calls.
 package user
 
 import (

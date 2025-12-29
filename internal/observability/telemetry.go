@@ -13,11 +13,11 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 )
 
-func InitTracer(ctx context.Context, serviceName, environment, otlpEndpoint string) (*sdktrace.TracerProvider, error) {
+func InitTracer(ctx context.Context, serviceName, environment, version, otlpEndpoint string) (*sdktrace.TracerProvider, error) {
 	res, err := resource.New(ctx,
 		resource.WithAttributes(
 			semconv.ServiceName(serviceName),
-			semconv.ServiceVersion("1.0.0"),
+			semconv.ServiceVersion(version),
 			semconv.DeploymentEnvironment(environment),
 		),
 	)

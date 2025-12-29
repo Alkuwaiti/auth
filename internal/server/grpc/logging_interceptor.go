@@ -21,6 +21,7 @@ func LoggingInterceptor() grpc.UnaryServerInterceptor {
 		if sc := span.SpanContext(); sc.IsValid() {
 			meta.TraceID = sc.TraceID().String()
 			meta.SpanID = sc.SpanID().String()
+			meta.RequestMethod = info.FullMethod
 		}
 
 		ctx = context.WithValue(ctx, requestMetaKey, meta)

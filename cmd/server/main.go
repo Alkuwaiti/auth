@@ -37,28 +37,12 @@ func main() {
 
 	cfg := config.Load(strings.ToLower(*envFlag), strings.ToLower(*jurFlag))
 
-	// Note: unused code.
 	level := slog.LevelInfo
 	if n, err := strconv.Atoi(cfg.LogLevel); err == nil {
 		level = slog.Level(n)
 	} else if err = level.UnmarshalText([]byte(cfg.LogLevel)); err != nil && cfg.LogLevel != "" {
 		panic(err)
 	}
-
-	tp, err := telemetry.InitTracer(
-		ctx,
-		name,
-		cfg.Environment,
-		cfg.OTLPEndpoint,
-	)
-	if err != nil {
-		log.Fatal("failed to initialize tracer:", err)
-	}
-	defer func() {
-		if err = telemetry.Shutdown(ctx, tp); err != nil {
-			slog.Error("failed to shutdown tracer", "err", err)
-		}
-	}()
 
 	base := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: level,
@@ -73,6 +57,22 @@ func main() {
 		)
 
 	slog.SetDefault(logger)
+
+	tp, err := telemetry.InitTracer(
+		ctx,
+		name,
+		cfg.Environment,
+		version,
+		cfg.OTLPEndpoint,
+	)
+	if err != nil {
+		log.Fatal("failed to initialize tracer:", err)
+	}
+	defer func() {
+		if err = telemetry.Shutdown(ctx, tp); err != nil {
+			slog.Error("failed to shutdown tracer", "err", err)
+		}
+	}()
 
 	dbConn, err := db.New(cfg.DatabaseURL)
 	if err != nil {

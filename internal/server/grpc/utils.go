@@ -28,7 +28,7 @@ func ExtractRequestMeta(ctx context.Context) core.RequestMeta {
 
 	meta := core.RequestMeta{
 		XForwardedFor: first(md.Get(headerXForwardedFor)),
-		RequestID:     first(md.Get(headerRequestID)),
+		// RequestID:     first(md.Get(headerRequestID)),
 	}
 
 	// Preferred: gateway-injected client metadata
