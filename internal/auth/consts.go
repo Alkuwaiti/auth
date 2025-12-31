@@ -1,6 +1,8 @@
 package auth
 
+type RevocationReason string
+
 const (
-	ReasonSessionCompromised = "user session compromised"
-	ReasonSessionRotation    = "rotated session"
+	RevocationSessionCompromised RevocationReason = "user session compromised"
+	RevocationSessionRotation    RevocationReason = "rotated session"
 )

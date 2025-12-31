@@ -72,11 +72,11 @@ func (r *repo) GetSessionByRefreshToken(ctx context.Context, refreshToken string
 	return toModel(session), err
 }
 
-func (r *repo) RevokeAllUserSessions(ctx context.Context, userID uuid.UUID, revocationReason string) error {
+func (r *repo) RevokeAllUserSessions(ctx context.Context, userID uuid.UUID, revocationReason RevocationReason) error {
 	if err := r.queries.RevokeAllUserSessions(ctx, postgres.RevokeAllUserSessionsParams{
 		UserID: userID,
 		RevocationReason: sql.NullString{
-			String: revocationReason,
+			String: string(revocationReason),
 			Valid:  revocationReason != "",
 		},
 	}); err != nil {
@@ -90,7 +90,7 @@ type RotateSessionInput struct {
 	oldSessionID     uuid.UUID
 	userID           uuid.UUID
 	expiry           time.Time
-	revocationReason string
+	revocationReason RevocationReason
 	refreshToken     string
 	ipAddress        string
 	userAgent        string
@@ -104,7 +104,7 @@ func (r *repo) RotateSession(
 		if err := queries.RevokeSession(ctx, postgres.RevokeSessionParams{
 			ID: input.oldSessionID,
 			RevocationReason: sql.NullString{
-				String: input.revocationReason,
+				String: string(input.revocationReason),
 				Valid:  input.revocationReason != "",
 			},
 		}); err != nil {
