@@ -59,7 +59,7 @@ func main() {
 		log.Fatal("failed to initialize tracer:", err)
 	}
 	defer func() {
-		if err = observability.Shutdown(ctx, tp); err != nil {
+		if err = observability.ShutdownTracer(ctx, tp); err != nil {
 			slog.Error("failed to shutdown tracer", "err", err)
 		}
 	}()

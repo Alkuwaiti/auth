@@ -49,7 +49,7 @@ func InitTracer(ctx context.Context, config Config) (*sdktrace.TracerProvider, e
 	return tp, nil
 }
 
-func Shutdown(ctx context.Context, tp *sdktrace.TracerProvider) error {
+func ShutdownTracer(ctx context.Context, tp *sdktrace.TracerProvider) error {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	return tp.Shutdown(ctx)
