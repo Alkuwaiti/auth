@@ -239,3 +239,16 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 		UserID:           user.ID,
 	}, nil
 }
+
+func (s *service) Logout(ctx context.Context, refreshToken string) {
+	ctx, span := tracer.Start(ctx, "AuthService.Logout")
+	defer span.End()
+
+	session, err := s.repo.GetSessionByRefreshToken(ctx, refreshToken)
+	if err != nil {
+		// already logged out / invalid token → success
+		return
+	}
+
+	_ = s.repo.RevokeSession(ctx, session.ID, RevocationLogout)
+}

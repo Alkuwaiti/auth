@@ -86,6 +86,20 @@ func (r *repo) RevokeAllUserSessions(ctx context.Context, userID uuid.UUID, revo
 	return nil
 }
 
+func (r *repo) RevokeSession(ctx context.Context, SessionID uuid.UUID, revocationReason RevocationReason) error {
+	if err := r.queries.RevokeSession(ctx, postgres.RevokeSessionParams{
+		ID: SessionID,
+		RevocationReason: sql.NullString{
+			String: string(revocationReason),
+			Valid:  revocationReason != "",
+		},
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 type RotateSessionInput struct {
 	oldSessionID     uuid.UUID
 	userID           uuid.UUID
