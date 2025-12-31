@@ -11,6 +11,7 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/core"
+	"github.com/alkuwaiti/auth/internal/observability"
 	"github.com/alkuwaiti/auth/internal/user"
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
@@ -45,7 +46,7 @@ type userService interface {
 
 var tracer = otel.Tracer("auth-service/auth")
 
-func (s *service) Login(ctx context.Context, email, password string, meta core.RequestMeta) (TokenPair, error) {
+func (s *service) Login(ctx context.Context, email, password string, meta observability.RequestMeta) (TokenPair, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.Login")
 	defer span.End()
 
@@ -157,7 +158,7 @@ func generateRefreshToken() (string, error) {
 	return token, nil
 }
 
-func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta core.RequestMeta) (TokenPair, error) {
+func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta observability.RequestMeta) (TokenPair, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.RefreshToken")
 	defer span.End()
 

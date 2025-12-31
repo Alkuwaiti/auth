@@ -1,5 +1,4 @@
-// Package core contains shared models and functions
-package core
+package observability
 
 import "log/slog"
 

@@ -44,23 +44,11 @@ func main() {
 		panic(err)
 	}
 
-	base := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: level,
-	})
+	observability.SetDefaultLogger(level, name, cfg.Environment)
 
-	handler := grpc.NewContextHandler(base)
-
-	logger := slog.New(handler).
-		With(
-			slog.String("service", name),
-			slog.String("env", cfg.Environment),
-		)
-
-	slog.SetDefault(logger)
-
-	tp, err := telemetry.InitTracer(
+	tp, err := observability.InitTracer(
 		ctx,
-		telemetry.Config{
+		observability.Config{
 			ServiceName:  name,
 			Environment:  cfg.Environment,
 			Version:      version,
@@ -71,7 +59,7 @@ func main() {
 		log.Fatal("failed to initialize tracer:", err)
 	}
 	defer func() {
-		if err = telemetry.Shutdown(ctx, tp); err != nil {
+		if err = observability.ShutdownTracer(ctx, tp); err != nil {
 			slog.Error("failed to shutdown tracer", "err", err)
 		}
 	}()

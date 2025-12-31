@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/alkuwaiti/auth/internal/observability"
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -15,7 +16,7 @@ func (s *server) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.T
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	meta := RequestMetaFromContext(ctx)
+	meta := observability.RequestMetaFromContext(ctx)
 
 	res, err := s.authService.Login(ctx, req.Email, req.Password, meta)
 	if err != nil {
@@ -37,7 +38,7 @@ func (s *server) RefreshToken(ctx context.Context, req *authv1.RefreshTokenReque
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	meta := RequestMetaFromContext(ctx)
+	meta := observability.RequestMetaFromContext(ctx)
 
 	res, err := s.authService.RefreshToken(ctx, req.RefreshToken, meta)
 	if err != nil {
