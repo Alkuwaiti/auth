@@ -100,6 +100,23 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 	return i, err
 }
 
+const markSessionCompromised = `-- name: MarkSessionCompromised :exec
+UPDATE sessions
+SET
+  revocation_reason = $1
+WHERE id = $2
+`
+
+type MarkSessionCompromisedParams struct {
+	RevocationReason sql.NullString
+	ID               uuid.UUID
+}
+
+func (q *Queries) MarkSessionCompromised(ctx context.Context, arg MarkSessionCompromisedParams) error {
+	_, err := q.db.ExecContext(ctx, markSessionCompromised, arg.RevocationReason, arg.ID)
+	return err
+}
+
 const registerUser = `-- name: RegisterUser :one
 
 INSERT INTO users (id, username, email, password_hash , created_at, updated_at)

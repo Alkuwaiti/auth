@@ -75,11 +75,13 @@ func (s *service) Login(ctx context.Context, email, password string, meta observ
 
 	if !user.IsActive {
 		span.SetStatus(codes.Error, "user inactive")
+		slog.WarnContext(ctx, "failed login attempt", "is_active", user.IsActive)
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
 	if !user.IsEmailVerified {
 		span.SetStatus(codes.Error, "email unverified")
+		slog.WarnContext(ctx, "failed login attempt", "is_email_verified", user.IsEmailVerified)
 		return TokenPair{}, &apperrors.BadRequestError{
 			Field: "email",
 			Msg:   "email unverified",
@@ -174,14 +176,22 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 	}
 
 	if !session.RevokedAt.IsZero() {
+		if session.RevocationReason == RevocationSessionCompromised {
+			// already handled — do NOTHING
+			return TokenPair{}, &apperrors.SessionCompromisedError{}
+		}
+
 		span.SetStatus(codes.Error, "refresh token reuse detected")
+		slog.WarnContext(ctx, "refresh token reuse detected", "session_revoked_at", session.RevokedAt)
 
 		_ = s.repo.RevokeAllUserSessions(ctx, session.UserID, RevocationSessionCompromised)
+		_ = s.repo.MarkSessionCompromised(ctx, session.ID)
 		return TokenPair{}, &apperrors.SessionCompromisedError{}
 	}
 
 	if session.ExpiresAt.Before(time.Now()) {
 		span.SetStatus(codes.Error, "session expired")
+		slog.WarnContext(ctx, "session expired", "session_expires_at", session.ExpiresAt)
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 

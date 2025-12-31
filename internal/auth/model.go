@@ -14,12 +14,13 @@ type TokenPair struct {
 }
 
 type Session struct {
-	ID           uuid.UUID
-	UserID       uuid.UUID
-	RefreshToken string
-	UserAgent    string
-	IPAddress    string
-	CreatedAt    time.Time
-	ExpiresAt    time.Time
-	RevokedAt    time.Time
+	ID               uuid.UUID
+	UserID           uuid.UUID
+	RefreshToken     string
+	UserAgent        string
+	IPAddress        string
+	CreatedAt        time.Time
+	ExpiresAt        time.Time
+	RevokedAt        time.Time
+	RevocationReason RevocationReason
 }
