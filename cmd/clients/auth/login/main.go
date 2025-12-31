@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/alkuwaiti/auth/cmd/clients/auth"
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func main() {
@@ -34,9 +36,18 @@ func main() {
 		Password: "Supersecretpassword1!",
 	})
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 
-	fmt.Println(res)
-	fmt.Println("done")
+	out, err := protojson.MarshalOptions{
+		Indent:          "  ",
+		EmitUnpopulated: true,
+	}.Marshal(res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	fmt.Println(string(out))
 }
