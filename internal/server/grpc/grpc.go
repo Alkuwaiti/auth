@@ -8,7 +8,7 @@ import (
 	"net"
 
 	"github.com/alkuwaiti/auth/internal/auth"
-	"github.com/alkuwaiti/auth/internal/core"
+	"github.com/alkuwaiti/auth/internal/observability"
 	"github.com/alkuwaiti/auth/internal/user"
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
 	userv1 "github.com/alkuwaiti/auth/pb/pbuser/v1"
@@ -33,8 +33,8 @@ type userService interface {
 }
 
 type authService interface {
-	Login(ctx context.Context, email, password string, meta core.RequestMeta) (auth.TokenPair, error)
-	RefreshToken(ctx context.Context, refreshToken string, meta core.RequestMeta) (auth.TokenPair, error)
+	Login(ctx context.Context, email, password string, meta observability.RequestMeta) (auth.TokenPair, error)
+	RefreshToken(ctx context.Context, refreshToken string, meta observability.RequestMeta) (auth.TokenPair, error)
 }
 
 type Config struct {

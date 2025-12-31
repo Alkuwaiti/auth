@@ -1,5 +1,5 @@
-// Package telemetry provides OTEL for the auth service.
-package telemetry
+// Package observability provides OTEL for the auth service.
+package observability
 
 import (
 	"context"

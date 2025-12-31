@@ -1,10 +1,9 @@
-package grpc
+package observability
 
 import (
 	"context"
 	"log/slog"
-
-	"github.com/alkuwaiti/auth/internal/core"
+	"os"
 )
 
 type ContextHandler struct {
@@ -21,7 +20,7 @@ func (h *ContextHandler) Enabled(ctx context.Context, level slog.Level) bool {
 
 func (h *ContextHandler) Handle(ctx context.Context, r slog.Record) error {
 	// Extract request metadata
-	if meta, ok := ctx.Value(requestMetaKey).(core.RequestMeta); ok {
+	if meta, ok := ctx.Value(RequestMetaKey).(RequestMeta); ok {
 		r.AddAttrs(meta.LogAttrs()...)
 	}
 
@@ -34,4 +33,21 @@ func (h *ContextHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 
 func (h *ContextHandler) WithGroup(name string) slog.Handler {
 	return &ContextHandler{next: h.next.WithGroup(name)}
+}
+
+func SetDefaultLogger(level slog.Level, name, environment string) {
+	base := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: level,
+	})
+
+	handler := NewContextHandler(base)
+
+	logger := slog.New(handler).
+		With(
+			slog.String("service", name),
+			slog.String("env", environment),
+		)
+
+	slog.SetDefault(logger)
+
 }

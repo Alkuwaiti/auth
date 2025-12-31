@@ -1,10 +1,9 @@
-package grpc
+package observability
 
 import (
 	"context"
 	"net"
 
-	"github.com/alkuwaiti/auth/internal/core"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 )
@@ -19,14 +18,14 @@ const (
 
 type requestMetaKeyType struct{}
 
-var requestMetaKey = requestMetaKeyType{}
+var RequestMetaKey = requestMetaKeyType{}
 
 // TODO: change this function when you have an api-gateway.
 
-func ExtractRequestMeta(ctx context.Context) core.RequestMeta {
+func ExtractRequestMeta(ctx context.Context) RequestMeta {
 	md, _ := metadata.FromIncomingContext(ctx)
 
-	meta := core.RequestMeta{
+	meta := RequestMeta{
 		XForwardedFor: first(md.Get(headerXForwardedFor)),
 		// RequestID:     first(md.Get(headerRequestID)),
 	}
@@ -50,11 +49,11 @@ func ExtractRequestMeta(ctx context.Context) core.RequestMeta {
 	return meta
 }
 
-func RequestMetaFromContext(ctx context.Context) core.RequestMeta {
-	if meta, ok := ctx.Value(requestMetaKey).(core.RequestMeta); ok {
+func RequestMetaFromContext(ctx context.Context) RequestMeta {
+	if meta, ok := ctx.Value(RequestMetaKey).(RequestMeta); ok {
 		return meta
 	}
-	return core.RequestMeta{}
+	return RequestMeta{}
 }
 
 func first(v []string) string {
