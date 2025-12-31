@@ -14,7 +14,6 @@ import (
 )
 
 const createSession = `-- name: CreateSession :exec
-
 INSERT INTO sessions (user_id, refresh_token, user_agent, ip_address, expires_at)
 VALUES ($1, $2, $3, $4, $5)
 `
@@ -27,7 +26,6 @@ type CreateSessionParams struct {
 	ExpiresAt    time.Time
 }
 
-// sessions
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) error {
 	_, err := q.db.ExecContext(ctx, createSession,
 		arg.UserID,
@@ -40,9 +38,11 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) er
 }
 
 const getSessionByRefreshToken = `-- name: GetSessionByRefreshToken :one
+
 SELECT id, user_id, refresh_token, user_agent, ip_address, created_at, expires_at, revoked_at FROM sessions WHERE refresh_token = $1
 `
 
+// sessions
 func (q *Queries) GetSessionByRefreshToken(ctx context.Context, refreshToken string) (Session, error) {
 	row := q.db.QueryRowContext(ctx, getSessionByRefreshToken, refreshToken)
 	var i Session
@@ -135,10 +135,23 @@ func (q *Queries) RegisterUser(ctx context.Context, arg RegisterUserParams) (Use
 	return i, err
 }
 
+const revokeAllUserSessions = `-- name: RevokeAllUserSessions :exec
+UPDATE sessions
+SET revoked_at = NOW() 
+WHERE user_id = $1
+AND revoked_at IS NULL
+`
+
+func (q *Queries) RevokeAllUserSessions(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, revokeAllUserSessions, userID)
+	return err
+}
+
 const revokeSession = `-- name: RevokeSession :exec
 UPDATE sessions 
 SET revoked_at = NOW() 
 WHERE id = $1
+AND revoked_at IS NULL
 `
 
 func (q *Queries) RevokeSession(ctx context.Context, id uuid.UUID) error {

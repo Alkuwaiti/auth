@@ -72,6 +72,14 @@ func (r *repo) GetSessionByRefreshToken(ctx context.Context, refreshToken string
 	return toModel(session), err
 }
 
+func (r *repo) RevokeAllUserSessions(ctx context.Context, userID uuid.UUID) error {
+	if err := r.queries.RevokeAllUserSessions(ctx, userID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r *repo) RotateSession(
 	ctx context.Context,
 	oldSessionID uuid.UUID,

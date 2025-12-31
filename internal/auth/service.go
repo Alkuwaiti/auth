@@ -175,7 +175,9 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 
 	if !session.RevokedAt.IsZero() {
 		span.SetStatus(codes.Error, "refresh token reuse detected")
-		return TokenPair{}, &apperrors.InvalidCredentialsError{}
+
+		_ = s.repo.RevokeAllUserSessions(ctx, session.UserID)
+		return TokenPair{}, &apperrors.SessionCompromisedError{}
 	}
 
 	if session.ExpiresAt.Before(time.Now()) {
