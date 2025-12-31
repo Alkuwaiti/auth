@@ -176,7 +176,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 	if !session.RevokedAt.IsZero() {
 		span.SetStatus(codes.Error, "refresh token reuse detected")
 
-		_ = s.repo.RevokeAllUserSessions(ctx, session.UserID)
+		_ = s.repo.RevokeAllUserSessions(ctx, session.UserID, ReasonSessionCompromised)
 		return TokenPair{}, &apperrors.SessionCompromisedError{}
 	}
 
@@ -205,12 +205,15 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 
 	if err = s.repo.RotateSession(
 		ctx,
-		session.ID,
-		user.ID,
-		session.ExpiresAt,
-		newRefreshToken,
-		meta.IPAddress,
-		meta.UserAgent,
+		RotateSessionInput{
+			oldSessionID:     session.ID,
+			userID:           user.ID,
+			expiry:           session.ExpiresAt,
+			revocationReason: ReasonSessionRotation,
+			refreshToken:     newRefreshToken,
+			ipAddress:        meta.IPAddress,
+			userAgent:        meta.UserAgent,
+		},
 	); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "session rotation failed")
