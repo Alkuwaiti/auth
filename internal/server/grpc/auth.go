@@ -8,6 +8,7 @@ import (
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 func (s *server) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.TokenPair, error) {
@@ -52,4 +53,18 @@ func (s *server) RefreshToken(ctx context.Context, req *authv1.RefreshTokenReque
 		TokenType:    "Bearer",
 		UserId:       res.UserID.String(),
 	}, nil
+}
+
+func (s *server) Logout(ctx context.Context, req *authv1.RefreshTokenRequest) (*emptypb.Empty, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	err := s.authService.Logout(ctx, req.RefreshToken)
+	if err != nil {
+		return nil, MapError(err)
+	}
+
+	return &emptypb.Empty{}, nil
 }

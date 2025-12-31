@@ -240,15 +240,17 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 	}, nil
 }
 
-func (s *service) Logout(ctx context.Context, refreshToken string) {
+func (s *service) Logout(ctx context.Context, refreshToken string) error {
 	ctx, span := tracer.Start(ctx, "AuthService.Logout")
 	defer span.End()
 
 	session, err := s.repo.GetSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
 		// already logged out / invalid token → success
-		return
+		return nil
 	}
 
 	_ = s.repo.RevokeSession(ctx, session.ID, RevocationLogout)
+
+	return nil
 }
