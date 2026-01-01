@@ -175,35 +175,48 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 		return TokenPair{}, err
 	}
 
-	if !session.RevokedAt.IsZero() {
-		if !session.CompromisedAt.IsZero() {
-			// already handled — inert evidence
-			return TokenPair{}, &apperrors.SessionCompromisedError{}
-		}
-
-		span.SetStatus(codes.Error, "refresh token reuse detected")
-		slog.WarnContext(ctx, "refresh token reuse detected", "session_revoked_at", session.RevokedAt)
-
-		_ = s.repo.RevokeAllUserSessions(ctx, session.UserID, RevocationSessionCompromised)
-		_ = s.repo.MarkSessionsCompromised(ctx, session.UserID)
+	if session.IsCompromised() {
+		span.SetStatus(codes.Error, "session already compromised")
+		slog.WarnContext(ctx, "attempt to use already compromised session",
+			"session_id", session.ID,
+			"compromised_at", session.CompromisedAt,
+		)
 		return TokenPair{}, &apperrors.SessionCompromisedError{}
 	}
 
-	if session.ExpiresAt.Before(time.Now()) {
+	if session.IsExpired() {
 		span.SetStatus(codes.Error, "session expired")
-		slog.WarnContext(ctx, "session expired", "session_expires_at", session.ExpiresAt)
+		slog.WarnContext(ctx, "session expired",
+			"session_id", session.ID,
+			"session_expires_at", session.ExpiresAt,
+		)
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
-	user, err := s.userService.GetUserByID(ctx, session.UserID)
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "user lookup failed")
+	if session.IsRevoked() {
+		span.SetStatus(codes.Error, "revoked token reuse detected")
+		slog.WarnContext(ctx, "revoked refresh token reused - possible attack",
+			"session_id", session.ID,
+			"revoked_at", session.RevokedAt,
+			"revocation_reason", session.RevocationReason,
+		)
 
-		if errors.Is(err, core.ErrUserNotFound) {
-			return TokenPair{}, &apperrors.InvalidCredentialsError{}
+		// revoke all user's active sessions, and mark them as compromised.
+		if err = s.repo.RevokeAllUserSessions(ctx, session.UserID, RevocationSessionCompromised); err != nil {
+			span.RecordError(err)
+			slog.ErrorContext(ctx, "failed to revoke user sessions on compromise",
+				"err", err,
+				"user_id", session.UserID,
+			)
 		}
-		return TokenPair{}, err
+		if err = s.repo.MarkSessionsCompromised(ctx, session.UserID); err != nil {
+			span.RecordError(err)
+			slog.ErrorContext(ctx, "failed to mark sessions as compromised",
+				"err", err,
+				"user_id", session.UserID,
+			)
+		}
+		return TokenPair{}, &apperrors.SessionCompromisedError{}
 	}
 
 	newRefreshToken, err := generateRefreshToken()
@@ -217,7 +230,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 		ctx,
 		RotateSessionInput{
 			oldSessionID:     session.ID,
-			userID:           user.ID,
+			userID:           session.UserID,
 			expiry:           session.ExpiresAt,
 			revocationReason: RevocationSessionRotation,
 			refreshToken:     newRefreshToken,
@@ -227,6 +240,17 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 	); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "session rotation failed")
+		return TokenPair{}, err
+	}
+
+	user, err := s.userService.GetUserByID(ctx, session.UserID)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "user lookup failed")
+
+		if errors.Is(err, core.ErrUserNotFound) {
+			return TokenPair{}, &apperrors.InvalidCredentialsError{}
+		}
 		return TokenPair{}, err
 	}
 

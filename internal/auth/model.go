@@ -25,3 +25,15 @@ type Session struct {
 	RevocationReason RevocationReason
 	CompromisedAt    time.Time
 }
+
+func (s *Session) IsRevoked() bool {
+	return !s.RevokedAt.IsZero()
+}
+
+func (s *Session) IsCompromised() bool {
+	return !s.CompromisedAt.IsZero()
+}
+
+func (s *Session) IsExpired() bool {
+	return s.ExpiresAt.Before(time.Now())
+}
