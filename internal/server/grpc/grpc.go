@@ -40,13 +40,14 @@ type authService interface {
 }
 
 type Config struct {
+	Host   string
 	Port   int
 	JWTKey []byte
 	Name   string
 }
 
 func (c Config) String() string {
-	return fmt.Sprintf("port: %d", c.Port)
+	return fmt.Sprintf("%s: %d", c.Host, c.Port)
 }
 
 func NewServer(cfg Config, userService userService, authService authService) *server {

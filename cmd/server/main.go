@@ -77,12 +77,15 @@ func main() {
 	authRepo := auth.NewRepo(dbConn)
 
 	authService := auth.NewService(authRepo, userService, auth.Config{
-		JWTKey: []byte(cfg.JWTKey),
+		Issuer:   name,
+		Audience: name,
+		JWTKey:   []byte(cfg.JWTKey),
 	})
 
 	port := 8081
 
 	srv := grpc.NewServer(grpc.Config{
+		Host:   "", // listen on all interfaces ":8081"
 		Port:   port,
 		JWTKey: []byte(cfg.JWTKey),
 		Name:   name,

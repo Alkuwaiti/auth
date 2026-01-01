@@ -13,7 +13,7 @@ import (
 	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/observability"
 	"github.com/alkuwaiti/auth/internal/user"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -28,7 +28,9 @@ type service struct {
 }
 
 type Config struct {
-	JWTKey []byte
+	JWTKey   []byte
+	Issuer   string
+	Audience string
 }
 
 func NewService(repo *repo, userService userService, config Config) *service {
@@ -88,7 +90,7 @@ func (s *service) Login(ctx context.Context, email, password string, meta observ
 		}
 	}
 
-	accessToken, err := generateAccessToken(user.ID.String(), user.Email, s.config.JWTKey)
+	accessToken, err := generateAccessToken(user.ID.String(), user.Email, s.config.JWTKey, s.config.Issuer, s.config.Audience)
 
 	if err != nil {
 		span.RecordError(err)
@@ -136,12 +138,22 @@ func checkPasswordHash(password, hash string) bool {
 	return err == nil
 }
 
-func generateAccessToken(userID, email string, secret []byte) (string, error) {
-	claims := jwt.MapClaims{
-		"sub":   userID,
-		"email": email,
-		"exp":   time.Now().Add(15 * time.Minute).Unix(),
-		"iat":   time.Now().Unix(),
+func generateAccessToken(
+	userID, email string,
+	secret []byte,
+	issuer string,
+	audience string,
+) (string, error) {
+
+	claims := core.AccessClaims{
+		Email: email,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   userID,
+			Issuer:    issuer,
+			Audience:  jwt.ClaimStrings{audience},
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -252,7 +264,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 		return TokenPair{}, err
 	}
 
-	accessToken, err := generateAccessToken(user.ID.String(), user.Email, s.config.JWTKey)
+	accessToken, err := generateAccessToken(user.ID.String(), user.Email, s.config.JWTKey, s.config.Issuer, s.config.Audience)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "access token generation failed")

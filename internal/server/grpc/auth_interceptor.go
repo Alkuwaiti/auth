@@ -4,11 +4,9 @@ import (
 	"context"
 	"errors"
 	"strings"
-	"time"
 
 	"github.com/alkuwaiti/auth/internal/core"
-	"github.com/golang-jwt/jwt"
-	"github.com/google/uuid"
+	"github.com/golang-jwt/jwt/v5"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -19,11 +17,6 @@ var publicMethods = map[string]struct{}{
 	"/auth.v1.AuthService/Login":        {},
 	"/auth.v1.UserService/RegisterUser": {},
 	"/auth.v1.AuthService/RefreshToken": {},
-}
-
-type AccessClaims struct {
-	UserID uuid.UUID `json:"sub"`
-	jwt.StandardClaims
 }
 
 func AuthUnaryInterceptor(
@@ -85,38 +78,27 @@ func validateJWT(
 	key []byte,
 	issuer string,
 	audience string,
-) (*AccessClaims, error) {
+) (*core.AccessClaims, error) {
 
 	token, err := jwt.ParseWithClaims(
 		tokenStr,
-		&AccessClaims{},
+		&core.AccessClaims{},
 		func(t *jwt.Token) (any, error) {
 			if t.Method != jwt.SigningMethodHS256 {
 				return nil, errors.New("unexpected signing method")
 			}
 			return key, nil
 		},
+		jwt.WithIssuer(issuer),
+		jwt.WithAudience(audience),
 	)
-	if err != nil || !token.Valid {
+	if err != nil {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(*core.AccessClaims)
+	if !ok || !token.Valid {
 		return nil, errors.New("invalid token")
-	}
-
-	claims, ok := token.Claims.(*AccessClaims)
-	if !ok {
-		return nil, errors.New("invalid claims")
-	}
-
-	// Explicit claim checks
-	if !claims.VerifyIssuer(issuer, true) {
-		return nil, errors.New("invalid issuer")
-	}
-
-	if !claims.VerifyAudience(audience, true) {
-		return nil, errors.New("invalid audience")
-	}
-
-	if claims.ExpiresAt < time.Now().Unix() {
-		return nil, errors.New("token expired")
 	}
 
 	return claims, nil
