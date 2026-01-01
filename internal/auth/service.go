@@ -176,8 +176,8 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 	}
 
 	if !session.RevokedAt.IsZero() {
-		if session.RevocationReason == RevocationSessionCompromised {
-			// already handled — do NOTHING
+		if !session.CompromisedAt.IsZero() {
+			// already handled — inert evidence
 			return TokenPair{}, &apperrors.SessionCompromisedError{}
 		}
 
@@ -185,7 +185,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 		slog.WarnContext(ctx, "refresh token reuse detected", "session_revoked_at", session.RevokedAt)
 
 		_ = s.repo.RevokeAllUserSessions(ctx, session.UserID, RevocationSessionCompromised)
-		_ = s.repo.MarkSessionCompromised(ctx, session.ID)
+		_ = s.repo.MarkSessionsCompromised(ctx, session.UserID)
 		return TokenPair{}, &apperrors.SessionCompromisedError{}
 	}
 

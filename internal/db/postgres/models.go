@@ -57,6 +57,7 @@ type Session struct {
 	ExpiresAt        time.Time
 	RevokedAt        sql.NullTime
 	RevocationReason sql.NullString
+	CompromisedAt    sql.NullTime
 }
 
 type SocialAccount struct {

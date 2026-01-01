@@ -39,7 +39,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) er
 
 const getSessionByRefreshToken = `-- name: GetSessionByRefreshToken :one
 
-SELECT id, user_id, refresh_token, user_agent, ip_address, created_at, expires_at, revoked_at, revocation_reason FROM sessions WHERE refresh_token = $1
+SELECT id, user_id, refresh_token, user_agent, ip_address, created_at, expires_at, revoked_at, revocation_reason, compromised_at FROM sessions WHERE refresh_token = $1
 `
 
 // sessions
@@ -56,6 +56,7 @@ func (q *Queries) GetSessionByRefreshToken(ctx context.Context, refreshToken str
 		&i.ExpiresAt,
 		&i.RevokedAt,
 		&i.RevocationReason,
+		&i.CompromisedAt,
 	)
 	return i, err
 }
@@ -100,20 +101,15 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 	return i, err
 }
 
-const markSessionCompromised = `-- name: MarkSessionCompromised :exec
+const markSessionsCompromised = `-- name: MarkSessionsCompromised :exec
 UPDATE sessions
-SET
-  revocation_reason = $1
-WHERE id = $2
+SET compromised_at = NOW()
+WHERE user_id = $1
+  AND compromised_at IS NULL
 `
 
-type MarkSessionCompromisedParams struct {
-	RevocationReason sql.NullString
-	ID               uuid.UUID
-}
-
-func (q *Queries) MarkSessionCompromised(ctx context.Context, arg MarkSessionCompromisedParams) error {
-	_, err := q.db.ExecContext(ctx, markSessionCompromised, arg.RevocationReason, arg.ID)
+func (q *Queries) MarkSessionsCompromised(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, markSessionsCompromised, userID)
 	return err
 }
 

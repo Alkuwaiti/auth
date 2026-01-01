@@ -23,4 +23,5 @@ type Session struct {
 	ExpiresAt        time.Time
 	RevokedAt        time.Time
 	RevocationReason RevocationReason
+	CompromisedAt    time.Time
 }

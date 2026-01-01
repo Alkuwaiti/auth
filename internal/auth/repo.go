@@ -146,14 +146,8 @@ func (r *repo) RotateSession(
 	})
 }
 
-func (r *repo) MarkSessionCompromised(ctx context.Context, sessionID uuid.UUID) error {
-	if err := r.queries.MarkSessionCompromised(ctx, postgres.MarkSessionCompromisedParams{
-		ID: sessionID,
-		RevocationReason: sql.NullString{
-			String: string(RevocationSessionCompromised),
-			Valid:  true,
-		},
-	}); err != nil {
+func (r *repo) MarkSessionsCompromised(ctx context.Context, userID uuid.UUID) error {
+	if err := r.queries.MarkSessionsCompromised(ctx, userID); err != nil {
 		return err
 	}
 
@@ -171,5 +165,6 @@ func toModel(session postgres.Session) Session {
 		ExpiresAt:        session.ExpiresAt,
 		RevokedAt:        session.RevokedAt.Time,
 		RevocationReason: RevocationReason(session.RevocationReason.String),
+		CompromisedAt:    session.CompromisedAt.Time,
 	}
 }

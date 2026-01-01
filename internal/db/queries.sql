@@ -47,8 +47,8 @@ SET
 WHERE user_id = $2
 AND revoked_at IS NULL;
 
--- name: MarkSessionCompromised :exec
+-- name: MarkSessionsCompromised :exec
 UPDATE sessions
-SET
-  revocation_reason = $1
-WHERE id = $2;
+SET compromised_at = NOW()
+WHERE user_id = $1
+  AND compromised_at IS NULL;
