@@ -10,6 +10,7 @@ service AuthService {
   rpc Ping(google.protobuf.Empty) returns (google.protobuf.Empty) {}
   rpc Login(LoginRequest) returns (TokenPair) {}
   rpc RefreshToken(RefreshTokenRequest) returns (TokenPair) {}
+  rpc Logout(RefreshTokenRequest) returns (google.protobuf.Empty) {}
 }
 
 message LoginRequest {

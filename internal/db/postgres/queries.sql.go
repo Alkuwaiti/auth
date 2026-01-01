@@ -39,7 +39,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) er
 
 const getSessionByRefreshToken = `-- name: GetSessionByRefreshToken :one
 
-SELECT id, user_id, refresh_token, user_agent, ip_address, created_at, expires_at, revoked_at FROM sessions WHERE refresh_token = $1
+SELECT id, user_id, refresh_token, user_agent, ip_address, created_at, expires_at, revoked_at, revocation_reason, compromised_at FROM sessions WHERE refresh_token = $1
 `
 
 // sessions
@@ -55,6 +55,8 @@ func (q *Queries) GetSessionByRefreshToken(ctx context.Context, refreshToken str
 		&i.CreatedAt,
 		&i.ExpiresAt,
 		&i.RevokedAt,
+		&i.RevocationReason,
+		&i.CompromisedAt,
 	)
 	return i, err
 }
@@ -99,6 +101,18 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 	return i, err
 }
 
+const markSessionsCompromised = `-- name: MarkSessionsCompromised :exec
+UPDATE sessions
+SET compromised_at = NOW()
+WHERE user_id = $1
+  AND compromised_at IS NULL
+`
+
+func (q *Queries) MarkSessionsCompromised(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, markSessionsCompromised, userID)
+	return err
+}
+
 const registerUser = `-- name: RegisterUser :one
 
 INSERT INTO users (id, username, email, password_hash , created_at, updated_at)
@@ -137,25 +151,39 @@ func (q *Queries) RegisterUser(ctx context.Context, arg RegisterUserParams) (Use
 
 const revokeAllUserSessions = `-- name: RevokeAllUserSessions :exec
 UPDATE sessions
-SET revoked_at = NOW() 
-WHERE user_id = $1
+SET 
+  revoked_at = NOW(),
+  revocation_reason = $1
+WHERE user_id = $2
 AND revoked_at IS NULL
 `
 
-func (q *Queries) RevokeAllUserSessions(ctx context.Context, userID uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, revokeAllUserSessions, userID)
+type RevokeAllUserSessionsParams struct {
+	RevocationReason sql.NullString
+	UserID           uuid.UUID
+}
+
+func (q *Queries) RevokeAllUserSessions(ctx context.Context, arg RevokeAllUserSessionsParams) error {
+	_, err := q.db.ExecContext(ctx, revokeAllUserSessions, arg.RevocationReason, arg.UserID)
 	return err
 }
 
 const revokeSession = `-- name: RevokeSession :exec
 UPDATE sessions 
-SET revoked_at = NOW() 
-WHERE id = $1
+SET 
+  revoked_at = NOW(),
+  revocation_reason = $1
+WHERE id = $2
 AND revoked_at IS NULL
 `
 
-func (q *Queries) RevokeSession(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, revokeSession, id)
+type RevokeSessionParams struct {
+	RevocationReason sql.NullString
+	ID               uuid.UUID
+}
+
+func (q *Queries) RevokeSession(ctx context.Context, arg RevokeSessionParams) error {
+	_, err := q.db.ExecContext(ctx, revokeSession, arg.RevocationReason, arg.ID)
 	return err
 }
 

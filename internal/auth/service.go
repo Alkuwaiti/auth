@@ -75,11 +75,13 @@ func (s *service) Login(ctx context.Context, email, password string, meta observ
 
 	if !user.IsActive {
 		span.SetStatus(codes.Error, "user inactive")
+		slog.WarnContext(ctx, "failed login attempt", "is_active", user.IsActive)
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
 	if !user.IsEmailVerified {
 		span.SetStatus(codes.Error, "email unverified")
+		slog.WarnContext(ctx, "failed login attempt", "is_email_verified", user.IsEmailVerified)
 		return TokenPair{}, &apperrors.BadRequestError{
 			Field: "email",
 			Msg:   "email unverified",
@@ -173,27 +175,46 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 		return TokenPair{}, err
 	}
 
-	if !session.RevokedAt.IsZero() {
-		span.SetStatus(codes.Error, "refresh token reuse detected")
-
-		_ = s.repo.RevokeAllUserSessions(ctx, session.UserID)
+	if session.CompromisedAt != nil {
+		span.SetStatus(codes.Error, "session already compromised")
+		slog.WarnContext(ctx, "attempt to use already compromised session",
+			"session_id", session.ID,
+			"compromised_at", session.CompromisedAt,
+		)
 		return TokenPair{}, &apperrors.SessionCompromisedError{}
 	}
 
-	if session.ExpiresAt.Before(time.Now()) {
+	if session.IsExpired() {
 		span.SetStatus(codes.Error, "session expired")
+		slog.WarnContext(ctx, "session expired",
+			"session_id", session.ID,
+			"session_expires_at", session.ExpiresAt,
+		)
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
-	user, err := s.userService.GetUserByID(ctx, session.UserID)
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "user lookup failed")
+	if session.RevokedAt != nil {
+		span.SetStatus(codes.Error, "revoked token reuse detected")
+		slog.WarnContext(ctx, "revoked refresh token reused - possible attack",
+			"session_id", session.ID,
+			"user_id", session.UserID,
+			"revoked_at", session.RevokedAt,
+			"revocation_reason", session.RevocationReason,
+		)
 
-		if errors.Is(err, core.ErrUserNotFound) {
-			return TokenPair{}, &apperrors.InvalidCredentialsError{}
+		// Revoke all active sessions
+		if err := s.repo.RevokeAllUserSessions(ctx, session.UserID, RevocationSessionCompromised); err != nil {
+			span.RecordError(err)
+			slog.ErrorContext(ctx, "failed to revoke user sessions on compromise", "err", err)
 		}
-		return TokenPair{}, err
+
+		// Mark all as compromised
+		if err := s.repo.MarkSessionsCompromised(ctx, session.UserID); err != nil {
+			span.RecordError(err)
+			slog.ErrorContext(ctx, "failed to mark sessions as compromised", "err", err)
+		}
+
+		return TokenPair{}, &apperrors.SessionCompromisedError{}
 	}
 
 	newRefreshToken, err := generateRefreshToken()
@@ -205,15 +226,29 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 
 	if err = s.repo.RotateSession(
 		ctx,
-		session.ID,
-		user.ID,
-		session.ExpiresAt,
-		newRefreshToken,
-		meta.IPAddress,
-		meta.UserAgent,
+		RotateSessionInput{
+			oldSessionID:     session.ID,
+			userID:           session.UserID,
+			expiry:           session.ExpiresAt,
+			revocationReason: RevocationSessionRotation,
+			refreshToken:     newRefreshToken,
+			ipAddress:        meta.IPAddress,
+			userAgent:        meta.UserAgent,
+		},
 	); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "session rotation failed")
+		return TokenPair{}, err
+	}
+
+	user, err := s.userService.GetUserByID(ctx, session.UserID)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "user lookup failed")
+
+		if errors.Is(err, core.ErrUserNotFound) {
+			return TokenPair{}, &apperrors.InvalidCredentialsError{}
+		}
 		return TokenPair{}, err
 	}
 
@@ -235,4 +270,19 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 		RefreshExpiresAt: session.ExpiresAt,
 		UserID:           user.ID,
 	}, nil
+}
+
+func (s *service) Logout(ctx context.Context, refreshToken string) error {
+	ctx, span := tracer.Start(ctx, "AuthService.Logout")
+	defer span.End()
+
+	session, err := s.repo.GetSessionByRefreshToken(ctx, refreshToken)
+	if err != nil {
+		// already logged out / invalid token → success
+		return nil
+	}
+
+	_ = s.repo.RevokeSession(ctx, session.ID, RevocationLogout)
+
+	return nil
 }

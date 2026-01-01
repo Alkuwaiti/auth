@@ -1,0 +1,2 @@
+ALTER TABLE sessions
+ADD COLUMN compromised_at TIMESTAMPTZ NULL;

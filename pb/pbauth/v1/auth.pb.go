@@ -211,11 +211,12 @@ const file___proto_auth_proto_rawDesc = "" +
 	"token_type\x18\x04 \x01(\tR\ttokenType\x12\x17\n" +
 	"\auser_id\x18\x05 \x01(\tR\x06userId\":\n" +
 	"\x13RefreshTokenRequest\x12#\n" +
-	"\rrefresh_token\x18\x01 \x01(\tR\frefreshToken2\xc1\x01\n" +
+	"\rrefresh_token\x18\x01 \x01(\tR\frefreshToken2\x83\x02\n" +
 	"\vAuthService\x128\n" +
 	"\x04Ping\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x00\x124\n" +
 	"\x05Login\x12\x15.auth.v1.LoginRequest\x1a\x12.auth.v1.TokenPair\"\x00\x12B\n" +
-	"\fRefreshToken\x12\x1c.auth.v1.RefreshTokenRequest\x1a\x12.auth.v1.TokenPair\"\x00B/Z-github.com/alkuwaiti/auth/pb/pbauth/v1;authv1b\x06proto3"
+	"\fRefreshToken\x12\x1c.auth.v1.RefreshTokenRequest\x1a\x12.auth.v1.TokenPair\"\x00\x12@\n" +
+	"\x06Logout\x12\x1c.auth.v1.RefreshTokenRequest\x1a\x16.google.protobuf.Empty\"\x00B/Z-github.com/alkuwaiti/auth/pb/pbauth/v1;authv1b\x06proto3"
 
 var (
 	file___proto_auth_proto_rawDescOnce sync.Once
@@ -240,11 +241,13 @@ var file___proto_auth_proto_depIdxs = []int32{
 	3, // 0: auth.v1.AuthService.Ping:input_type -> google.protobuf.Empty
 	0, // 1: auth.v1.AuthService.Login:input_type -> auth.v1.LoginRequest
 	2, // 2: auth.v1.AuthService.RefreshToken:input_type -> auth.v1.RefreshTokenRequest
-	3, // 3: auth.v1.AuthService.Ping:output_type -> google.protobuf.Empty
-	1, // 4: auth.v1.AuthService.Login:output_type -> auth.v1.TokenPair
-	1, // 5: auth.v1.AuthService.RefreshToken:output_type -> auth.v1.TokenPair
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
+	2, // 3: auth.v1.AuthService.Logout:input_type -> auth.v1.RefreshTokenRequest
+	3, // 4: auth.v1.AuthService.Ping:output_type -> google.protobuf.Empty
+	1, // 5: auth.v1.AuthService.Login:output_type -> auth.v1.TokenPair
+	1, // 6: auth.v1.AuthService.RefreshToken:output_type -> auth.v1.TokenPair
+	3, // 7: auth.v1.AuthService.Logout:output_type -> google.protobuf.Empty
+	4, // [4:8] is the sub-list for method output_type
+	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

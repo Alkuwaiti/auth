@@ -33,13 +33,22 @@ VALUES ($1, $2, $3, $4, $5);
 
 -- name: RevokeSession :exec
 UPDATE sessions 
-SET revoked_at = NOW() 
-WHERE id = $1
+SET 
+  revoked_at = NOW(),
+  revocation_reason = $1
+WHERE id = $2
 AND revoked_at IS NULL;
 
 -- name: RevokeAllUserSessions :exec
 UPDATE sessions
-SET revoked_at = NOW() 
-WHERE user_id = $1
+SET 
+  revoked_at = NOW(),
+  revocation_reason = $1
+WHERE user_id = $2
 AND revoked_at IS NULL;
 
+-- name: MarkSessionsCompromised :exec
+UPDATE sessions
+SET compromised_at = NOW()
+WHERE user_id = $1
+  AND compromised_at IS NULL;

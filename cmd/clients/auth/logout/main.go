@@ -19,7 +19,7 @@ func main() {
 		"x-forwarded-for":     "203.0.113.10",
 		"x-client-user-agent": "auth-cli/1.0",
 		"request-id":          "req-123456",
-		"x-client-ip":         "2.2.2.2",
+		"x-client-ip":         "1.1.1.1",
 	})
 
 	ctx = metadata.NewOutgoingContext(ctx, md)
@@ -31,8 +31,8 @@ func main() {
 		}
 	}()
 
-	res, err := client.RefreshToken(ctx, &authv1.RefreshTokenRequest{
-		RefreshToken: "4uBCjMx4eMWyKz9uAt-OW_JwPIXiT5u2m3eovSS7bSg=",
+	res, err := client.Logout(ctx, &authv1.RefreshTokenRequest{
+		RefreshToken: "MvzNVxJRdtNdUUEPUX_9eh52tbQeI7nfU5YTM8Mg0L8=",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

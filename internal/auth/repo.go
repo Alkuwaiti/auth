@@ -72,40 +72,71 @@ func (r *repo) GetSessionByRefreshToken(ctx context.Context, refreshToken string
 	return toModel(session), err
 }
 
-func (r *repo) RevokeAllUserSessions(ctx context.Context, userID uuid.UUID) error {
-	if err := r.queries.RevokeAllUserSessions(ctx, userID); err != nil {
+func (r *repo) RevokeAllUserSessions(ctx context.Context, userID uuid.UUID, revocationReason RevocationReason) error {
+	if err := r.queries.RevokeAllUserSessions(ctx, postgres.RevokeAllUserSessionsParams{
+		UserID: userID,
+		RevocationReason: sql.NullString{
+			String: string(revocationReason),
+			Valid:  revocationReason != "",
+		},
+	}); err != nil {
 		return err
 	}
 
 	return nil
 }
 
+func (r *repo) RevokeSession(ctx context.Context, SessionID uuid.UUID, revocationReason RevocationReason) error {
+	if err := r.queries.RevokeSession(ctx, postgres.RevokeSessionParams{
+		ID: SessionID,
+		RevocationReason: sql.NullString{
+			String: string(revocationReason),
+			Valid:  revocationReason != "",
+		},
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type RotateSessionInput struct {
+	oldSessionID     uuid.UUID
+	userID           uuid.UUID
+	expiry           time.Time
+	revocationReason RevocationReason
+	refreshToken     string
+	ipAddress        string
+	userAgent        string
+}
+
 func (r *repo) RotateSession(
 	ctx context.Context,
-	oldSessionID uuid.UUID,
-	userID uuid.UUID,
-	expiry time.Time,
-	refreshToken string,
-	ipAddress string,
-	userAgent string,
+	input RotateSessionInput,
 ) error {
 	return r.execTx(ctx, func(queries *postgres.Queries) error {
-		if err := queries.RevokeSession(ctx, oldSessionID); err != nil {
+		if err := queries.RevokeSession(ctx, postgres.RevokeSessionParams{
+			ID: input.oldSessionID,
+			RevocationReason: sql.NullString{
+				String: string(input.revocationReason),
+				Valid:  input.revocationReason != "",
+			},
+		}); err != nil {
 			return err
 		}
 
 		err := queries.CreateSession(ctx, postgres.CreateSessionParams{
-			UserID:       userID,
-			RefreshToken: refreshToken,
+			UserID:       input.userID,
+			RefreshToken: input.refreshToken,
 			UserAgent: sql.NullString{
-				String: userAgent,
-				Valid:  userAgent != "",
+				String: input.userAgent,
+				Valid:  input.userAgent != "",
 			},
 			IpAddress: sql.NullString{
-				String: ipAddress,
-				Valid:  ipAddress != "",
+				String: input.ipAddress,
+				Valid:  input.ipAddress != "",
 			},
-			ExpiresAt: expiry,
+			ExpiresAt: input.expiry,
 		})
 		if err != nil {
 			return err
@@ -115,15 +146,25 @@ func (r *repo) RotateSession(
 	})
 }
 
+func (r *repo) MarkSessionsCompromised(ctx context.Context, userID uuid.UUID) error {
+	if err := r.queries.MarkSessionsCompromised(ctx, userID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func toModel(session postgres.Session) Session {
 	return Session{
-		ID:           session.ID,
-		UserID:       session.UserID,
-		RefreshToken: session.RefreshToken,
-		UserAgent:    session.UserAgent.String,
-		IPAddress:    session.IpAddress.String,
-		CreatedAt:    session.CreatedAt.Time,
-		ExpiresAt:    session.ExpiresAt,
-		RevokedAt:    session.RevokedAt.Time,
+		ID:               session.ID,
+		UserID:           session.UserID,
+		RefreshToken:     session.RefreshToken,
+		UserAgent:        session.UserAgent.String,
+		IPAddress:        session.IpAddress.String,
+		CreatedAt:        session.CreatedAt.Time,
+		ExpiresAt:        session.ExpiresAt,
+		RevokedAt:        &session.RevokedAt.Time,
+		RevocationReason: RevocationReason(session.RevocationReason.String),
+		CompromisedAt:    &session.CompromisedAt.Time,
 	}
 }
