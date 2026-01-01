@@ -6,10 +6,8 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
-	"log/slog"
-	"time"
-
 	"github.com/alkuwaiti/auth/internal/apperrors"
+	accessClaim "github.com/alkuwaiti/auth/internal/auth/jwt"
 	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/observability"
 	"github.com/alkuwaiti/auth/internal/user"
@@ -19,6 +17,8 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"golang.org/x/crypto/bcrypt"
+	"log/slog"
+	"time"
 )
 
 type service struct {
@@ -145,7 +145,7 @@ func generateAccessToken(
 	audience string,
 ) (string, error) {
 
-	claims := core.AccessClaims{
+	claims := accessClaim.AccessClaims{
 		Email: email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   userID,

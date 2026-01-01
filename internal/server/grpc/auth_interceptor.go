@@ -3,9 +3,9 @@ package grpc
 import (
 	"context"
 	"errors"
+	accessClaim "github.com/alkuwaiti/auth/internal/auth/jwt"
 	"strings"
 
-	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/golang-jwt/jwt/v5"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -48,7 +48,7 @@ func AuthUnaryInterceptor(
 			return nil, status.Error(codes.Unauthenticated, "invalid token")
 		}
 
-		ctx = context.WithValue(ctx, core.EmailKey{}, claims.Email)
+		ctx = context.WithValue(ctx, accessClaim.EmailKey{}, claims.Email)
 
 		return handler(ctx, req)
 	}
@@ -78,11 +78,11 @@ func validateJWT(
 	key []byte,
 	issuer string,
 	audience string,
-) (*core.AccessClaims, error) {
+) (*accessClaim.AccessClaims, error) {
 
 	token, err := jwt.ParseWithClaims(
 		tokenStr,
-		&core.AccessClaims{},
+		&accessClaim.AccessClaims{},
 		func(t *jwt.Token) (any, error) {
 			if t.Method != jwt.SigningMethodHS256 {
 				return nil, errors.New("unexpected signing method")
@@ -96,7 +96,7 @@ func validateJWT(
 		return nil, err
 	}
 
-	claims, ok := token.Claims.(*core.AccessClaims)
+	claims, ok := token.Claims.(*accessClaim.AccessClaims)
 	if !ok || !token.Valid {
 		return nil, errors.New("invalid token")
 	}

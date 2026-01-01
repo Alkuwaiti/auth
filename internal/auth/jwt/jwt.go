@@ -1,5 +1,5 @@
-// Package core contains shared application stuff.
-package core
+// Package jwt contains JWT-specific token structures.
+package jwt
 
 import (
 	"github.com/golang-jwt/jwt/v5"
