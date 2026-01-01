@@ -155,6 +155,16 @@ func (r *repo) MarkSessionsCompromised(ctx context.Context, userID uuid.UUID) er
 }
 
 func toModel(session postgres.Session) Session {
+	var revokedAt *time.Time
+	if session.RevokedAt.Valid {
+		revokedAt = &session.RevokedAt.Time
+	}
+
+	var compromisedAt *time.Time
+	if session.CompromisedAt.Valid {
+		compromisedAt = &session.CompromisedAt.Time
+	}
+
 	return Session{
 		ID:               session.ID,
 		UserID:           session.UserID,
@@ -163,8 +173,8 @@ func toModel(session postgres.Session) Session {
 		IPAddress:        session.IpAddress.String,
 		CreatedAt:        session.CreatedAt.Time,
 		ExpiresAt:        session.ExpiresAt,
-		RevokedAt:        &session.RevokedAt.Time,
+		RevokedAt:        revokedAt,
 		RevocationReason: RevocationReason(session.RevocationReason.String),
-		CompromisedAt:    &session.CompromisedAt.Time,
+		CompromisedAt:    compromisedAt,
 	}
 }
