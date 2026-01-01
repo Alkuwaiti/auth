@@ -163,8 +163,8 @@ func toModel(session postgres.Session) Session {
 		IPAddress:        session.IpAddress.String,
 		CreatedAt:        session.CreatedAt.Time,
 		ExpiresAt:        session.ExpiresAt,
-		RevokedAt:        session.RevokedAt.Time,
+		RevokedAt:        &session.RevokedAt.Time,
 		RevocationReason: RevocationReason(session.RevocationReason.String),
-		CompromisedAt:    session.CompromisedAt.Time,
+		CompromisedAt:    &session.CompromisedAt.Time,
 	}
 }
