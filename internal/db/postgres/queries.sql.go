@@ -13,9 +13,10 @@ import (
 	"github.com/google/uuid"
 )
 
-const createSession = `-- name: CreateSession :exec
+const createSession = `-- name: CreateSession :one
 INSERT INTO sessions (user_id, refresh_token, user_agent, ip_address, expires_at)
 VALUES ($1, $2, $3, $4, $5)
+RETURNING id, user_id, refresh_token, user_agent, ip_address, created_at, expires_at, revoked_at, revocation_reason, compromised_at
 `
 
 type CreateSessionParams struct {
@@ -26,15 +27,28 @@ type CreateSessionParams struct {
 	ExpiresAt    time.Time
 }
 
-func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) error {
-	_, err := q.db.ExecContext(ctx, createSession,
+func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error) {
+	row := q.db.QueryRowContext(ctx, createSession,
 		arg.UserID,
 		arg.RefreshToken,
 		arg.UserAgent,
 		arg.IpAddress,
 		arg.ExpiresAt,
 	)
-	return err
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.RefreshToken,
+		&i.UserAgent,
+		&i.IpAddress,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+		&i.RevokedAt,
+		&i.RevocationReason,
+		&i.CompromisedAt,
+	)
+	return i, err
 }
 
 const getSessionByRefreshToken = `-- name: GetSessionByRefreshToken :one

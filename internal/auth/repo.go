@@ -39,8 +39,8 @@ func (r *repo) execTx(ctx context.Context, fn func(*postgres.Queries) error) err
 	return tx.Commit()
 }
 
-func (r *repo) CreateSession(ctx context.Context, userID uuid.UUID, expiry time.Time, refreshToken, IPAddress, userAgent string) error {
-	err := r.queries.CreateSession(ctx, postgres.CreateSessionParams{
+func (r *repo) CreateSession(ctx context.Context, userID uuid.UUID, expiry time.Time, refreshToken, IPAddress, userAgent string) (Session, error) {
+	session, err := r.queries.CreateSession(ctx, postgres.CreateSessionParams{
 		UserID:       userID,
 		RefreshToken: refreshToken,
 		UserAgent: sql.NullString{
@@ -54,10 +54,10 @@ func (r *repo) CreateSession(ctx context.Context, userID uuid.UUID, expiry time.
 		ExpiresAt: expiry,
 	})
 	if err != nil {
-		return err
+		return Session{}, err
 	}
 
-	return nil
+	return toModel(session), nil
 }
 
 func (r *repo) GetSessionByRefreshToken(ctx context.Context, refreshToken string) (Session, error) {
@@ -125,7 +125,7 @@ func (r *repo) RotateSession(
 			return err
 		}
 
-		err := queries.CreateSession(ctx, postgres.CreateSessionParams{
+		_, err := queries.CreateSession(ctx, postgres.CreateSessionParams{
 			UserID:       input.userID,
 			RefreshToken: input.refreshToken,
 			UserAgent: sql.NullString{
