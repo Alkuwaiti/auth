@@ -48,7 +48,7 @@ func AuthUnaryInterceptor(
 			return nil, status.Error(codes.Unauthenticated, "invalid token")
 		}
 
-		ctx = context.WithValue(ctx, core.UserIDKey{}, claims.UserID)
+		ctx = context.WithValue(ctx, core.EmailKey{}, claims.Email)
 
 		return handler(ctx, req)
 	}

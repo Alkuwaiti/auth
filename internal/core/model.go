@@ -5,10 +5,9 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type UserIDKey struct{}
+type EmailKey struct{}
 
 type AccessClaims struct {
-	UserID string `json:"sub"`
-	Email  string `json:"email"`
+	Email string `json:"email"`
 	jwt.RegisteredClaims
 }
