@@ -36,6 +36,7 @@ type authService interface {
 	Login(ctx context.Context, email, password string, meta observability.RequestMeta) (auth.TokenPair, error)
 	RefreshToken(ctx context.Context, refreshToken string, meta observability.RequestMeta) (auth.TokenPair, error)
 	Logout(ctx context.Context, refreshToken string) error
+	ChangePassword(ctx context.Context, oldPassword, newPassword string) error
 }
 
 type Config struct {

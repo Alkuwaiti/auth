@@ -68,3 +68,17 @@ func (s *server) Logout(ctx context.Context, req *authv1.RefreshTokenRequest) (*
 
 	return &emptypb.Empty{}, nil
 }
+
+func (s *server) ChangePassword(ctx context.Context, req *authv1.ChangePasswordRequest) (*emptypb.Empty, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	err := s.authService.ChangePassword(ctx, req.OldPassword, req.NewPassword)
+	if err != nil {
+		return nil, MapError(err)
+	}
+
+	return &emptypb.Empty{}, nil
+}
