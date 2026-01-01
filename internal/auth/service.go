@@ -175,7 +175,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 		return TokenPair{}, err
 	}
 
-	if session.IsCompromised() {
+	if session.CompromisedAt != nil {
 		span.SetStatus(codes.Error, "session already compromised")
 		slog.WarnContext(ctx, "attempt to use already compromised session",
 			"session_id", session.ID,
@@ -193,29 +193,27 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
-	if session.IsRevoked() {
+	if session.RevokedAt != nil {
 		span.SetStatus(codes.Error, "revoked token reuse detected")
 		slog.WarnContext(ctx, "revoked refresh token reused - possible attack",
 			"session_id", session.ID,
+			"user_id", session.UserID,
 			"revoked_at", session.RevokedAt,
 			"revocation_reason", session.RevocationReason,
 		)
 
-		// revoke all user's active sessions, and mark them as compromised.
-		if err = s.repo.RevokeAllUserSessions(ctx, session.UserID, RevocationSessionCompromised); err != nil {
+		// Revoke all active sessions
+		if err := s.repo.RevokeAllUserSessions(ctx, session.UserID, RevocationSessionCompromised); err != nil {
 			span.RecordError(err)
-			slog.ErrorContext(ctx, "failed to revoke user sessions on compromise",
-				"err", err,
-				"user_id", session.UserID,
-			)
+			slog.ErrorContext(ctx, "failed to revoke user sessions on compromise", "err", err)
 		}
-		if err = s.repo.MarkSessionsCompromised(ctx, session.UserID); err != nil {
+
+		// Mark all as compromised
+		if err := s.repo.MarkSessionsCompromised(ctx, session.UserID); err != nil {
 			span.RecordError(err)
-			slog.ErrorContext(ctx, "failed to mark sessions as compromised",
-				"err", err,
-				"user_id", session.UserID,
-			)
+			slog.ErrorContext(ctx, "failed to mark sessions as compromised", "err", err)
 		}
+
 		return TokenPair{}, &apperrors.SessionCompromisedError{}
 	}
 

@@ -21,17 +21,9 @@ type Session struct {
 	IPAddress        string
 	CreatedAt        time.Time
 	ExpiresAt        time.Time
-	RevokedAt        time.Time
+	RevokedAt        *time.Time
 	RevocationReason RevocationReason
-	CompromisedAt    time.Time
-}
-
-func (s *Session) IsRevoked() bool {
-	return !s.RevokedAt.IsZero()
-}
-
-func (s *Session) IsCompromised() bool {
-	return !s.CompromisedAt.IsZero()
+	CompromisedAt    *time.Time
 }
 
 func (s *Session) IsExpired() bool {
