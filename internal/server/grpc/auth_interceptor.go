@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
@@ -15,20 +16,15 @@ import (
 )
 
 var publicMethods = map[string]struct{}{
-	"/auth.AuthService/Login":          {},
-	"/auth.AuthService/Register":       {},
-	"/auth.AuthService/ForgotPassword": {},
-	"/auth.UserService/RegisterUser":   {},
+	"/auth.v1.AuthService/Login":        {},
+	"/auth.v1.UserService/RegisterUser": {},
+	"/auth.v1.AuthService/RefreshToken": {},
 }
 
 type AccessClaims struct {
-	UserID    uuid.UUID `json:"sub"`
-	SessionID uuid.UUID `json:"sid"`
+	UserID uuid.UUID `json:"sub"`
 	jwt.StandardClaims
 }
-
-type userIDKey struct{}
-type sessionIDKey struct{}
 
 func AuthUnaryInterceptor(
 	jwtKey []byte,
@@ -59,8 +55,7 @@ func AuthUnaryInterceptor(
 			return nil, status.Error(codes.Unauthenticated, "invalid token")
 		}
 
-		ctx = context.WithValue(ctx, userIDKey{}, claims.UserID)
-		ctx = context.WithValue(ctx, sessionIDKey{}, claims.SessionID)
+		ctx = context.WithValue(ctx, core.UserIDKey{}, claims.UserID)
 
 		return handler(ctx, req)
 	}

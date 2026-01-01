@@ -287,6 +287,8 @@ func (s *service) Logout(ctx context.Context, refreshToken string) error {
 	return nil
 }
 
-func (s *service) ChangePassword(ctx context.Context, accessToken string) error {
-	panic("unimplemented")
+func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword string) error {
+	slog.InfoContext(ctx, "just some context for now")
+
+	return nil
 }

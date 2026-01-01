@@ -83,7 +83,9 @@ func main() {
 	port := 8081
 
 	srv := grpc.NewServer(grpc.Config{
-		Port: port,
+		Port:   port,
+		JWTKey: []byte(cfg.JWTKey),
+		Name:   name,
 	}, userService, authService)
 
 	slog.InfoContext(ctx, "starting grpc server", "port", port, "commit", commit, "ref", ref, "version", version)

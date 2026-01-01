@@ -39,12 +39,13 @@ type authService interface {
 }
 
 type Config struct {
-	Host string
-	Port int
+	Port   int
+	JWTKey []byte
+	Name   string
 }
 
 func (c Config) String() string {
-	return fmt.Sprintf("%s:%d", c.Host, c.Port)
+	return fmt.Sprintf("port: %d", c.Port)
 }
 
 func NewServer(cfg Config, userService userService, authService authService) *server {
@@ -82,6 +83,7 @@ func (s *server) Start(ctx context.Context) error {
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		grpc.ChainUnaryInterceptor(
 			LoggingInterceptor(),
+			AuthUnaryInterceptor(s.cfg.JWTKey, s.cfg.Name, s.cfg.Name),
 		),
 	)
 
