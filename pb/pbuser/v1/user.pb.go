@@ -142,6 +142,58 @@ func (x *User) GetUsername() string {
 	return ""
 }
 
+type ChangePasswordRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	OldPassword   string                 `protobuf:"bytes,1,opt,name=old_password,json=oldPassword,proto3" json:"old_password,omitempty"`
+	NewPassword   string                 `protobuf:"bytes,2,opt,name=new_password,json=newPassword,proto3" json:"new_password,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ChangePasswordRequest) Reset() {
+	*x = ChangePasswordRequest{}
+	mi := &file___proto_user_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChangePasswordRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChangePasswordRequest) ProtoMessage() {}
+
+func (x *ChangePasswordRequest) ProtoReflect() protoreflect.Message {
+	mi := &file___proto_user_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ChangePasswordRequest.ProtoReflect.Descriptor instead.
+func (*ChangePasswordRequest) Descriptor() ([]byte, []int) {
+	return file___proto_user_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ChangePasswordRequest) GetOldPassword() string {
+	if x != nil {
+		return x.OldPassword
+	}
+	return ""
+}
+
+func (x *ChangePasswordRequest) GetNewPassword() string {
+	if x != nil {
+		return x.NewPassword
+	}
+	return ""
+}
+
 var File___proto_user_proto protoreflect.FileDescriptor
 
 const file___proto_user_proto_rawDesc = "" +
@@ -154,10 +206,14 @@ const file___proto_user_proto_rawDesc = "" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
-	"\busername\x18\x03 \x01(\tR\busername2\x86\x01\n" +
+	"\busername\x18\x03 \x01(\tR\busername\"]\n" +
+	"\x15ChangePasswordRequest\x12!\n" +
+	"\fold_password\x18\x01 \x01(\tR\voldPassword\x12!\n" +
+	"\fnew_password\x18\x02 \x01(\tR\vnewPassword2\xd2\x01\n" +
 	"\vUserService\x128\n" +
 	"\x04Ping\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x00\x12=\n" +
-	"\fRegisterUser\x12\x1c.user.v1.RegisterUserRequest\x1a\r.user.v1.User\"\x00B/Z-github.com/alkuwaiti/auth/pb/pbuser/v1;userv1b\x06proto3"
+	"\fRegisterUser\x12\x1c.user.v1.RegisterUserRequest\x1a\r.user.v1.User\"\x00\x12J\n" +
+	"\x0eChangePassword\x12\x1e.user.v1.ChangePasswordRequest\x1a\x16.google.protobuf.Empty\"\x00B/Z-github.com/alkuwaiti/auth/pb/pbuser/v1;userv1b\x06proto3"
 
 var (
 	file___proto_user_proto_rawDescOnce sync.Once
@@ -171,19 +227,22 @@ func file___proto_user_proto_rawDescGZIP() []byte {
 	return file___proto_user_proto_rawDescData
 }
 
-var file___proto_user_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file___proto_user_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file___proto_user_proto_goTypes = []any{
-	(*RegisterUserRequest)(nil), // 0: user.v1.RegisterUserRequest
-	(*User)(nil),                // 1: user.v1.User
-	(*emptypb.Empty)(nil),       // 2: google.protobuf.Empty
+	(*RegisterUserRequest)(nil),   // 0: user.v1.RegisterUserRequest
+	(*User)(nil),                  // 1: user.v1.User
+	(*ChangePasswordRequest)(nil), // 2: user.v1.ChangePasswordRequest
+	(*emptypb.Empty)(nil),         // 3: google.protobuf.Empty
 }
 var file___proto_user_proto_depIdxs = []int32{
-	2, // 0: user.v1.UserService.Ping:input_type -> google.protobuf.Empty
+	3, // 0: user.v1.UserService.Ping:input_type -> google.protobuf.Empty
 	0, // 1: user.v1.UserService.RegisterUser:input_type -> user.v1.RegisterUserRequest
-	2, // 2: user.v1.UserService.Ping:output_type -> google.protobuf.Empty
-	1, // 3: user.v1.UserService.RegisterUser:output_type -> user.v1.User
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	2, // 2: user.v1.UserService.ChangePassword:input_type -> user.v1.ChangePasswordRequest
+	3, // 3: user.v1.UserService.Ping:output_type -> google.protobuf.Empty
+	1, // 4: user.v1.UserService.RegisterUser:output_type -> user.v1.User
+	3, // 5: user.v1.UserService.ChangePassword:output_type -> google.protobuf.Empty
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -200,7 +259,7 @@ func file___proto_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file___proto_user_proto_rawDesc), len(file___proto_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

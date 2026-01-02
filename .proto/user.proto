@@ -9,6 +9,7 @@ option go_package = "github.com/alkuwaiti/auth/pb/pbuser/v1;userv1";
 service UserService {
   rpc Ping(google.protobuf.Empty) returns (google.protobuf.Empty) {}
   rpc RegisterUser(RegisterUserRequest) returns (User) {}
+  rpc ChangePassword(ChangePasswordRequest) returns (google.protobuf.Empty) {}
 }
 
 message RegisterUserRequest {
@@ -21,4 +22,9 @@ message User {
   string id = 1;
   string email = 2;
   string username = 3;
+}
+
+message ChangePasswordRequest {
+  string old_password = 1;
+  string new_password = 2;
 }

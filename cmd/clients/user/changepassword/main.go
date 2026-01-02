@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/alkuwaiti/auth/cmd/clients/auth"
-	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
+	"github.com/alkuwaiti/auth/cmd/clients/user"
+	userv1 "github.com/alkuwaiti/auth/pb/pbuser/v1"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -25,14 +25,14 @@ func main() {
 
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	client := auth.Must(ctx, "localhost:8081")
+	client := user.Must(ctx, "localhost:8081")
 	defer func() {
 		if err := client.Close(); err != nil {
 			log.Printf("failed to close client: %v", err)
 		}
 	}()
 
-	res, err := client.ChangePassword(ctx, &authv1.ChangePasswordRequest{
+	res, err := client.ChangePassword(ctx, &userv1.ChangePasswordRequest{
 		OldPassword: "Supersecretpassword1!",
 		NewPassword: "Supersecretpassword1!",
 	})
