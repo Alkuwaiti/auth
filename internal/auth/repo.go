@@ -39,7 +39,7 @@ func (r *repo) execTx(ctx context.Context, fn func(*postgres.Queries) error) err
 	return tx.Commit()
 }
 
-func (r *repo) CreateSession(ctx context.Context, userID uuid.UUID, expiry time.Time, refreshToken, IPAddress, userAgent string) (Session, error) {
+func (r *repo) createSession(ctx context.Context, userID uuid.UUID, expiry time.Time, refreshToken, IPAddress, userAgent string) (Session, error) {
 	session, err := r.queries.CreateSession(ctx, postgres.CreateSessionParams{
 		UserID:       userID,
 		RefreshToken: refreshToken,
@@ -60,7 +60,7 @@ func (r *repo) CreateSession(ctx context.Context, userID uuid.UUID, expiry time.
 	return toModel(session), nil
 }
 
-func (r *repo) GetSessionByRefreshToken(ctx context.Context, refreshToken string) (Session, error) {
+func (r *repo) getSessionByRefreshToken(ctx context.Context, refreshToken string) (Session, error) {
 	session, err := r.queries.GetSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -72,7 +72,7 @@ func (r *repo) GetSessionByRefreshToken(ctx context.Context, refreshToken string
 	return toModel(session), err
 }
 
-func (r *repo) RevokeAllUserSessions(ctx context.Context, userID uuid.UUID, revocationReason RevocationReason) error {
+func (r *repo) revokeAllUserSessions(ctx context.Context, userID uuid.UUID, revocationReason RevocationReason) error {
 	if err := r.queries.RevokeAllUserSessions(ctx, postgres.RevokeAllUserSessionsParams{
 		UserID: userID,
 		RevocationReason: sql.NullString{
@@ -86,7 +86,7 @@ func (r *repo) RevokeAllUserSessions(ctx context.Context, userID uuid.UUID, revo
 	return nil
 }
 
-func (r *repo) RevokeSession(ctx context.Context, SessionID uuid.UUID, revocationReason RevocationReason) error {
+func (r *repo) revokeSession(ctx context.Context, SessionID uuid.UUID, revocationReason RevocationReason) error {
 	if err := r.queries.RevokeSession(ctx, postgres.RevokeSessionParams{
 		ID: SessionID,
 		RevocationReason: sql.NullString{
@@ -110,7 +110,7 @@ type RotateSessionInput struct {
 	userAgent        string
 }
 
-func (r *repo) RotateSession(
+func (r *repo) rotateSession(
 	ctx context.Context,
 	input RotateSessionInput,
 ) error {
@@ -146,7 +146,7 @@ func (r *repo) RotateSession(
 	})
 }
 
-func (r *repo) MarkSessionsCompromised(ctx context.Context, userID uuid.UUID) error {
+func (r *repo) markSessionsCompromised(ctx context.Context, userID uuid.UUID) error {
 	if err := r.queries.MarkSessionsCompromised(ctx, userID); err != nil {
 		return err
 	}

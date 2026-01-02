@@ -201,6 +201,22 @@ func (q *Queries) RevokeSession(ctx context.Context, arg RevokeSessionParams) er
 	return err
 }
 
+const updatePassword = `-- name: UpdatePassword :exec
+UPDATE users
+SET password_hash = $1
+WHERE id = $2
+`
+
+type UpdatePasswordParams struct {
+	PasswordHash string
+	ID           uuid.UUID
+}
+
+func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) error {
+	_, err := q.db.ExecContext(ctx, updatePassword, arg.PasswordHash, arg.ID)
+	return err
+}
+
 const userExistsByEmail = `-- name: UserExistsByEmail :one
 SELECT EXISTS (
   SELECT 1 FROM users WHERE email = $1

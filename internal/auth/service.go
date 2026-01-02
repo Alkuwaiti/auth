@@ -44,6 +44,7 @@ func NewService(repo *repo, userService userService, config Config) *service {
 type userService interface {
 	GetUserByEmail(ctx context.Context, email string) (user.User, error)
 	GetUserByID(ctx context.Context, userID uuid.UUID) (user.User, error)
+	UpdatePassword(ctx context.Context, userID uuid.UUID, newPasswordHash string) error
 }
 
 var tracer = otel.Tracer("auth-service/auth")
@@ -106,7 +107,7 @@ func (s *service) Login(ctx context.Context, email, password string, meta observ
 	}
 
 	expiresAt := time.Now().Add(7 * 24 * time.Hour)
-	if _, err := s.repo.CreateSession(
+	if _, err := s.repo.createSession(
 		ctx,
 		user.ID,
 		expiresAt,
@@ -176,7 +177,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 	ctx, span := tracer.Start(ctx, "AuthService.RefreshToken")
 	defer span.End()
 
-	session, err := s.repo.GetSessionByRefreshToken(ctx, refreshToken)
+	session, err := s.repo.getSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "session lookup failed")
@@ -215,13 +216,13 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 		)
 
 		// Revoke all active sessions
-		if err = s.repo.RevokeAllUserSessions(ctx, session.UserID, RevocationSessionCompromised); err != nil {
+		if err = s.repo.revokeAllUserSessions(ctx, session.UserID, RevocationSessionCompromised); err != nil {
 			span.RecordError(err)
 			slog.ErrorContext(ctx, "failed to revoke user sessions on compromise", "err", err)
 		}
 
 		// Mark all as compromised
-		if err = s.repo.MarkSessionsCompromised(ctx, session.UserID); err != nil {
+		if err = s.repo.markSessionsCompromised(ctx, session.UserID); err != nil {
 			span.RecordError(err)
 			slog.ErrorContext(ctx, "failed to mark sessions as compromised", "err", err)
 		}
@@ -236,7 +237,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 		return TokenPair{}, err
 	}
 
-	if err = s.repo.RotateSession(
+	if err = s.repo.rotateSession(
 		ctx,
 		RotateSessionInput{
 			oldSessionID:     session.ID,
@@ -288,24 +289,48 @@ func (s *service) Logout(ctx context.Context, refreshToken string) error {
 	ctx, span := tracer.Start(ctx, "AuthService.Logout")
 	defer span.End()
 
-	session, err := s.repo.GetSessionByRefreshToken(ctx, refreshToken)
+	session, err := s.repo.getSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
 		// already logged out / invalid token → success
 		return nil
 	}
 
-	_ = s.repo.RevokeSession(ctx, session.ID, RevocationLogout)
+	_ = s.repo.revokeSession(ctx, session.ID, RevocationLogout)
 
 	return nil
 }
 
 func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword string) error {
-	slog.InfoContext(ctx, "just some context for now")
 	id, ok := ctx.Value(core.UserIDKey{}).(uuid.UUID)
-
-	slog.DebugContext(ctx, "this tis the suer id", "user_id", id)
 	if !ok {
 		return &apperrors.InvalidCredentialsError{}
+	}
+
+	oldPasswordHash, err := core.HashPassword(oldPassword)
+	if err != nil {
+		return err
+	}
+
+	user, err := s.userService.GetUserByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if oldPasswordHash != user.PasswordHash {
+		return &apperrors.InvalidCredentialsError{}
+	}
+
+	newPasswordHash, err := core.HashPassword(newPassword)
+	if err != nil {
+		return err
+	}
+
+	if err := s.userService.UpdatePassword(ctx, id, newPasswordHash); err != nil {
+		return err
+	}
+
+	if err := s.repo.revokeAllUserSessions(ctx, id, RevocationPasswordChange); err != nil {
+		return err
 	}
 
 	return nil
