@@ -11,6 +11,7 @@ service AuthService {
   rpc Login(LoginRequest) returns (TokenPair) {}
   rpc RefreshToken(RefreshTokenRequest) returns (TokenPair) {}
   rpc Logout(RefreshTokenRequest) returns (google.protobuf.Empty) {}
+  rpc ChangePassword(ChangePasswordRequest) returns (google.protobuf.Empty) {}
 }
 
 message LoginRequest {
@@ -30,3 +31,7 @@ message RefreshTokenRequest {
   string refresh_token = 1;
 }
 
+message ChangePasswordRequest {
+  string old_password = 1;
+  string new_password = 2;
+}
