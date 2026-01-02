@@ -7,7 +7,6 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -49,13 +48,8 @@ func AuthUnaryInterceptor(
 			return nil, status.Error(codes.Unauthenticated, "invalid token")
 		}
 
-		userID, err := uuid.Parse(claims.Subject)
-		if err != nil {
-			return nil, status.Error(codes.Unauthenticated, "invalid user id")
-		}
-
 		ctx = context.WithValue(ctx, core.EmailKey{}, claims.Email)
-		ctx = context.WithValue(ctx, core.UserIDKey{}, userID)
+		ctx = context.WithValue(ctx, core.UserIDKey{}, claims.Subject)
 
 		return handler(ctx, req)
 	}

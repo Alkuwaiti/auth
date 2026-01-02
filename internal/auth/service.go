@@ -300,23 +300,21 @@ func (s *service) Logout(ctx context.Context, refreshToken string) error {
 	return nil
 }
 
-func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword string) error {
-	id, ok := ctx.Value(core.UserIDKey{}).(uuid.UUID)
-	if !ok {
-		return &apperrors.InvalidCredentialsError{}
-	}
-
-	oldPasswordHash, err := core.HashPassword(oldPassword)
-	if err != nil {
+func (s *service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error {
+	if err := core.ValidatePassword(newPassword); err != nil {
 		return err
 	}
 
-	user, err := s.userService.GetUserByID(ctx, id)
+	user, err := s.userService.GetUserByID(ctx, userID)
 	if err != nil {
+		if errors.Is(err, core.ErrUserNotFound) {
+			return &apperrors.InvalidCredentialsError{}
+		}
+
 		return err
 	}
 
-	if oldPasswordHash != user.PasswordHash {
+	if !core.VerifyPassword(user.PasswordHash, oldPassword) {
 		return &apperrors.InvalidCredentialsError{}
 	}
 
@@ -325,11 +323,11 @@ func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 		return err
 	}
 
-	if err := s.userService.UpdatePassword(ctx, id, newPasswordHash); err != nil {
+	if err := s.userService.UpdatePassword(ctx, userID, newPasswordHash); err != nil {
 		return err
 	}
 
-	if err := s.repo.revokeAllUserSessions(ctx, id, RevocationPasswordChange); err != nil {
+	if err := s.repo.revokeAllUserSessions(ctx, userID, RevocationPasswordChange); err != nil {
 		return err
 	}
 
