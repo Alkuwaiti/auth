@@ -1,4 +1,3 @@
-// Package core contains shared application stuff.
 package core
 
 import (
