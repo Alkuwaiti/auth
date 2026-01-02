@@ -55,3 +55,9 @@ type SessionCompromisedError struct{}
 func (e *SessionCompromisedError) Error() string {
 	return "invalid credentials"
 }
+
+type PasswordReuseError struct{}
+
+func (e *PasswordReuseError) Error() string {
+	return "new password cannot be old password"
+}

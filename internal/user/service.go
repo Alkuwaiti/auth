@@ -10,6 +10,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type service struct {
@@ -69,7 +70,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 		return User{}, &apperrors.InvalidCredentialsError{}
 	}
 
-	hashedPassword, err := core.HashPassword(input.Password)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "password hashing failed")
@@ -79,7 +80,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 		}
 	}
 
-	user, err := s.repo.registerUser(ctx, input.Username, input.Email, hashedPassword)
+	user, err := s.repo.registerUser(ctx, input.Username, input.Email, string(hashedPassword))
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "user persistence failed")

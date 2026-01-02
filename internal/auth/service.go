@@ -314,16 +314,26 @@ func (s *service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 		return err
 	}
 
-	if !core.VerifyPassword(user.PasswordHash, oldPassword) {
+	if err = bcrypt.CompareHashAndPassword(
+		[]byte(user.PasswordHash),
+		[]byte(oldPassword),
+	); err != nil {
 		return &apperrors.InvalidCredentialsError{}
 	}
 
-	newPasswordHash, err := core.HashPassword(newPassword)
+	if err = bcrypt.CompareHashAndPassword(
+		[]byte(user.PasswordHash),
+		[]byte(newPassword),
+	); err == nil {
+		return &apperrors.PasswordReuseError{}
+	}
+
+	newPasswordHash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
 
-	if err := s.userService.UpdatePassword(ctx, userID, newPasswordHash); err != nil {
+	if err := s.userService.UpdatePassword(ctx, userID, string(newPasswordHash)); err != nil {
 		return err
 	}
 

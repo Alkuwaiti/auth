@@ -8,11 +8,22 @@ import (
 
 	"github.com/alkuwaiti/auth/cmd/clients/user"
 	userv1 "github.com/alkuwaiti/auth/pb/pbuser/v1"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func main() {
 	ctx := context.Background()
+
+	md := metadata.New(map[string]string{
+		"authorization":       "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFsa3V3YWl0aXFhc2ltQGdtYWlsLmNvbSIsImlzcyI6ImF1dGgtc2VydmljZSIsInN1YiI6ImE2YjY4NmQyLTg2OGItNGZhZC1iMzQ4LTRkN2ViMmEyNTc3ZSIsImF1ZCI6WyJhdXRoLXNlcnZpY2UiXSwiZXhwIjoxNzY3Mzg5ODMzLCJpYXQiOjE3NjczODg5MzN9.RMse52WhDVwCxnvdXDxsuiMerNxXxhCPTnVIdZ6onO8",
+		"x-forwarded-for":     "203.0.113.10",
+		"x-client-user-agent": "auth-cli/1.0",
+		"request-id":          "req-123456",
+		"x-client-ip":         "2.2.2.2",
+	})
+
+	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	client := user.Must(ctx, "localhost:8081")
 	defer func() {
@@ -23,8 +34,8 @@ func main() {
 
 	res, err := client.RegisterUser(ctx, &userv1.RegisterUserRequest{
 		Username: "qasim",
-		Email:    "alkuwaitiqasim@gmail.com",
-		Password: "Supersecretpassword1!",
+		Email:    "alkuwaitiqasimm@gmail.com",
+		Password: "Supersecretpassword1",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
