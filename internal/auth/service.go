@@ -301,6 +301,12 @@ func (s *service) Logout(ctx context.Context, refreshToken string) error {
 
 func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword string) error {
 	slog.InfoContext(ctx, "just some context for now")
+	id, ok := ctx.Value(core.UserIDKey{}).(uuid.UUID)
+
+	slog.DebugContext(ctx, "this tis the suer id", "user_id", id)
+	if !ok {
+		return &apperrors.InvalidCredentialsError{}
+	}
 
 	return nil
 }
