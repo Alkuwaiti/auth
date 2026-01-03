@@ -284,13 +284,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 			"revocation_reason", session.RevocationReason,
 		)
 
-		// Revoke all active sessions
-		if err = s.repo.revokeAllUserSessions(ctx, session.UserID, RevocationSessionCompromised); err != nil {
-			slog.ErrorContext(ctx, "failed to revoke user sessions on compromise", "err", err)
-		}
-
-		// Mark all as compromised
-		if err = s.repo.markSessionsCompromised(ctx, session.UserID); err != nil {
+		if err = s.repo.revokeAndMarkSessionsCompromised(ctx, session.UserID, RevocationSessionCompromised); err != nil {
 			slog.ErrorContext(ctx, "failed to mark sessions as compromised", "err", err)
 		}
 
@@ -418,13 +412,13 @@ func (s *service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 		return err
 	}
 
-	if err := s.repo.updatePassword(ctx, userID, newPasswordHash); err != nil {
-		slog.ErrorContext(ctx, "error updating password", "err", err)
-		return err
-	}
-
-	if err := s.repo.revokeAllUserSessions(ctx, userID, RevocationPasswordChange); err != nil {
-		slog.ErrorContext(ctx, "error revoking all user sessions", "err", err)
+	if err := s.repo.updatePasswordAndRevokeSessions(
+		ctx,
+		userID,
+		newPasswordHash,
+		RevocationPasswordChange,
+	); err != nil {
+		slog.ErrorContext(ctx, "failed to update password and revoke sessions", "err", err)
 		return err
 	}
 

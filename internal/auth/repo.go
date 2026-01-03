@@ -72,20 +72,6 @@ func (r *repo) getSessionByRefreshToken(ctx context.Context, refreshToken string
 	return toModel(session), err
 }
 
-func (r *repo) revokeAllUserSessions(ctx context.Context, userID uuid.UUID, revocationReason RevocationReason) error {
-	if err := r.queries.RevokeAllUserSessions(ctx, postgres.RevokeAllUserSessionsParams{
-		UserID: userID,
-		RevocationReason: sql.NullString{
-			String: string(revocationReason),
-			Valid:  revocationReason != "",
-		},
-	}); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (r *repo) revokeSession(ctx context.Context, SessionID uuid.UUID, revocationReason RevocationReason) error {
 	if err := r.queries.RevokeSession(ctx, postgres.RevokeSessionParams{
 		ID: SessionID,
@@ -98,6 +84,34 @@ func (r *repo) revokeSession(ctx context.Context, SessionID uuid.UUID, revocatio
 	}
 
 	return nil
+}
+
+func (r *repo) updatePasswordAndRevokeSessions(
+	ctx context.Context,
+	userID uuid.UUID,
+	newPasswordHash string,
+	reason RevocationReason,
+) error {
+	return r.execTx(ctx, func(q *postgres.Queries) error {
+		if err := q.UpdatePassword(ctx, postgres.UpdatePasswordParams{
+			ID:           userID,
+			PasswordHash: newPasswordHash,
+		}); err != nil {
+			return err
+		}
+
+		if err := q.RevokeAllUserSessions(ctx, postgres.RevokeAllUserSessionsParams{
+			UserID: userID,
+			RevocationReason: sql.NullString{
+				String: string(reason),
+				Valid:  reason != "",
+			},
+		}); err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 type RotateSessionInput struct {
@@ -146,12 +160,28 @@ func (r *repo) rotateSession(
 	})
 }
 
-func (r *repo) markSessionsCompromised(ctx context.Context, userID uuid.UUID) error {
-	if err := r.queries.MarkSessionsCompromised(ctx, userID); err != nil {
-		return err
-	}
+func (r *repo) revokeAndMarkSessionsCompromised(
+	ctx context.Context,
+	userID uuid.UUID,
+	reason RevocationReason,
+) error {
+	return r.execTx(ctx, func(q *postgres.Queries) error {
+		if err := q.RevokeAllUserSessions(ctx, postgres.RevokeAllUserSessionsParams{
+			UserID: userID,
+			RevocationReason: sql.NullString{
+				String: string(reason),
+				Valid:  reason != "",
+			},
+		}); err != nil {
+			return err
+		}
 
-	return nil
+		if err := q.MarkSessionsCompromised(ctx, userID); err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func (r *repo) updatePassword(ctx context.Context, userID uuid.UUID, newPasswordHash string) error {
