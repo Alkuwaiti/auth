@@ -1,19 +1,11 @@
-package core
+// Package security provides security methods.
+package security
 
 import (
 	"unicode"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
-	"golang.org/x/crypto/bcrypt"
 )
-
-func VerifyPassword(hashedPassword string, password string) bool {
-	err := bcrypt.CompareHashAndPassword(
-		[]byte(hashedPassword),
-		[]byte(password),
-	)
-	return err == nil
-}
 
 func ValidatePassword(password string) error {
 	if len(password) < 8 {
