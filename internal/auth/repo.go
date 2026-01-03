@@ -154,6 +154,17 @@ func (r *repo) markSessionsCompromised(ctx context.Context, userID uuid.UUID) er
 	return nil
 }
 
+func (r *repo) updatePassword(ctx context.Context, userID uuid.UUID, newPasswordHash string) error {
+	if err := r.queries.UpdatePassword(ctx, postgres.UpdatePasswordParams{
+		ID:           userID,
+		PasswordHash: newPasswordHash,
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func toModel(session postgres.Session) Session {
 	var revokedAt *time.Time
 	if session.RevokedAt.Valid {

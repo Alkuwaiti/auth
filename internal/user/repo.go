@@ -77,17 +77,6 @@ func (r *repo) getUserByID(ctx context.Context, userID uuid.UUID) (core.User, er
 	return toModel(user), nil
 }
 
-func (r *repo) updatePassword(ctx context.Context, userID uuid.UUID, newPasswordHash string) error {
-	if err := r.queries.UpdatePassword(ctx, postgres.UpdatePasswordParams{
-		ID:           userID,
-		PasswordHash: newPasswordHash,
-	}); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func toModel(postgresUser postgres.User) core.User {
 	return core.User{
 		ID:              postgresUser.ID,

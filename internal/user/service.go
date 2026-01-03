@@ -58,19 +58,6 @@ func (s *service) GetUserByID(ctx context.Context, userID uuid.UUID) (core.User,
 	return user, nil
 }
 
-func (s *service) UpdatePassword(ctx context.Context, userID uuid.UUID, newPasswordHash string) error {
-	ctx, span := tracer.Start(ctx, "UserService.UpdatePassword")
-	defer span.End()
-
-	if err := s.repo.updatePassword(ctx, userID, newPasswordHash); err != nil {
-		return err
-	}
-
-	span.SetStatus(codes.Ok, "password updated")
-
-	return nil
-}
-
 func (s *service) UserExistsByEmail(ctx context.Context, email string) (bool, error) {
 	ctx, span := tracer.Start(ctx, "UserService.UpdatePassword")
 	defer span.End()
@@ -96,6 +83,9 @@ func (s *service) UserExistsByUsername(ctx context.Context, username string) (bo
 }
 
 func (s *service) CreateUser(ctx context.Context, username, email, passwordHash string) (core.User, error) {
+	ctx, span := tracer.Start(ctx, "UserService.CreatUser")
+	defer span.End()
+
 	id, err := uuid.NewV7()
 	if err != nil {
 		return core.User{}, err

@@ -46,7 +46,6 @@ func NewService(repo *repo, userService userService, passwordService passwordSer
 type userService interface {
 	GetUserByEmail(ctx context.Context, email string) (core.User, error)
 	GetUserByID(ctx context.Context, userID uuid.UUID) (core.User, error)
-	UpdatePassword(ctx context.Context, userID uuid.UUID, newPasswordHash string) error
 	UserExistsByEmail(ctx context.Context, email string) (bool, error)
 	UserExistsByUsername(ctx context.Context, username string) (bool, error)
 	CreateUser(ctx context.Context, username, email, passwordHash string) (core.User, error)
@@ -101,7 +100,17 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (co
 		return core.User{}, &apperrors.InvalidCredentialsError{}
 	}
 
-	user, err := s.userService.CreateUser(ctx, input.Username, input.Email, input.Password)
+	err = s.passwordService.Validate(input.Password)
+	if err != nil {
+		return core.User{}, err
+	}
+
+	newPasswordHash, err := s.passwordService.Hash(input.Password)
+	if err != nil {
+		return core.User{}, err
+	}
+
+	user, err := s.userService.CreateUser(ctx, input.Username, input.Email, newPasswordHash)
 	if err != nil {
 		return core.User{}, &apperrors.InternalError{
 			Msg: "failed to register a user",
@@ -135,7 +144,7 @@ func (s *service) Login(ctx context.Context, email, password string, meta observ
 		return TokenPair{}, err
 	}
 
-	if !checkPasswordHash(password, user.PasswordHash) {
+	if err = s.passwordService.Compare(user.PasswordHash, password); err != nil {
 		span.SetStatus(codes.Error, "invalid credentials")
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email)
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
@@ -197,11 +206,6 @@ func (s *service) Login(ctx context.Context, email, password string, meta observ
 		RefreshExpiresAt: expiresAt,
 		UserID:           user.ID,
 	}, nil
-}
-
-func checkPasswordHash(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
 }
 
 func generateAccessToken(
@@ -405,7 +409,7 @@ func (s *service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 		return err
 	}
 
-	if err := s.userService.UpdatePassword(ctx, userID, string(newPasswordHash)); err != nil {
+	if err := s.repo.updatePassword(ctx, userID, newPasswordHash); err != nil {
 		slog.ErrorContext(ctx, "error updating password", "err", err)
 		return err
 	}
@@ -421,18 +425,4 @@ func (s *service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 	span.SetStatus(codes.Ok, "password changed")
 
 	return nil
-}
-
-func (s *service) HashPassword(password string) (string, error) {
-	err := s.passwordService.Validate(password)
-	if err != nil {
-		return "", err
-	}
-
-	newPasswordHash, err := s.passwordService.Hash(password)
-	if err != nil {
-		return "", err
-	}
-
-	return newPasswordHash, nil
 }
