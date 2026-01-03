@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
-	"github.com/alkuwaiti/auth/internal/core/security"
 	"github.com/google/uuid"
 )
 
@@ -22,7 +21,7 @@ type User struct {
 }
 
 type RegisterUserInput struct {
-	Username, Email, Password string
+	Username, Email, HashedPassword string
 }
 
 func (r *RegisterUserInput) validate() error {
@@ -74,9 +73,5 @@ func (r *RegisterUserInput) validateUsername() error {
 }
 
 func (r *RegisterUserInput) validatePassword() error {
-	if err := security.ValidatePassword(r.Password); err != nil {
-		return err
-	}
-
 	return nil
 }

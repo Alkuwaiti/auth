@@ -10,7 +10,6 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type service struct {
@@ -42,8 +41,6 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 
 	exists, err := s.repo.userExistsByEmail(ctx, input.Email)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "email uniqueness check failed")
 		return User{}, &apperrors.InternalError{
 			Msg: "failed to check email uniqueness",
 			Err: err,
@@ -57,8 +54,6 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 
 	exists, err = s.repo.userExistsByUsername(ctx, input.Username)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "username uniqueness check failed")
 		return User{}, &apperrors.InternalError{
 			Msg: "failed to check username uniqueness",
 			Err: err,
@@ -70,20 +65,8 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 		return User{}, &apperrors.InvalidCredentialsError{}
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+	user, err := s.repo.createUser(ctx, input.Username, input.Email, input.HashedPassword)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "password hashing failed")
-		return User{}, &apperrors.InternalError{
-			Msg: "error hashing password",
-			Err: err,
-		}
-	}
-
-	user, err := s.repo.registerUser(ctx, input.Username, input.Email, string(hashedPassword))
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "user persistence failed")
 		return User{}, &apperrors.InternalError{
 			Msg: "failed to register a user",
 			Err: err,
@@ -108,13 +91,12 @@ func (s *service) GetUserByEmail(ctx context.Context, email string) (User, error
 
 	user, err := s.repo.getUserByEmail(ctx, email)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "user lookup failed")
 		return User{}, err
 	}
 
 	span.SetAttributes(attribute.String("user.id", user.ID.String()))
 	span.SetStatus(codes.Ok, "user fetched")
+
 	return user, nil
 }
 
@@ -128,8 +110,6 @@ func (s *service) GetUserByID(ctx context.Context, userID uuid.UUID) (User, erro
 
 	user, err := s.repo.getUserByID(ctx, userID)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "user lookup failed")
 		return User{}, err
 	}
 
@@ -138,9 +118,14 @@ func (s *service) GetUserByID(ctx context.Context, userID uuid.UUID) (User, erro
 }
 
 func (s *service) UpdatePassword(ctx context.Context, userID uuid.UUID, newPasswordHash string) error {
+	ctx, span := tracer.Start(ctx, "UserService.UpdatePassword")
+	defer span.End()
+
 	if err := s.repo.updatePassword(ctx, userID, newPasswordHash); err != nil {
 		return err
 	}
+
+	span.SetStatus(codes.Ok, "password updated")
 
 	return nil
 }

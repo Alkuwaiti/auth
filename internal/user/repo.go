@@ -38,13 +38,13 @@ func (r *repo) userExistsByUsername(ctx context.Context, username string) (bool,
 	return exists, nil
 }
 
-func (r *repo) registerUser(ctx context.Context, username, email, passwordHash string) (User, error) {
+func (r *repo) createUser(ctx context.Context, username, email, passwordHash string) (User, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return User{}, err
 	}
 
-	user, err := r.queries.RegisterUser(ctx, postgres.RegisterUserParams{
+	user, err := r.queries.CreateUser(ctx, postgres.CreateUserParams{
 		ID:           id,
 		Username:     username,
 		Email:        email,

@@ -17,6 +17,7 @@ import (
 	"github.com/alkuwaiti/auth/internal/db"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/alkuwaiti/auth/internal/observability"
+	"github.com/alkuwaiti/auth/internal/password"
 	"github.com/alkuwaiti/auth/internal/server/grpc"
 	"github.com/alkuwaiti/auth/internal/user"
 )
@@ -70,13 +71,15 @@ func main() {
 	}
 	defer dbConn.Close()
 
+	passwordService := password.NewService(12)
+
 	userRepo := user.NewRepo(postgres.New(dbConn))
 
 	userService := user.NewService(userRepo)
 
 	authRepo := auth.NewRepo(dbConn)
 
-	authService := auth.NewService(authRepo, userService, auth.Config{
+	authService := auth.NewService(authRepo, userService, passwordService, auth.Config{
 		Issuer:   name,
 		Audience: name,
 		JWTKey:   []byte(cfg.JWTKey),

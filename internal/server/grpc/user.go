@@ -16,10 +16,15 @@ func (s *server) RegisterUser(ctx context.Context, req *userv1.RegisterUserReque
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
+	hashedPassword, err := s.authService.CreatePasswordHash(req.Password)
+	if err != nil {
+		return nil, MapError(err)
+	}
+
 	res, err := s.userService.RegisterUser(ctx, user.RegisterUserInput{
-		Username: req.Username,
-		Email:    req.Email,
-		Password: req.Password,
+		Username:       req.Username,
+		Email:          req.Email,
+		HashedPassword: hashedPassword,
 	})
 	if err != nil {
 		return nil, MapError(err)

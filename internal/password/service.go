@@ -1,13 +1,33 @@
-// Package security provides security methods.
-package security
+// Package password holds everything password related
+package password
 
 import (
 	"unicode"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
+	"golang.org/x/crypto/bcrypt"
 )
 
-func ValidatePassword(password string) error {
+type bcryptPasswordService struct {
+	cost int
+}
+
+func NewService(cost int) *bcryptPasswordService {
+	return &bcryptPasswordService{
+		cost,
+	}
+}
+
+func (p *bcryptPasswordService) Hash(password string) (string, error) {
+	b, err := bcrypt.GenerateFromPassword([]byte(password), p.cost)
+	return string(b), err
+}
+
+func (p *bcryptPasswordService) Compare(hash, password string) error {
+	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+}
+
+func (p *bcryptPasswordService) Validate(password string) error {
 	if len(password) < 8 {
 		return &apperrors.ValidationError{Field: "username", Msg: "must be at least 8 characters"}
 	}
