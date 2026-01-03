@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
-	"github.com/alkuwaiti/auth/internal/core"
+	"github.com/alkuwaiti/auth/internal/core/security"
 	"github.com/google/uuid"
 )
 
@@ -74,7 +74,7 @@ func (r *RegisterUserInput) validateUsername() error {
 }
 
 func (r *RegisterUserInput) validatePassword() error {
-	if err := core.ValidatePassword(r.Password); err != nil {
+	if err := security.ValidatePassword(r.Password); err != nil {
 		return err
 	}
 

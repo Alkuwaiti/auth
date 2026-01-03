@@ -11,6 +11,8 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/core"
+	coreerrors "github.com/alkuwaiti/auth/internal/core/errors"
+	"github.com/alkuwaiti/auth/internal/core/security"
 	"github.com/alkuwaiti/auth/internal/observability"
 	"github.com/alkuwaiti/auth/internal/user"
 	"github.com/golang-jwt/jwt/v5"
@@ -62,7 +64,7 @@ func (s *service) Login(ctx context.Context, email, password string, meta observ
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "user lookup failed")
 
-		if errors.Is(err, core.ErrUserNotFound) {
+		if errors.Is(err, coreerrors.ErrUserNotFound) {
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
 		}
 
@@ -182,7 +184,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "session lookup failed")
 
-		if errors.Is(err, core.ErrSessionNotFound) {
+		if errors.Is(err, coreerrors.ErrSessionNotFound) {
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
 		}
 		return TokenPair{}, err
@@ -259,7 +261,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "user lookup failed")
 
-		if errors.Is(err, core.ErrUserNotFound) {
+		if errors.Is(err, coreerrors.ErrUserNotFound) {
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
 		}
 		return TokenPair{}, err
@@ -301,13 +303,13 @@ func (s *service) Logout(ctx context.Context, refreshToken string) error {
 }
 
 func (s *service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error {
-	if err := core.ValidatePassword(newPassword); err != nil {
+	if err := security.ValidatePassword(newPassword); err != nil {
 		return err
 	}
 
 	user, err := s.userService.GetUserByID(ctx, userID)
 	if err != nil {
-		if errors.Is(err, core.ErrUserNotFound) {
+		if errors.Is(err, coreerrors.ErrUserNotFound) {
 			return &apperrors.InvalidCredentialsError{}
 		}
 

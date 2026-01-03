@@ -6,7 +6,7 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/alkuwaiti/auth/internal/core"
+	coreerrors "github.com/alkuwaiti/auth/internal/core/errors"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/google/uuid"
 )
@@ -61,7 +61,7 @@ func (r *repo) getUserByEmail(ctx context.Context, email string) (User, error) {
 	user, err := r.queries.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return User{}, core.ErrUserNotFound
+			return User{}, coreerrors.ErrUserNotFound
 		}
 		return User{}, err
 	}
@@ -73,7 +73,7 @@ func (r *repo) getUserByID(ctx context.Context, userID uuid.UUID) (User, error) 
 	user, err := r.queries.GetUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return User{}, core.ErrUserNotFound
+			return User{}, coreerrors.ErrUserNotFound
 		}
 		return User{}, err
 	}
