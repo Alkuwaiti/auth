@@ -6,22 +6,22 @@ import (
 	"log"
 	"os"
 
-	"github.com/alkuwaiti/auth/cmd/clients/user"
-	userv1 "github.com/alkuwaiti/auth/pb/pbuser/v1"
+	"github.com/alkuwaiti/auth/cmd/clients/auth"
+	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func main() {
 	ctx := context.Background()
 
-	client := user.Must(ctx, "localhost:8081")
+	client := auth.Must(ctx, "localhost:8081")
 	defer func() {
 		if err := client.Close(); err != nil {
 			log.Printf("failed to close client: %v", err)
 		}
 	}()
 
-	res, err := client.RegisterUser(ctx, &userv1.RegisterUserRequest{
+	res, err := client.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Username: "qasim3",
 		Email:    "alkuwaitiqasim3@gmail.com",
 		Password: "Supersecretpassword1!",

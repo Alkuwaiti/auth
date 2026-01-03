@@ -11,7 +11,6 @@ import (
 	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/observability"
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
-	userv1 "github.com/alkuwaiti/auth/pb/pbuser/v1"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
@@ -20,7 +19,6 @@ import (
 
 type server struct {
 	// TODO: change these to unimplemented when the time comes.
-	userv1.UnsafeUserServiceServer
 	authv1.UnsafeAuthServiceServer
 
 	srv         *grpc.Server
@@ -82,7 +80,6 @@ func (s *server) Start(ctx context.Context) error {
 		),
 	)
 
-	userv1.RegisterUserServiceServer(s.srv, s)
 	authv1.RegisterAuthServiceServer(s.srv, s)
 
 	if err = s.srv.Serve(lis); err != nil {
