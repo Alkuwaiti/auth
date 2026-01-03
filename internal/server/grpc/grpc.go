@@ -31,7 +31,6 @@ type authService interface {
 	RefreshToken(ctx context.Context, refreshToken string, meta observability.RequestMeta) (auth.TokenPair, error)
 	Logout(ctx context.Context, refreshToken string) error
 	ChangePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error
-	HashPassword(password string) (string, error)
 	RegisterUser(context.Context, auth.RegisterUserInput) (core.User, error)
 }
 

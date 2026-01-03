@@ -18,7 +18,6 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type service struct {
@@ -242,6 +241,8 @@ func generateRefreshToken() (string, error) {
 	return token, nil
 }
 
+var dummyBcryptHash = "$2b$12$C6UzMDM.H6dfI/f/IKcEeOe2x7yZ0pniS3pSDOMkMt2rt7V6F2i4G"
+
 func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta observability.RequestMeta) (TokenPair, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.RefreshToken")
 	defer span.End()
@@ -374,13 +375,15 @@ func (s *service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 	defer span.End()
 
 	if err := s.passwordService.Validate(newPassword); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to validate password")
 		return err
 	}
 
 	user, err := s.userService.GetUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, coreerrors.ErrUserNotFound) {
-			_ = bcrypt.CompareHashAndPassword([]byte("some dummy text to prevent timing attacks"), []byte(oldPassword))
+			_ = s.passwordService.Compare(dummyBcryptHash, oldPassword)
 			return &apperrors.InvalidCredentialsError{}
 		}
 
@@ -393,19 +396,25 @@ func (s *service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 		user.PasswordHash,
 		oldPassword,
 	); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "old password and current password do not match")
 		return &apperrors.InvalidCredentialsError{}
 	}
 
 	if err = s.passwordService.Compare(
 		user.PasswordHash,
 		newPassword,
-	); err != nil {
-		return &apperrors.InvalidCredentialsError{}
+	); err == nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "old password cannot be new password")
+		return &apperrors.PasswordReuseError{}
 	}
 
 	newPasswordHash, err := s.passwordService.Hash(newPassword)
 	if err != nil {
-		slog.ErrorContext(ctx, "failed to generate password hash", "err", err)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to hash new password")
+		slog.ErrorContext(ctx, "failed to hash new password", "err", err)
 		return err
 	}
 
