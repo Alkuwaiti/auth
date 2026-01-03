@@ -4,8 +4,11 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/alkuwaiti/auth/internal/apperrors"
+	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/observability"
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
+	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -62,6 +65,30 @@ func (s *server) Logout(ctx context.Context, req *authv1.RefreshTokenRequest) (*
 	}
 
 	err := s.authService.Logout(ctx, req.RefreshToken)
+	if err != nil {
+		return nil, MapError(err)
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (s *server) ChangePassword(ctx context.Context, req *authv1.ChangePasswordRequest) (*emptypb.Empty, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	id, ok := ctx.Value(core.UserIDKey{}).(string)
+	if !ok {
+		return &emptypb.Empty{}, &apperrors.InvalidCredentialsError{}
+	}
+
+	userID, err := uuid.Parse(id)
+	if err != nil {
+		return &emptypb.Empty{}, err
+	}
+
+	err = s.authService.ChangePassword(ctx, userID, req.OldPassword, req.NewPassword)
 	if err != nil {
 		return nil, MapError(err)
 	}

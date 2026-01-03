@@ -13,7 +13,7 @@ import (
 	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/observability"
 	"github.com/alkuwaiti/auth/internal/user"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -28,7 +28,9 @@ type service struct {
 }
 
 type Config struct {
-	JWTKey []byte
+	JWTKey   []byte
+	Issuer   string
+	Audience string
 }
 
 func NewService(repo *repo, userService userService, config Config) *service {
@@ -42,6 +44,7 @@ func NewService(repo *repo, userService userService, config Config) *service {
 type userService interface {
 	GetUserByEmail(ctx context.Context, email string) (user.User, error)
 	GetUserByID(ctx context.Context, userID uuid.UUID) (user.User, error)
+	UpdatePassword(ctx context.Context, userID uuid.UUID, newPasswordHash string) error
 }
 
 var tracer = otel.Tracer("auth-service/auth")
@@ -88,7 +91,7 @@ func (s *service) Login(ctx context.Context, email, password string, meta observ
 		}
 	}
 
-	accessToken, err := generateAccessToken(user.ID.String(), user.Email, s.config.JWTKey)
+	accessToken, err := generateAccessToken(user.ID.String(), user.Email, s.config.JWTKey, s.config.Issuer, s.config.Audience)
 
 	if err != nil {
 		span.RecordError(err)
@@ -104,7 +107,7 @@ func (s *service) Login(ctx context.Context, email, password string, meta observ
 	}
 
 	expiresAt := time.Now().Add(7 * 24 * time.Hour)
-	if err := s.repo.CreateSession(
+	if _, err := s.repo.createSession(
 		ctx,
 		user.ID,
 		expiresAt,
@@ -136,12 +139,22 @@ func checkPasswordHash(password, hash string) bool {
 	return err == nil
 }
 
-func generateAccessToken(userID, email string, secret []byte) (string, error) {
-	claims := jwt.MapClaims{
-		"sub":   userID,
-		"email": email,
-		"exp":   time.Now().Add(15 * time.Minute).Unix(),
-		"iat":   time.Now().Unix(),
+func generateAccessToken(
+	userID, email string,
+	secret []byte,
+	issuer string,
+	audience string,
+) (string, error) {
+
+	claims := core.AccessClaims{
+		Email: email,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   userID,
+			Issuer:    issuer,
+			Audience:  jwt.ClaimStrings{audience},
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -164,7 +177,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 	ctx, span := tracer.Start(ctx, "AuthService.RefreshToken")
 	defer span.End()
 
-	session, err := s.repo.GetSessionByRefreshToken(ctx, refreshToken)
+	session, err := s.repo.getSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "session lookup failed")
@@ -203,13 +216,13 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 		)
 
 		// Revoke all active sessions
-		if err := s.repo.RevokeAllUserSessions(ctx, session.UserID, RevocationSessionCompromised); err != nil {
+		if err = s.repo.revokeAllUserSessions(ctx, session.UserID, RevocationSessionCompromised); err != nil {
 			span.RecordError(err)
 			slog.ErrorContext(ctx, "failed to revoke user sessions on compromise", "err", err)
 		}
 
 		// Mark all as compromised
-		if err := s.repo.MarkSessionsCompromised(ctx, session.UserID); err != nil {
+		if err = s.repo.markSessionsCompromised(ctx, session.UserID); err != nil {
 			span.RecordError(err)
 			slog.ErrorContext(ctx, "failed to mark sessions as compromised", "err", err)
 		}
@@ -224,7 +237,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 		return TokenPair{}, err
 	}
 
-	if err = s.repo.RotateSession(
+	if err = s.repo.rotateSession(
 		ctx,
 		RotateSessionInput{
 			oldSessionID:     session.ID,
@@ -252,7 +265,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 		return TokenPair{}, err
 	}
 
-	accessToken, err := generateAccessToken(user.ID.String(), user.Email, s.config.JWTKey)
+	accessToken, err := generateAccessToken(user.ID.String(), user.Email, s.config.JWTKey, s.config.Issuer, s.config.Audience)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "access token generation failed")
@@ -276,13 +289,57 @@ func (s *service) Logout(ctx context.Context, refreshToken string) error {
 	ctx, span := tracer.Start(ctx, "AuthService.Logout")
 	defer span.End()
 
-	session, err := s.repo.GetSessionByRefreshToken(ctx, refreshToken)
+	session, err := s.repo.getSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
 		// already logged out / invalid token → success
 		return nil
 	}
 
-	_ = s.repo.RevokeSession(ctx, session.ID, RevocationLogout)
+	_ = s.repo.revokeSession(ctx, session.ID, RevocationLogout)
+
+	return nil
+}
+
+func (s *service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error {
+	if err := core.ValidatePassword(newPassword); err != nil {
+		return err
+	}
+
+	user, err := s.userService.GetUserByID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, core.ErrUserNotFound) {
+			return &apperrors.InvalidCredentialsError{}
+		}
+
+		return err
+	}
+
+	if err = bcrypt.CompareHashAndPassword(
+		[]byte(user.PasswordHash),
+		[]byte(oldPassword),
+	); err != nil {
+		return &apperrors.InvalidCredentialsError{}
+	}
+
+	if err = bcrypt.CompareHashAndPassword(
+		[]byte(user.PasswordHash),
+		[]byte(newPassword),
+	); err == nil {
+		return &apperrors.PasswordReuseError{}
+	}
+
+	newPasswordHash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	if err := s.userService.UpdatePassword(ctx, userID, string(newPasswordHash)); err != nil {
+		return err
+	}
+
+	if err := s.repo.revokeAllUserSessions(ctx, userID, RevocationPasswordChange); err != nil {
+		return err
+	}
 
 	return nil
 }

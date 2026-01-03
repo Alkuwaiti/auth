@@ -21,15 +21,21 @@ SELECT * FROM users WHERE email = $1;
 -- name: GetUserByID :one
 SELECT * FROM users WHERE id = $1;
 
+-- name: UpdatePassword :exec
+UPDATE users
+SET password_hash = $1
+WHERE id = $2;
+
 
 -- sessions
 
 -- name: GetSessionByRefreshToken :one
 SELECT * FROM sessions WHERE refresh_token = $1;
 
--- name: CreateSession :exec
+-- name: CreateSession :one
 INSERT INTO sessions (user_id, refresh_token, user_agent, ip_address, expires_at)
-VALUES ($1, $2, $3, $4, $5);
+VALUES ($1, $2, $3, $4, $5)
+RETURNING *;
 
 -- name: RevokeSession :exec
 UPDATE sessions 

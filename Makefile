@@ -51,7 +51,7 @@ mocks:
 
 lint: 
 	@echo "Running linter..."
-	golangci-lint run --fast
+	golangci-lint run 
 
 create-migrations:
 	migrate create -ext sql -dir internal/db/migrations $${name:-migration}

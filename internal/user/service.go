@@ -10,6 +10,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type service struct {
@@ -69,7 +70,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 		return User{}, &apperrors.InvalidCredentialsError{}
 	}
 
-	hashedPassword, err := hashPassword(input.Password)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "password hashing failed")
@@ -79,7 +80,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 		}
 	}
 
-	user, err := s.repo.registerUser(ctx, input.Username, input.Email, hashedPassword)
+	user, err := s.repo.registerUser(ctx, input.Username, input.Email, string(hashedPassword))
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "user persistence failed")
@@ -105,7 +106,7 @@ func (s *service) GetUserByEmail(ctx context.Context, email string) (User, error
 		attribute.String("user.email_hash", core.HashForTelemetry(email)),
 	)
 
-	user, err := s.repo.GetUserByEmail(ctx, email)
+	user, err := s.repo.getUserByEmail(ctx, email)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "user lookup failed")
@@ -125,7 +126,7 @@ func (s *service) GetUserByID(ctx context.Context, userID uuid.UUID) (User, erro
 		attribute.String("user.id", userID.String()),
 	)
 
-	user, err := s.repo.GetUserByID(ctx, userID)
+	user, err := s.repo.getUserByID(ctx, userID)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "user lookup failed")
@@ -134,4 +135,12 @@ func (s *service) GetUserByID(ctx context.Context, userID uuid.UUID) (User, erro
 
 	span.SetStatus(codes.Ok, "user fetched")
 	return user, nil
+}
+
+func (s *service) UpdatePassword(ctx context.Context, userID uuid.UUID, newPasswordHash string) error {
+	if err := s.repo.updatePassword(ctx, userID, newPasswordHash); err != nil {
+		return err
+	}
+
+	return nil
 }

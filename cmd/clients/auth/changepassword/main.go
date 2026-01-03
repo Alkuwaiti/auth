@@ -16,10 +16,11 @@ func main() {
 	ctx := context.Background()
 
 	md := metadata.New(map[string]string{
+		"authorization":       "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFsa3V3YWl0aXFhc2ltQGdtYWlsLmNvbSIsImlzcyI6ImF1dGgtc2VydmljZSIsInN1YiI6ImE2YjY4NmQyLTg2OGItNGZhZC1iMzQ4LTRkN2ViMmEyNTc3ZSIsImF1ZCI6WyJhdXRoLXNlcnZpY2UiXSwiZXhwIjoxNzY3NDMyMjUxLCJpYXQiOjE3Njc0MzEzNTF9.81qo9cLPHINMhcNmvTeak5frzwukXF4Cn8lXeLw17lA",
 		"x-forwarded-for":     "203.0.113.10",
 		"x-client-user-agent": "auth-cli/1.0",
 		"request-id":          "req-123456",
-		"x-client-ip":         "1.1.1.1",
+		"x-client-ip":         "2.2.2.2",
 	})
 
 	ctx = metadata.NewOutgoingContext(ctx, md)
@@ -31,9 +32,9 @@ func main() {
 		}
 	}()
 
-	res, err := client.Login(ctx, &authv1.LoginRequest{
-		Email:    "alkuwaitiqasim@gmail.com",
-		Password: "Supersecretpassword1!!",
+	res, err := client.ChangePassword(ctx, &authv1.ChangePasswordRequest{
+		OldPassword: "Supersecretpassword1!",
+		NewPassword: "Supersecretpassword1!!",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

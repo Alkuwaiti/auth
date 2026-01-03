@@ -4,9 +4,9 @@ import (
 	"net/mail"
 	"strings"
 	"time"
-	"unicode"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
+	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/google/uuid"
 )
 
@@ -74,36 +74,8 @@ func (r *RegisterUserInput) validateUsername() error {
 }
 
 func (r *RegisterUserInput) validatePassword() error {
-	if len(r.Password) < 8 {
-		return &apperrors.ValidationError{Field: "username", Msg: "must be at least 8 characters"}
-	}
-
-	var hasUpper, hasLower, hasNumber, hasSpecial bool
-
-	for _, c := range r.Password {
-		switch {
-		case unicode.IsUpper(c):
-			hasUpper = true
-		case unicode.IsLower(c):
-			hasLower = true
-		case unicode.IsDigit(c):
-			hasNumber = true
-		case unicode.IsPunct(c) || unicode.IsSymbol(c):
-			hasSpecial = true
-		}
-	}
-
-	if !hasUpper {
-		return &apperrors.ValidationError{Field: "password", Msg: "must contain at least one uppercase letter"}
-	}
-	if !hasLower {
-		return &apperrors.ValidationError{Field: "password", Msg: "must contain at least one lowercase letter"}
-	}
-	if !hasNumber {
-		return &apperrors.ValidationError{Field: "password", Msg: "must contain at least one number"}
-	}
-	if !hasSpecial {
-		return &apperrors.ValidationError{Field: "password", Msg: "must contain at least one special character"}
+	if err := core.ValidatePassword(r.Password); err != nil {
+		return err
 	}
 
 	return nil

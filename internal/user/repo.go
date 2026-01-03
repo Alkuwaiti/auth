@@ -57,7 +57,7 @@ func (r *repo) registerUser(ctx context.Context, username, email, passwordHash s
 	return toModel(user), nil
 }
 
-func (r *repo) GetUserByEmail(ctx context.Context, email string) (User, error) {
+func (r *repo) getUserByEmail(ctx context.Context, email string) (User, error) {
 	user, err := r.queries.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -69,7 +69,7 @@ func (r *repo) GetUserByEmail(ctx context.Context, email string) (User, error) {
 	return toModel(user), nil
 }
 
-func (r *repo) GetUserByID(ctx context.Context, userID uuid.UUID) (User, error) {
+func (r *repo) getUserByID(ctx context.Context, userID uuid.UUID) (User, error) {
 	user, err := r.queries.GetUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -79,6 +79,17 @@ func (r *repo) GetUserByID(ctx context.Context, userID uuid.UUID) (User, error) 
 	}
 
 	return toModel(user), nil
+}
+
+func (r *repo) updatePassword(ctx context.Context, userID uuid.UUID, newPasswordHash string) error {
+	if err := r.queries.UpdatePassword(ctx, postgres.UpdatePasswordParams{
+		ID:           userID,
+		PasswordHash: newPasswordHash,
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func toModel(postgresUser postgres.User) User {
