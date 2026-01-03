@@ -101,7 +101,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (co
 		return core.User{}, &apperrors.InvalidCredentialsError{}
 	}
 
-	user, err := s.userService.CreateUser(ctx, input.Username, input.Email, input.HashedPassword)
+	user, err := s.userService.CreateUser(ctx, input.Username, input.Email, input.Password)
 	if err != nil {
 		return core.User{}, &apperrors.InternalError{
 			Msg: "failed to register a user",
