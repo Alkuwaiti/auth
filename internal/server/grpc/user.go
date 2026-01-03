@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/alkuwaiti/auth/internal/user"
+	"github.com/alkuwaiti/auth/internal/auth"
 	userv1 "github.com/alkuwaiti/auth/pb/pbuser/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -16,15 +16,10 @@ func (s *server) RegisterUser(ctx context.Context, req *userv1.RegisterUserReque
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	hashedPassword, err := s.authService.CreatePasswordHash(req.Password)
-	if err != nil {
-		return nil, MapError(err)
-	}
-
-	res, err := s.userService.RegisterUser(ctx, user.RegisterUserInput{
-		Username:       req.Username,
-		Email:          req.Email,
-		HashedPassword: hashedPassword,
+	res, err := s.authService.RegisterUser(ctx, auth.RegisterUserInput{
+		Username: req.Username,
+		Email:    req.Email,
+		Password: req.Password,
 	})
 	if err != nil {
 		return nil, MapError(err)

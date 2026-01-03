@@ -2,9 +2,7 @@ package user
 
 import (
 	"context"
-	"log/slog"
 
-	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
@@ -24,64 +22,7 @@ func NewService(repo *repo) *service {
 
 var tracer = otel.Tracer("auth-service/user")
 
-func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (User, error) {
-	ctx, span := tracer.Start(ctx, "UserService.RegisterUser")
-	defer span.End()
-
-	span.SetAttributes(
-		attribute.String("user.username", input.Username),
-		attribute.String("user.email_hash", core.HashForTelemetry(input.Email)),
-	)
-
-	if err := input.validate(); err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "validation failed")
-		return User{}, err
-	}
-
-	exists, err := s.repo.userExistsByEmail(ctx, input.Email)
-	if err != nil {
-		return User{}, &apperrors.InternalError{
-			Msg: "failed to check email uniqueness",
-			Err: err,
-		}
-	}
-	if exists {
-		span.SetStatus(codes.Error, "email already exists")
-		slog.WarnContext(ctx, "user already exists", "email", input.Email)
-		return User{}, &apperrors.InvalidCredentialsError{}
-	}
-
-	exists, err = s.repo.userExistsByUsername(ctx, input.Username)
-	if err != nil {
-		return User{}, &apperrors.InternalError{
-			Msg: "failed to check username uniqueness",
-			Err: err,
-		}
-	}
-	if exists {
-		span.SetStatus(codes.Error, "username already exists")
-		slog.WarnContext(ctx, "user already exists", "username", input.Username)
-		return User{}, &apperrors.InvalidCredentialsError{}
-	}
-
-	user, err := s.repo.createUser(ctx, input.Username, input.Email, input.HashedPassword)
-	if err != nil {
-		return User{}, &apperrors.InternalError{
-			Msg: "failed to register a user",
-			Err: err,
-		}
-	}
-
-	span.SetAttributes(
-		attribute.String("user.id", user.ID.String()),
-	)
-
-	span.SetStatus(codes.Ok, "user registered")
-	return user, nil
-}
-
-func (s *service) GetUserByEmail(ctx context.Context, email string) (User, error) {
+func (s *service) GetUserByEmail(ctx context.Context, email string) (core.User, error) {
 	ctx, span := tracer.Start(ctx, "UserService.GetUserByEmail")
 	defer span.End()
 
@@ -91,7 +32,7 @@ func (s *service) GetUserByEmail(ctx context.Context, email string) (User, error
 
 	user, err := s.repo.getUserByEmail(ctx, email)
 	if err != nil {
-		return User{}, err
+		return core.User{}, err
 	}
 
 	span.SetAttributes(attribute.String("user.id", user.ID.String()))
@@ -100,7 +41,7 @@ func (s *service) GetUserByEmail(ctx context.Context, email string) (User, error
 	return user, nil
 }
 
-func (s *service) GetUserByID(ctx context.Context, userID uuid.UUID) (User, error) {
+func (s *service) GetUserByID(ctx context.Context, userID uuid.UUID) (core.User, error) {
 	ctx, span := tracer.Start(ctx, "UserService.GetUserByID")
 	defer span.End()
 
@@ -110,7 +51,7 @@ func (s *service) GetUserByID(ctx context.Context, userID uuid.UUID) (User, erro
 
 	user, err := s.repo.getUserByID(ctx, userID)
 	if err != nil {
-		return User{}, err
+		return core.User{}, err
 	}
 
 	span.SetStatus(codes.Ok, "user fetched")
@@ -128,4 +69,42 @@ func (s *service) UpdatePassword(ctx context.Context, userID uuid.UUID, newPassw
 	span.SetStatus(codes.Ok, "password updated")
 
 	return nil
+}
+
+func (s *service) UserExistsByEmail(ctx context.Context, email string) (bool, error) {
+	ctx, span := tracer.Start(ctx, "UserService.UpdatePassword")
+	defer span.End()
+
+	exists, err := s.repo.userExistsByEmail(ctx, email)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}
+
+func (s *service) UserExistsByUsername(ctx context.Context, username string) (bool, error) {
+	ctx, span := tracer.Start(ctx, "UserService.UpdatePassword")
+	defer span.End()
+
+	exists, err := s.repo.userExistsByUsername(ctx, username)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}
+
+func (s *service) CreateUser(ctx context.Context, username, email, passwordHash string) (core.User, error) {
+	id, err := uuid.NewV7()
+	if err != nil {
+		return core.User{}, err
+	}
+
+	user, err := s.repo.createUser(ctx, id, username, email, passwordHash)
+	if err != nil {
+		return core.User{}, err
+	}
+
+	return user, nil
 }

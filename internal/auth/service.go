@@ -13,7 +13,6 @@ import (
 	"github.com/alkuwaiti/auth/internal/core"
 	coreerrors "github.com/alkuwaiti/auth/internal/core/errors"
 	"github.com/alkuwaiti/auth/internal/observability"
-	"github.com/alkuwaiti/auth/internal/user"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
@@ -45,9 +44,12 @@ func NewService(repo *repo, userService userService, passwordService passwordSer
 }
 
 type userService interface {
-	GetUserByEmail(ctx context.Context, email string) (user.User, error)
-	GetUserByID(ctx context.Context, userID uuid.UUID) (user.User, error)
+	GetUserByEmail(ctx context.Context, email string) (core.User, error)
+	GetUserByID(ctx context.Context, userID uuid.UUID) (core.User, error)
 	UpdatePassword(ctx context.Context, userID uuid.UUID, newPasswordHash string) error
+	UserExistsByEmail(ctx context.Context, email string) (bool, error)
+	UserExistsByUsername(ctx context.Context, username string) (bool, error)
+	CreateUser(ctx context.Context, username, email, passwordHash string) (core.User, error)
 }
 
 type passwordService interface {
@@ -57,6 +59,63 @@ type passwordService interface {
 }
 
 var tracer = otel.Tracer("auth-service/auth")
+
+func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (core.User, error) {
+	ctx, span := tracer.Start(ctx, "AuthService.RegisterUser")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("user.username", input.Username),
+		attribute.String("user.email_hash", core.HashForTelemetry(input.Email)),
+	)
+
+	if err := input.validate(); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "validation failed")
+		return core.User{}, err
+	}
+
+	exists, err := s.userService.UserExistsByEmail(ctx, input.Email)
+	if err != nil {
+		return core.User{}, &apperrors.InternalError{
+			Msg: "failed to check email uniqueness",
+			Err: err,
+		}
+	}
+	if exists {
+		span.SetStatus(codes.Error, "email already exists")
+		slog.WarnContext(ctx, "user already exists", "email", input.Email)
+		return core.User{}, &apperrors.InvalidCredentialsError{}
+	}
+
+	exists, err = s.userService.UserExistsByUsername(ctx, input.Username)
+	if err != nil {
+		return core.User{}, &apperrors.InternalError{
+			Msg: "failed to check username uniqueness",
+			Err: err,
+		}
+	}
+	if exists {
+		span.SetStatus(codes.Error, "username already exists")
+		slog.WarnContext(ctx, "user already exists", "username", input.Username)
+		return core.User{}, &apperrors.InvalidCredentialsError{}
+	}
+
+	user, err := s.userService.CreateUser(ctx, input.Username, input.Email, input.HashedPassword)
+	if err != nil {
+		return core.User{}, &apperrors.InternalError{
+			Msg: "failed to register a user",
+			Err: err,
+		}
+	}
+
+	span.SetAttributes(
+		attribute.String("user.id", user.ID.String()),
+	)
+
+	span.SetStatus(codes.Ok, "user registered")
+	return user, nil
+}
 
 func (s *service) Login(ctx context.Context, email, password string, meta observability.RequestMeta) (TokenPair, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.Login")
@@ -364,7 +423,7 @@ func (s *service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 	return nil
 }
 
-func (s *service) CreatePasswordHash(password string) (string, error) {
+func (s *service) HashPassword(password string) (string, error) {
 	err := s.passwordService.Validate(password)
 	if err != nil {
 		return "", err

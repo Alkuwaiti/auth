@@ -87,12 +87,12 @@ func main() {
 
 	port := 8081
 
-	srv := grpc.NewServer(grpc.Config{
+	srv := grpc.NewServer(authService, grpc.Config{
 		Host:   "", // listen on all interfaces ":8081"
 		Port:   port,
 		JWTKey: []byte(cfg.JWTKey),
 		Name:   name,
-	}, userService, authService)
+	})
 
 	slog.InfoContext(ctx, "starting grpc server", "port", port, "commit", commit, "ref", ref, "version", version)
 	go func(ctx context.Context) {
