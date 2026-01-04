@@ -16,7 +16,7 @@ func main() {
 	ctx := context.Background()
 
 	md := metadata.New(map[string]string{
-		"authorization":       "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFsa3V3YWl0aXFhc2ltQGdtYWlsLmNvbSIsImlzcyI6ImF1dGgtc2VydmljZSIsInN1YiI6ImE2YjY4NmQyLTg2OGItNGZhZC1iMzQ4LTRkN2ViMmEyNTc3ZSIsImF1ZCI6WyJhdXRoLXNlcnZpY2UiXSwiZXhwIjoxNzY3NDMzNTg0LCJpYXQiOjE3Njc0MzI2ODR9.9VEIqB2zLPTJZK7rXAGN4Qrdhp88_mVoY9pq7_go6vc",
+		"authorization":       "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFsa3V3YWl0aXFhc2ltM0BnbWFpbC5jb20iLCJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiIwMTliODQ5MS00YWM2LTc1N2EtOGE0ZS03NjdkYjE2MmI1MGQiLCJhdWQiOlsiYXV0aC1zZXJ2aWNlIl0sImV4cCI6MTc2NzQ1NjcyOSwiaWF0IjoxNzY3NDU1ODI5fQ.52Dg2LhUp6cadu-1K0mhHU4swXhrkiFdHy6yCdG-INY",
 		"x-forwarded-for":     "203.0.113.10",
 		"x-client-user-agent": "auth-cli/1.0",
 		"request-id":          "req-123456",
@@ -34,7 +34,7 @@ func main() {
 
 	res, err := client.ChangePassword(ctx, &authv1.ChangePasswordRequest{
 		OldPassword: "Supersecretpassword1!",
-		NewPassword: "Supersecretpassword1!!",
+		NewPassword: "Supersecretpassword1!",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

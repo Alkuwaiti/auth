@@ -51,6 +51,42 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 	return i, err
 }
 
+const createUser = `-- name: CreateUser :one
+
+INSERT INTO users (id, username, email, password_hash , created_at, updated_at)
+VALUES ($1, $2, $3, $4, NOW(), NOW())
+RETURNING id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at
+`
+
+type CreateUserParams struct {
+	ID           uuid.UUID
+	Username     string
+	Email        string
+	PasswordHash string
+}
+
+// users
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, createUser,
+		arg.ID,
+		arg.Username,
+		arg.Email,
+		arg.PasswordHash,
+	)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Username,
+		&i.PasswordHash,
+		&i.IsEmailVerified,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getSessionByRefreshToken = `-- name: GetSessionByRefreshToken :one
 
 SELECT id, user_id, refresh_token, user_agent, ip_address, created_at, expires_at, revoked_at, revocation_reason, compromised_at FROM sessions WHERE refresh_token = $1
@@ -125,42 +161,6 @@ WHERE user_id = $1
 func (q *Queries) MarkSessionsCompromised(ctx context.Context, userID uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, markSessionsCompromised, userID)
 	return err
-}
-
-const registerUser = `-- name: RegisterUser :one
-
-INSERT INTO users (id, username, email, password_hash , created_at, updated_at)
-VALUES ($1, $2, $3, $4, NOW(), NOW())
-RETURNING id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at
-`
-
-type RegisterUserParams struct {
-	ID           uuid.UUID
-	Username     string
-	Email        string
-	PasswordHash string
-}
-
-// users
-func (q *Queries) RegisterUser(ctx context.Context, arg RegisterUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, registerUser,
-		arg.ID,
-		arg.Username,
-		arg.Email,
-		arg.PasswordHash,
-	)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Email,
-		&i.Username,
-		&i.PasswordHash,
-		&i.IsEmailVerified,
-		&i.IsActive,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
 }
 
 const revokeAllUserSessions = `-- name: RevokeAllUserSessions :exec

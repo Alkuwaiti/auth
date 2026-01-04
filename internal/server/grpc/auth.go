@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
+	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/observability"
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
@@ -94,4 +95,26 @@ func (s *server) ChangePassword(ctx context.Context, req *authv1.ChangePasswordR
 	}
 
 	return &emptypb.Empty{}, nil
+}
+
+func (s *server) RegisterUser(ctx context.Context, req *authv1.RegisterUserRequest) (*authv1.User, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	res, err := s.authService.RegisterUser(ctx, auth.RegisterUserInput{
+		Username: req.Username,
+		Email:    req.Email,
+		Password: req.Password,
+	})
+	if err != nil {
+		return nil, MapError(err)
+	}
+
+	return &authv1.User{
+		Id:       res.ID.String(),
+		Username: res.Username,
+		Email:    res.Email,
+	}, nil
 }

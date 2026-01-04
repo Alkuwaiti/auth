@@ -15,7 +15,7 @@ import (
 
 var publicMethods = map[string]struct{}{
 	"/auth.v1.AuthService/Login":        {},
-	"/user.v1.UserService/RegisterUser": {},
+	"/auth.v1.AuthService/RegisterUser": {},
 	"/auth.v1.AuthService/RefreshToken": {},
 }
 

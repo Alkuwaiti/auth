@@ -1,4 +1,5 @@
-package core
+// Package coreerrors provides core errors
+package coreerrors
 
 import "errors"
 

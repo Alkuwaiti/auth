@@ -8,10 +8,9 @@ import (
 	"net"
 
 	"github.com/alkuwaiti/auth/internal/auth"
+	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/observability"
-	"github.com/alkuwaiti/auth/internal/user"
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
-	userv1 "github.com/alkuwaiti/auth/pb/pbuser/v1"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
@@ -20,17 +19,11 @@ import (
 
 type server struct {
 	// TODO: change these to unimplemented when the time comes.
-	userv1.UnsafeUserServiceServer
 	authv1.UnsafeAuthServiceServer
 
 	srv         *grpc.Server
-	userService userService
 	authService authService
 	cfg         Config
-}
-
-type userService interface {
-	RegisterUser(context.Context, user.RegisterUserInput) (user.User, error)
 }
 
 type authService interface {
@@ -38,6 +31,7 @@ type authService interface {
 	RefreshToken(ctx context.Context, refreshToken string, meta observability.RequestMeta) (auth.TokenPair, error)
 	Logout(ctx context.Context, refreshToken string) error
 	ChangePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error
+	RegisterUser(context.Context, auth.RegisterUserInput) (core.User, error)
 }
 
 type Config struct {
@@ -51,11 +45,7 @@ func (c Config) String() string {
 	return fmt.Sprintf("%s: %d", c.Host, c.Port)
 }
 
-func NewServer(cfg Config, userService userService, authService authService) *server {
-	if userService == nil {
-		panic("user service is nil")
-	}
-
+func NewServer(authService authService, cfg Config) *server {
 	if authService == nil {
 		panic("auth service is nil")
 	}
@@ -66,7 +56,6 @@ func NewServer(cfg Config, userService userService, authService authService) *se
 
 	return &server{
 		cfg:         cfg,
-		userService: userService,
 		authService: authService,
 	}
 }
@@ -90,7 +79,6 @@ func (s *server) Start(ctx context.Context) error {
 		),
 	)
 
-	userv1.RegisterUserServiceServer(s.srv, s)
 	authv1.RegisterAuthServiceServer(s.srv, s)
 
 	if err = s.srv.Serve(lis); err != nil {

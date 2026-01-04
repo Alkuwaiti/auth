@@ -1,4 +1,5 @@
-package core
+// Package password holds everything password related
+package password
 
 import (
 	"unicode"
@@ -7,15 +8,26 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func VerifyPassword(hashedPassword string, password string) bool {
-	err := bcrypt.CompareHashAndPassword(
-		[]byte(hashedPassword),
-		[]byte(password),
-	)
-	return err == nil
+type bcryptPasswordService struct {
+	cost int
 }
 
-func ValidatePassword(password string) error {
+func NewService(cost int) *bcryptPasswordService {
+	return &bcryptPasswordService{
+		cost,
+	}
+}
+
+func (p *bcryptPasswordService) Hash(password string) (string, error) {
+	b, err := bcrypt.GenerateFromPassword([]byte(password), p.cost)
+	return string(b), err
+}
+
+func (p *bcryptPasswordService) Compare(hash, password string) error {
+	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+}
+
+func (p *bcryptPasswordService) Validate(password string) error {
 	if len(password) < 8 {
 		return &apperrors.ValidationError{Field: "username", Msg: "must be at least 8 characters"}
 	}
