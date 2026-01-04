@@ -99,8 +99,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (co
 		return core.User{}, &apperrors.InvalidCredentialsError{}
 	}
 
-	err = s.passwordService.Validate(input.Password)
-	if err != nil {
+	if err = s.passwordService.Validate(input.Password); err != nil {
 		return core.User{}, err
 	}
 
@@ -241,8 +240,6 @@ func generateRefreshToken() (string, error) {
 	return token, nil
 }
 
-var dummyBcryptHash = "$2b$12$C6UzMDM.H6dfI/f/IKcEeOe2x7yZ0pniS3pSDOMkMt2rt7V6F2i4G"
-
 func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta observability.RequestMeta) (TokenPair, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.RefreshToken")
 	defer span.End()
@@ -363,6 +360,8 @@ func (s *service) Logout(ctx context.Context, refreshToken string) error {
 
 	return nil
 }
+
+var dummyBcryptHash = "$2b$12$C6UzMDM.H6dfI/f/IKcEeOe2x7yZ0pniS3pSDOMkMt2rt7V6F2i4G"
 
 func (s *service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error {
 	ctx, span := tracer.Start(ctx, "AuthService.ChangePassword")
