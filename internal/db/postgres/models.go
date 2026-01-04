@@ -14,7 +14,7 @@ import (
 type AuthAuditLog struct {
 	ID        uuid.UUID
 	UserID    uuid.NullUUID
-	Action    sql.NullString
+	Action    string
 	IpAddress sql.NullString
 	UserAgent sql.NullString
 	CreatedAt sql.NullTime

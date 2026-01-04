@@ -27,3 +27,12 @@ type User struct {
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
 }
+
+type AuditLog struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	Action    string
+	IPAddress string
+	UserAgent string
+	CreatedAt time.Time
+}

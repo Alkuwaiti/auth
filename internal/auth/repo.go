@@ -6,7 +6,7 @@ import (
 	"errors"
 	"time"
 
-	coreerrors "github.com/alkuwaiti/auth/internal/core/errors"
+	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/google/uuid"
 )
@@ -64,7 +64,7 @@ func (r *repo) getSessionByRefreshToken(ctx context.Context, refreshToken string
 	session, err := r.queries.GetSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return Session{}, coreerrors.ErrSessionNotFound
+			return Session{}, core.ErrSessionNotFound
 		}
 		return Session{}, err
 	}

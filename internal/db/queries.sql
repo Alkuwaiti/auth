@@ -58,3 +58,13 @@ UPDATE sessions
 SET compromised_at = NOW()
 WHERE user_id = $1
   AND compromised_at IS NULL;
+
+
+-- audit
+
+-- name: CreateAuditLog :exec
+INSERT INTO auth_audit_logs (user_id, action, ip_address, user_agent, created_at)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING *;
+
+

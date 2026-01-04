@@ -11,7 +11,6 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/core"
-	coreerrors "github.com/alkuwaiti/auth/internal/core/errors"
 	"github.com/alkuwaiti/auth/internal/observability"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -134,7 +133,7 @@ func (s *service) Login(ctx context.Context, email, password string, meta observ
 
 	user, err := s.userService.GetUserByEmail(ctx, email)
 	if err != nil {
-		if errors.Is(err, coreerrors.ErrUserNotFound) {
+		if errors.Is(err, core.ErrUserNotFound) {
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
 		}
 
@@ -237,7 +236,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 
 	session, err := s.repo.getSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
-		if errors.Is(err, coreerrors.ErrSessionNotFound) {
+		if errors.Is(err, core.ErrSessionNotFound) {
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
 		}
 
@@ -307,7 +306,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to get user by id", "err", err)
 
-		if errors.Is(err, coreerrors.ErrUserNotFound) {
+		if errors.Is(err, core.ErrUserNotFound) {
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
 		}
 		return TokenPair{}, err
@@ -366,7 +365,7 @@ func (s *service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 
 	user, err := s.userService.GetUserByID(ctx, userID)
 	if err != nil {
-		if errors.Is(err, coreerrors.ErrUserNotFound) {
+		if errors.Is(err, core.ErrUserNotFound) {
 			_ = s.passwordService.Compare(dummyBcryptHash, oldPassword)
 			return &apperrors.InvalidCredentialsError{}
 		}
