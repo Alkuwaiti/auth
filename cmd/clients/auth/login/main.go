@@ -32,7 +32,7 @@ func main() {
 	}()
 
 	res, err := client.Login(ctx, &authv1.LoginRequest{
-		Email:    "alkuwaitiqasim3@gmail.com",
+		Email:    "alkuwaitiqasim4@gmail.com",
 		Password: "Supersecretpassword1!",
 	})
 	if err != nil {

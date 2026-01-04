@@ -154,15 +154,6 @@ func (s *service) Login(ctx context.Context, email, password string, meta observ
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
-	if !user.IsEmailVerified {
-		span.SetStatus(codes.Error, "email unverified")
-		slog.WarnContext(ctx, "failed login attempt", "email", user.Email, "is_email_verified", user.IsEmailVerified)
-		return TokenPair{}, &apperrors.BadRequestError{
-			Field: "email",
-			Msg:   "email unverified",
-		}
-	}
-
 	accessToken, err := generateAccessToken(user.ID.String(), user.Email, s.config.JWTKey, s.config.Issuer, s.config.Audience)
 	if err != nil {
 		span.RecordError(err)
