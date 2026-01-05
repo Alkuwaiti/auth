@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
+	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/core"
-	coreerrors "github.com/alkuwaiti/auth/internal/core/errors"
 	"github.com/alkuwaiti/auth/internal/observability"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -20,11 +20,16 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
+type auditService interface {
+	CreateAuditLog(ctx context.Context, input audit.CreateAuditLogInput) error
+}
+
 type service struct {
 	repo            *repo
 	userService     userService
 	config          Config
 	passwordService passwordService
+	auditService    auditService
 }
 
 type Config struct {
@@ -33,12 +38,13 @@ type Config struct {
 	Audience string
 }
 
-func NewService(repo *repo, userService userService, passwordService passwordService, config Config) *service {
+func NewService(repo *repo, userService userService, passwordService passwordService, auditService auditService, config Config) *service {
 	return &service{
 		repo:            repo,
 		userService:     userService,
 		config:          config,
 		passwordService: passwordService,
+		auditService:    auditService,
 	}
 }
 
@@ -116,6 +122,15 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (co
 		}
 	}
 
+	if err := s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+		UserID:    &user.ID,
+		Action:    audit.ActionCreateUser,
+		IPAddress: &input.IPAddress,
+		UserAgent: &input.UserAgent,
+	}); err != nil {
+		return core.User{}, err
+	}
+
 	span.SetAttributes(
 		attribute.String("user.id", user.ID.String()),
 	)
@@ -134,7 +149,7 @@ func (s *service) Login(ctx context.Context, email, password string, meta observ
 
 	user, err := s.userService.GetUserByEmail(ctx, email)
 	if err != nil {
-		if errors.Is(err, coreerrors.ErrUserNotFound) {
+		if errors.Is(err, core.ErrUserNotFound) {
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
 		}
 
@@ -180,6 +195,15 @@ func (s *service) Login(ctx context.Context, email, password string, meta observ
 		meta.UserAgent,
 	); err != nil {
 		slog.ErrorContext(ctx, "create session failed", "err", err)
+		return TokenPair{}, err
+	}
+
+	if err := s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+		UserID:    &user.ID,
+		Action:    audit.ActionLogin,
+		IPAddress: &meta.IPAddress,
+		UserAgent: &meta.UserAgent,
+	}); err != nil {
 		return TokenPair{}, err
 	}
 
@@ -237,7 +261,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 
 	session, err := s.repo.getSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
-		if errors.Is(err, coreerrors.ErrSessionNotFound) {
+		if errors.Is(err, core.ErrSessionNotFound) {
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
 		}
 
@@ -307,7 +331,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to get user by id", "err", err)
 
-		if errors.Is(err, coreerrors.ErrUserNotFound) {
+		if errors.Is(err, core.ErrUserNotFound) {
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
 		}
 		return TokenPair{}, err
@@ -334,7 +358,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 	}, nil
 }
 
-func (s *service) Logout(ctx context.Context, refreshToken string) error {
+func (s *service) Logout(ctx context.Context, refreshToken string, meta observability.RequestMeta) error {
 	ctx, span := tracer.Start(ctx, "AuthService.Logout")
 	defer span.End()
 
@@ -349,25 +373,34 @@ func (s *service) Logout(ctx context.Context, refreshToken string) error {
 		slog.ErrorContext(ctx, "failed to revoke session", "err", err)
 	}
 
+	if err := s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+		UserID:    &session.UserID,
+		Action:    audit.ActionLogout,
+		IPAddress: &meta.IPAddress,
+		UserAgent: &meta.UserAgent,
+	}); err != nil {
+		slog.ErrorContext(ctx, "failed to create audit log", "err", err)
+	}
+
 	return nil
 }
 
 var dummyBcryptHash = "$2b$12$C6UzMDM.H6dfI/f/IKcEeOe2x7yZ0pniS3pSDOMkMt2rt7V6F2i4G"
 
-func (s *service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error {
+func (s *service) ChangePassword(ctx context.Context, input ChangePasswordInput) error {
 	ctx, span := tracer.Start(ctx, "AuthService.ChangePassword")
 	defer span.End()
 
-	if err := s.passwordService.Validate(newPassword); err != nil {
+	if err := s.passwordService.Validate(input.NewPassword); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to validate password")
 		return err
 	}
 
-	user, err := s.userService.GetUserByID(ctx, userID)
+	user, err := s.userService.GetUserByID(ctx, input.UserID)
 	if err != nil {
-		if errors.Is(err, coreerrors.ErrUserNotFound) {
-			_ = s.passwordService.Compare(dummyBcryptHash, oldPassword)
+		if errors.Is(err, core.ErrUserNotFound) {
+			_ = s.passwordService.Compare(dummyBcryptHash, input.OldPassword)
 			return &apperrors.InvalidCredentialsError{}
 		}
 
@@ -378,7 +411,7 @@ func (s *service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 
 	if err = s.passwordService.Compare(
 		user.PasswordHash,
-		oldPassword,
+		input.OldPassword,
 	); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "old password and current password do not match")
@@ -387,14 +420,14 @@ func (s *service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 
 	if err = s.passwordService.Compare(
 		user.PasswordHash,
-		newPassword,
+		input.NewPassword,
 	); err == nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "old password cannot be new password")
 		return &apperrors.PasswordReuseError{}
 	}
 
-	newPasswordHash, err := s.passwordService.Hash(newPassword)
+	newPasswordHash, err := s.passwordService.Hash(input.NewPassword)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to hash new password")
@@ -404,12 +437,21 @@ func (s *service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 
 	if err := s.repo.updatePasswordAndRevokeSessions(
 		ctx,
-		userID,
+		input.UserID,
 		newPasswordHash,
 		RevocationPasswordChange,
 	); err != nil {
 		slog.ErrorContext(ctx, "failed to update password and revoke sessions", "err", err)
 		return err
+	}
+
+	if err := s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+		UserID:    &user.ID,
+		Action:    audit.ActionPasswordChange,
+		IPAddress: &input.IPAddress,
+		UserAgent: &input.UserAgent,
+	}); err != nil {
+		slog.ErrorContext(ctx, "failed to create audit log", "err", err)
 	}
 
 	span.SetAttributes(

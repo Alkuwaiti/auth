@@ -1,0 +1,3 @@
+ALTER TABLE auth_audit_logs
+ALTER COLUMN action
+DROP NOT NULL;

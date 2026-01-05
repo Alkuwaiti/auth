@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 )
@@ -16,9 +17,7 @@ const (
 	headerRequestID     = "request-id"
 )
 
-type requestMetaKeyType struct{}
-
-var RequestMetaKey = requestMetaKeyType{}
+type RequestMetaKeyType struct{}
 
 // TODO: change this function when you have an api-gateway.
 
@@ -50,7 +49,7 @@ func ExtractRequestMeta(ctx context.Context) RequestMeta {
 }
 
 func RequestMetaFromContext(ctx context.Context) RequestMeta {
-	if meta, ok := ctx.Value(RequestMetaKey).(RequestMeta); ok {
+	if meta, ok := ctx.Value(RequestMetaKeyType{}).(RequestMeta); ok {
 		return meta
 	}
 	return RequestMeta{}
@@ -61,4 +60,17 @@ func first(v []string) string {
 		return v[0]
 	}
 	return ""
+}
+
+func WithRequestMeta(ctx context.Context, methodName string) context.Context {
+	meta := ExtractRequestMeta(ctx)
+
+	span := trace.SpanFromContext(ctx)
+	if sc := span.SpanContext(); sc.IsValid() {
+		meta.TraceID = sc.TraceID().String()
+		meta.SpanID = sc.SpanID().String()
+		meta.RequestMethod = methodName
+	}
+
+	return context.WithValue(ctx, RequestMetaKeyType{}, meta)
 }

@@ -12,6 +12,10 @@ type EmailKey struct{}
 
 type UserIDKey struct{}
 
+type UserAgentKey struct{}
+
+type IPAddressKey struct{}
+
 type AccessClaims struct {
 	Email string `json:"email"`
 	jwt.RegisteredClaims
@@ -26,4 +30,13 @@ type User struct {
 	IsActive        bool      `json:"is_active"`
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
+}
+
+type AuditLog struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	Action    string
+	IPAddress string
+	UserAgent string
+	CreatedAt time.Time
 }
