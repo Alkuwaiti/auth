@@ -12,6 +12,10 @@ type EmailKey struct{}
 
 type UserIDKey struct{}
 
+type UserAgentKey struct{}
+
+type IPAddressKey struct{}
+
 type AccessClaims struct {
 	Email string `json:"email"`
 	jwt.RegisteredClaims

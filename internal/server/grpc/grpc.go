@@ -74,7 +74,7 @@ func (s *server) Start(ctx context.Context) error {
 	s.srv = grpc.NewServer(
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		grpc.ChainUnaryInterceptor(
-			LoggingInterceptor(),
+			RequestMetaInterceptor(),
 			AuthUnaryInterceptor(s.cfg.JWTKey, s.cfg.Name, s.cfg.Name),
 		),
 	)

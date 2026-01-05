@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
+	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/observability"
 	"github.com/golang-jwt/jwt/v5"
@@ -19,11 +20,16 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
+type auditService interface {
+	CreateAuditLog(ctx context.Context, input audit.CreateAuditLogInput) error
+}
+
 type service struct {
 	repo            *repo
 	userService     userService
 	config          Config
 	passwordService passwordService
+	auditService    auditService
 }
 
 type Config struct {
@@ -32,12 +38,13 @@ type Config struct {
 	Audience string
 }
 
-func NewService(repo *repo, userService userService, passwordService passwordService, config Config) *service {
+func NewService(repo *repo, userService userService, passwordService passwordService, auditService auditService, config Config) *service {
 	return &service{
 		repo:            repo,
 		userService:     userService,
 		config:          config,
 		passwordService: passwordService,
+		auditService:    auditService,
 	}
 }
 
@@ -113,6 +120,15 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (co
 			Msg: "failed to register a user",
 			Err: err,
 		}
+	}
+
+	if err := s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+		UserID:    &user.ID,
+		Action:    audit.ActionCreateUser,
+		IPAddress: &input.IPAddress,
+		UserAgent: &input.UserAgent,
+	}); err != nil {
+		return core.User{}, err
 	}
 
 	span.SetAttributes(

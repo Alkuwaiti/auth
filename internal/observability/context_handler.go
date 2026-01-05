@@ -10,7 +10,7 @@ type ContextHandler struct {
 	next slog.Handler
 }
 
-func NewContextHandler(next slog.Handler) slog.Handler {
+func newContextHandler(next slog.Handler) slog.Handler {
 	return &ContextHandler{next: next}
 }
 
@@ -20,7 +20,7 @@ func (h *ContextHandler) Enabled(ctx context.Context, level slog.Level) bool {
 
 func (h *ContextHandler) Handle(ctx context.Context, r slog.Record) error {
 	// Extract request metadata
-	if meta, ok := ctx.Value(RequestMetaKey).(RequestMeta); ok {
+	if meta, ok := ctx.Value(RequestMetaKeyType{}).(RequestMeta); ok {
 		r.AddAttrs(meta.LogAttrs()...)
 	}
 
@@ -40,7 +40,7 @@ func SetDefaultLogger(level slog.Level, name, environment string) {
 		Level: level,
 	})
 
-	handler := NewContextHandler(base)
+	handler := newContextHandler(base)
 
 	logger := slog.New(handler).
 		With(

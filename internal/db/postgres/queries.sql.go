@@ -15,8 +15,8 @@ import (
 
 const createAuditLog = `-- name: CreateAuditLog :exec
 
-INSERT INTO auth_audit_logs (user_id, action, ip_address, user_agent, created_at)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO auth_audit_logs (user_id, action, ip_address, user_agent)
+VALUES ($1, $2, $3, $4)
 RETURNING id, user_id, action, ip_address, user_agent, created_at
 `
 
@@ -25,7 +25,6 @@ type CreateAuditLogParams struct {
 	Action    string
 	IpAddress sql.NullString
 	UserAgent sql.NullString
-	CreatedAt sql.NullTime
 }
 
 // audit
@@ -35,7 +34,6 @@ func (q *Queries) CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) 
 		arg.Action,
 		arg.IpAddress,
 		arg.UserAgent,
-		arg.CreatedAt,
 	)
 	return err
 }

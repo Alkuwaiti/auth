@@ -103,10 +103,14 @@ func (s *server) RegisterUser(ctx context.Context, req *authv1.RegisterUserReque
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
+	requestMetadata := observability.RequestMetaFromContext(ctx)
+
 	res, err := s.authService.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: req.Username,
-		Email:    req.Email,
-		Password: req.Password,
+		Username:  req.Username,
+		Email:     req.Email,
+		Password:  req.Password,
+		UserAgent: requestMetadata.UserAgent,
+		IPAddress: requestMetadata.IPAddress,
 	})
 	if err != nil {
 		return nil, MapError(err)

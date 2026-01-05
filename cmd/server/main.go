@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/config"
 	"github.com/alkuwaiti/auth/internal/db"
@@ -73,13 +74,17 @@ func main() {
 
 	passwordService := password.NewService(12)
 
+	auditRepo := audit.NewRepo(postgres.New(dbConn))
+
+	auditService := audit.NewService(auditRepo)
+
 	userRepo := user.NewRepo(postgres.New(dbConn))
 
 	userService := user.NewService(userRepo)
 
 	authRepo := auth.NewRepo(dbConn)
 
-	authService := auth.NewService(authRepo, userService, passwordService, auth.Config{
+	authService := auth.NewService(authRepo, userService, passwordService, auditService, auth.Config{
 		Issuer:   name,
 		Audience: name,
 		JWTKey:   []byte(cfg.JWTKey),

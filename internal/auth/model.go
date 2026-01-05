@@ -34,7 +34,7 @@ func (s *Session) IsExpired() bool {
 }
 
 type RegisterUserInput struct {
-	Username, Email, Password string
+	Username, Email, Password, UserAgent, IPAddress string
 }
 
 func (r *RegisterUserInput) validate() error {
