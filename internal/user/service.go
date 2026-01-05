@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 
+	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
@@ -10,13 +11,19 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-type service struct {
-	repo *repo
+type auditService interface {
+	CreateAuditLog(ctx context.Context, input audit.CreateAuditLogInput) error
 }
 
-func NewService(repo *repo) *service {
+type service struct {
+	repo         *repo
+	auditService auditService
+}
+
+func NewService(repo *repo, auditService auditService) *service {
 	return &service{
 		repo,
+		auditService,
 	}
 }
 
@@ -93,6 +100,15 @@ func (s *service) CreateUser(ctx context.Context, username, email, passwordHash 
 
 	user, err := s.repo.createUser(ctx, id, username, email, passwordHash)
 	if err != nil {
+		return core.User{}, err
+	}
+
+	if err := s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+		UserID:    (*uuid.UUID)(user.ID),
+		Action:    audit.ActionCreateUser,
+		IPAddress: nil,
+		UserAgent: nil,
+	}); err != nil {
 		return core.User{}, err
 	}
 

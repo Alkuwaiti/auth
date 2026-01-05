@@ -45,7 +45,7 @@ func (r *repo) CreateAuditLog(ctx context.Context, input CreateAuditLogInput) er
 
 	if err := r.queries.CreateAuditLog(ctx, postgres.CreateAuditLogParams{
 		UserID:    userID,
-		Action:    input.Action,
+		Action:    string(input.Action),
 		IpAddress: ip,
 		UserAgent: ua,
 	}); err != nil {
