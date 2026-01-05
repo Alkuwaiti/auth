@@ -65,7 +65,9 @@ func (s *server) Logout(ctx context.Context, req *authv1.RefreshTokenRequest) (*
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	err := s.authService.Logout(ctx, req.RefreshToken)
+	meta := observability.RequestMetaFromContext(ctx)
+
+	err := s.authService.Logout(ctx, req.RefreshToken, meta)
 	if err != nil {
 		return nil, MapError(err)
 	}
@@ -89,7 +91,15 @@ func (s *server) ChangePassword(ctx context.Context, req *authv1.ChangePasswordR
 		return &emptypb.Empty{}, err
 	}
 
-	err = s.authService.ChangePassword(ctx, userID, req.OldPassword, req.NewPassword)
+	meta := observability.RequestMetaFromContext(ctx)
+
+	err = s.authService.ChangePassword(ctx, auth.ChangePasswordInput{
+		UserID:      userID,
+		OldPassword: req.OldPassword,
+		NewPassword: req.NewPassword,
+		IPAddress:   meta.IPAddress,
+		UserAgent:   meta.UserAgent,
+	})
 	if err != nil {
 		return nil, MapError(err)
 	}

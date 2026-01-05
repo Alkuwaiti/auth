@@ -11,7 +11,6 @@ import (
 	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/observability"
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
-	"github.com/google/uuid"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -29,8 +28,8 @@ type server struct {
 type authService interface {
 	Login(ctx context.Context, email, password string, meta observability.RequestMeta) (auth.TokenPair, error)
 	RefreshToken(ctx context.Context, refreshToken string, meta observability.RequestMeta) (auth.TokenPair, error)
-	Logout(ctx context.Context, refreshToken string) error
-	ChangePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error
+	Logout(ctx context.Context, refreshToken string, meta observability.RequestMeta) error
+	ChangePassword(ctx context.Context, input auth.ChangePasswordInput) error
 	RegisterUser(context.Context, auth.RegisterUserInput) (core.User, error)
 }
 

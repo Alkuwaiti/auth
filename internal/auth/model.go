@@ -88,3 +88,11 @@ func (r *RegisterUserInput) validateUsername() error {
 func (r *RegisterUserInput) validatePassword() error {
 	return nil
 }
+
+type ChangePasswordInput struct {
+	UserID      uuid.UUID
+	OldPassword string
+	NewPassword string
+	IPAddress   string
+	UserAgent   string
+}
