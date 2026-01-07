@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/google/uuid"
 )
@@ -18,7 +19,7 @@ func NewRepo(queries *postgres.Queries) *repo {
 	}
 }
 
-func (r *repo) CreateAuditLog(ctx context.Context, input CreateAuditLogInput) error {
+func (r *repo) CreateAuditLog(ctx context.Context, input CreateAuditLogInput) (core.AuditLog, error) {
 	var userID uuid.NullUUID
 	if input.UserID != nil {
 		userID = uuid.NullUUID{
@@ -43,14 +44,25 @@ func (r *repo) CreateAuditLog(ctx context.Context, input CreateAuditLogInput) er
 		}
 	}
 
-	if err := r.queries.CreateAuditLog(ctx, postgres.CreateAuditLogParams{
+	auditLog, err := r.queries.CreateAuditLog(ctx, postgres.CreateAuditLogParams{
 		UserID:    userID,
 		Action:    string(input.Action),
 		IpAddress: ip,
 		UserAgent: ua,
-	}); err != nil {
-		return err
+	})
+	if err != nil {
+		return core.AuditLog{}, err
 	}
 
-	return nil
+	return toModel(auditLog), nil
+}
+
+func toModel(auditLog postgres.AuthAuditLog) core.AuditLog {
+	return core.AuditLog{
+		UserID:    auditLog.UserID.UUID,
+		Action:    auditLog.Action,
+		IPAddress: auditLog.IpAddress.String,
+		UserAgent: auditLog.UserAgent.String,
+		CreatedAt: auditLog.CreatedAt.Time,
+	}
 }

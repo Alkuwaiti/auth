@@ -21,7 +21,7 @@ import (
 )
 
 type auditService interface {
-	CreateAuditLog(ctx context.Context, input audit.CreateAuditLogInput) error
+	CreateAuditLog(ctx context.Context, input audit.CreateAuditLogInput) (core.AuditLog, error)
 }
 
 type service struct {
@@ -81,6 +81,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (co
 
 	exists, err := s.userService.UserExistsByEmail(ctx, input.Email)
 	if err != nil {
+		slog.WarnContext(ctx, "failed to check if email exists", "email", input.Email)
 		return core.User{}, &apperrors.InternalError{
 			Msg: "failed to check email uniqueness",
 			Err: err,
@@ -88,12 +89,12 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (co
 	}
 	if exists {
 		span.SetStatus(codes.Error, "email already exists")
-		slog.WarnContext(ctx, "user already exists", "email", input.Email)
 		return core.User{}, &apperrors.InvalidCredentialsError{}
 	}
 
 	exists, err = s.userService.UserExistsByUsername(ctx, input.Username)
 	if err != nil {
+		slog.WarnContext(ctx, "failed to check if username exists", "username", input.Username)
 		return core.User{}, &apperrors.InternalError{
 			Msg: "failed to check username uniqueness",
 			Err: err,
@@ -101,7 +102,6 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (co
 	}
 	if exists {
 		span.SetStatus(codes.Error, "username already exists")
-		slog.WarnContext(ctx, "user already exists", "username", input.Username)
 		return core.User{}, &apperrors.InvalidCredentialsError{}
 	}
 
@@ -122,12 +122,13 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (co
 		}
 	}
 
-	if err := s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+	_, err = s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
 		UserID:    &user.ID,
 		Action:    audit.ActionCreateUser,
 		IPAddress: &input.IPAddress,
 		UserAgent: &input.UserAgent,
-	}); err != nil {
+	})
+	if err != nil {
 		return core.User{}, err
 	}
 
@@ -198,12 +199,13 @@ func (s *service) Login(ctx context.Context, email, password string, meta observ
 		return TokenPair{}, err
 	}
 
-	if err := s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+	_, err = s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
 		UserID:    &user.ID,
 		Action:    audit.ActionLogin,
 		IPAddress: &meta.IPAddress,
 		UserAgent: &meta.UserAgent,
-	}); err != nil {
+	})
+	if err != nil {
 		return TokenPair{}, err
 	}
 
@@ -373,12 +375,13 @@ func (s *service) Logout(ctx context.Context, refreshToken string, meta observab
 		slog.ErrorContext(ctx, "failed to revoke session", "err", err)
 	}
 
-	if err := s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+	_, err = s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
 		UserID:    &session.UserID,
 		Action:    audit.ActionLogout,
 		IPAddress: &meta.IPAddress,
 		UserAgent: &meta.UserAgent,
-	}); err != nil {
+	})
+	if err != nil {
 		slog.ErrorContext(ctx, "failed to create audit log", "err", err)
 	}
 
@@ -445,12 +448,13 @@ func (s *service) ChangePassword(ctx context.Context, input ChangePasswordInput)
 		return err
 	}
 
-	if err := s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+	_, err = s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
 		UserID:    &user.ID,
 		Action:    audit.ActionPasswordChange,
 		IPAddress: &input.IPAddress,
 		UserAgent: &input.UserAgent,
-	}); err != nil {
+	})
+	if err != nil {
 		slog.ErrorContext(ctx, "failed to create audit log", "err", err)
 	}
 

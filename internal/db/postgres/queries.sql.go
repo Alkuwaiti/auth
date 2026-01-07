@@ -13,7 +13,7 @@ import (
 	"github.com/google/uuid"
 )
 
-const createAuditLog = `-- name: CreateAuditLog :exec
+const createAuditLog = `-- name: CreateAuditLog :one
 
 INSERT INTO auth_audit_logs (user_id, action, ip_address, user_agent)
 VALUES ($1, $2, $3, $4)
@@ -28,14 +28,23 @@ type CreateAuditLogParams struct {
 }
 
 // audit
-func (q *Queries) CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) error {
-	_, err := q.db.ExecContext(ctx, createAuditLog,
+func (q *Queries) CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) (AuthAuditLog, error) {
+	row := q.db.QueryRowContext(ctx, createAuditLog,
 		arg.UserID,
 		arg.Action,
 		arg.IpAddress,
 		arg.UserAgent,
 	)
-	return err
+	var i AuthAuditLog
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Action,
+		&i.IpAddress,
+		&i.UserAgent,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const createSession = `-- name: CreateSession :one

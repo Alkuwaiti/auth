@@ -62,7 +62,7 @@ WHERE user_id = $1
 
 -- audit
 
--- name: CreateAuditLog :exec
+-- name: CreateAuditLog :one
 INSERT INTO auth_audit_logs (user_id, action, ip_address, user_agent)
 VALUES ($1, $2, $3, $4)
 RETURNING *;

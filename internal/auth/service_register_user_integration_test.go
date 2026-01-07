@@ -6,6 +6,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/alkuwaiti/auth/internal/apperrors"
+	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/user"
 	"github.com/stretchr/testify/require"
 )
@@ -31,4 +33,72 @@ func TestRegisterUser_Success(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, input.Email, user.Email)
 	require.NotEmpty(t, user.PasswordHash)
+}
+
+func TestRegisterUser_Fail_DuplicateEmail(t *testing.T) {
+	service, _, cleanup := setupTestAuthService(t)
+	defer cleanup()
+
+	ctx := context.Background()
+
+	// register user once
+	_, err := service.RegisterUser(ctx, RegisterUserInput{
+		Username: "testUser",
+		Email:    "test@example.com",
+		Password: "StrongPassword123!",
+	})
+	require.NoError(t, err)
+
+	// register again with same email
+	_, err = service.RegisterUser(ctx, RegisterUserInput{
+		Username: "anotherUser",
+		Email:    "test@example.com",
+		Password: "StrongPassword123!",
+	})
+
+	require.Error(t, err)
+	require.ErrorIs(t, err, &apperrors.InvalidCredentialsError{})
+}
+
+func TestRegisterUser_Fail_DuplicateUsername(t *testing.T) {
+	service, _, cleanup := setupTestAuthService(t)
+	defer cleanup()
+
+	ctx := context.Background()
+
+	// register user once
+	_, err := service.RegisterUser(ctx, RegisterUserInput{
+		Username: "testUser",
+		Email:    "test@example.com",
+		Password: "StrongPassword123!",
+	})
+	require.NoError(t, err)
+
+	// register again with same email
+	_, err = service.RegisterUser(ctx, RegisterUserInput{
+		Username: "testUser",
+		Email:    "anothermail@example.com",
+		Password: "StrongPassword123!",
+	})
+
+	require.Error(t, err)
+	require.ErrorIs(t, err, &apperrors.InvalidCredentialsError{})
+}
+
+func TestRegisterUser_Success_AuditTrail(t *testing.T) {
+	service, db, cleanup := setupTestAuthService(t)
+	defer cleanup()
+
+	ctx := context.Background()
+
+	// register user once
+	_, err := service.RegisterUser(ctx, RegisterUserInput{
+		Username: "testUser",
+		Email:    "test@example.com",
+		Password: "StrongPassword123!",
+	})
+	require.NoError(t, err)
+
+	auditService := audit.NewTestAuditService(db)
+
 }
