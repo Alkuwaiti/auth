@@ -13,11 +13,10 @@ import (
 	"github.com/google/uuid"
 )
 
-const createAuditLog = `-- name: CreateAuditLog :one
+const createAuditLog = `-- name: CreateAuditLog :exec
 
 INSERT INTO auth_audit_logs (user_id, action, ip_address, user_agent)
 VALUES ($1, $2, $3, $4)
-RETURNING id, user_id, action, ip_address, user_agent, created_at
 `
 
 type CreateAuditLogParams struct {
@@ -28,23 +27,14 @@ type CreateAuditLogParams struct {
 }
 
 // audit
-func (q *Queries) CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) (AuthAuditLog, error) {
-	row := q.db.QueryRowContext(ctx, createAuditLog,
+func (q *Queries) CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) error {
+	_, err := q.db.ExecContext(ctx, createAuditLog,
 		arg.UserID,
 		arg.Action,
 		arg.IpAddress,
 		arg.UserAgent,
 	)
-	var i AuthAuditLog
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.Action,
-		&i.IpAddress,
-		&i.UserAgent,
-		&i.CreatedAt,
-	)
-	return i, err
+	return err
 }
 
 const createSession = `-- name: CreateSession :one
@@ -117,6 +107,25 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getAuditLogByUserID = `-- name: GetAuditLogByUserID :one
+SELECT id, user_id, action, ip_address, user_agent, created_at FROM auth_audit_logs 
+WHERE user_id = $1
+`
+
+func (q *Queries) GetAuditLogByUserID(ctx context.Context, userID uuid.NullUUID) (AuthAuditLog, error) {
+	row := q.db.QueryRowContext(ctx, getAuditLogByUserID, userID)
+	var i AuthAuditLog
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Action,
+		&i.IpAddress,
+		&i.UserAgent,
+		&i.CreatedAt,
 	)
 	return i, err
 }

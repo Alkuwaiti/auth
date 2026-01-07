@@ -92,7 +92,7 @@ func TestRegisterUser_Success_AuditTrail(t *testing.T) {
 	ctx := context.Background()
 
 	// register user once
-	_, err := service.RegisterUser(ctx, RegisterUserInput{
+	user, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "testUser",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
@@ -100,5 +100,12 @@ func TestRegisterUser_Success_AuditTrail(t *testing.T) {
 	require.NoError(t, err)
 
 	auditService := audit.NewTestAuditService(db)
+
+	auditLog, err := auditService.GetAuditLogByUserID(ctx, user.ID)
+	require.NoError(t, err)
+
+	require.Equal(t, string(audit.ActionCreateUser), auditLog.Action)
+	require.Equal(t, user.ID, auditLog.UserID)
+	require.NotEmpty(t, auditLog.CreatedAt)
 
 }

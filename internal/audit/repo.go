@@ -19,7 +19,7 @@ func NewRepo(queries *postgres.Queries) *repo {
 	}
 }
 
-func (r *repo) CreateAuditLog(ctx context.Context, input CreateAuditLogInput) (core.AuditLog, error) {
+func (r *repo) CreateAuditLog(ctx context.Context, input CreateAuditLogInput) error {
 	var userID uuid.NullUUID
 	if input.UserID != nil {
 		userID = uuid.NullUUID{
@@ -44,11 +44,22 @@ func (r *repo) CreateAuditLog(ctx context.Context, input CreateAuditLogInput) (c
 		}
 	}
 
-	auditLog, err := r.queries.CreateAuditLog(ctx, postgres.CreateAuditLogParams{
+	if err := r.queries.CreateAuditLog(ctx, postgres.CreateAuditLogParams{
 		UserID:    userID,
 		Action:    string(input.Action),
 		IpAddress: ip,
 		UserAgent: ua,
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *repo) GetAuditLogByUserID(ctx context.Context, userID uuid.UUID) (core.AuditLog, error) {
+	auditLog, err := r.queries.GetAuditLogByUserID(ctx, uuid.NullUUID{
+		UUID:  userID,
+		Valid: true,
 	})
 	if err != nil {
 		return core.AuditLog{}, err
