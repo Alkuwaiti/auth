@@ -24,7 +24,7 @@ type auditService interface {
 	CreateAuditLog(ctx context.Context, input audit.CreateAuditLogInput) error
 }
 
-type Service struct {
+type service struct {
 	repo            *repo
 	userService     userService
 	config          Config
@@ -38,8 +38,8 @@ type Config struct {
 	Audience string
 }
 
-func NewService(repo *repo, userService userService, passwordService passwordService, auditService auditService, config Config) *Service {
-	return &Service{
+func NewService(repo *repo, userService userService, passwordService passwordService, auditService auditService, config Config) *service {
+	return &service{
 		repo:            repo,
 		userService:     userService,
 		config:          config,
@@ -64,7 +64,7 @@ type passwordService interface {
 
 var tracer = otel.Tracer("auth-service/auth")
 
-func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (core.User, error) {
+func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (core.User, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.RegisterUser")
 	defer span.End()
 
@@ -139,7 +139,7 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (co
 	return user, nil
 }
 
-func (s *Service) Login(ctx context.Context, email, password string, meta observability.RequestMeta) (TokenPair, error) {
+func (s *service) Login(ctx context.Context, email, password string, meta observability.RequestMeta) (TokenPair, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.Login")
 	defer span.End()
 
@@ -255,7 +255,7 @@ func generateRefreshToken() (string, error) {
 	return token, nil
 }
 
-func (s *Service) RefreshToken(ctx context.Context, refreshToken string, meta observability.RequestMeta) (TokenPair, error) {
+func (s *service) RefreshToken(ctx context.Context, refreshToken string, meta observability.RequestMeta) (TokenPair, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.RefreshToken")
 	defer span.End()
 
@@ -358,7 +358,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string, meta ob
 	}, nil
 }
 
-func (s *Service) Logout(ctx context.Context, refreshToken string, meta observability.RequestMeta) error {
+func (s *service) Logout(ctx context.Context, refreshToken string, meta observability.RequestMeta) error {
 	ctx, span := tracer.Start(ctx, "AuthService.Logout")
 	defer span.End()
 
@@ -387,7 +387,7 @@ func (s *Service) Logout(ctx context.Context, refreshToken string, meta observab
 
 var dummyBcryptHash = "$2b$12$C6UzMDM.H6dfI/f/IKcEeOe2x7yZ0pniS3pSDOMkMt2rt7V6F2i4G"
 
-func (s *Service) ChangePassword(ctx context.Context, input ChangePasswordInput) error {
+func (s *service) ChangePassword(ctx context.Context, input ChangePasswordInput) error {
 	ctx, span := tracer.Start(ctx, "AuthService.ChangePassword")
 	defer span.End()
 

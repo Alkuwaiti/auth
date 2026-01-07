@@ -1,4 +1,4 @@
-package testutil
+package auth
 
 import (
 	"context"
@@ -6,24 +6,24 @@ import (
 	"testing"
 
 	"github.com/alkuwaiti/auth/internal/audit"
-	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/alkuwaiti/auth/internal/password"
+	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/alkuwaiti/auth/internal/user"
 	"github.com/stretchr/testify/require"
 )
 
-// SetupTestService spins up a test DB, runs migrations, and returns a ready service.
+// setupTestAuthService spins up a test DB, runs migrations, and returns a ready service.
 // The caller must call cleanup() at the end.
-func SetupTestService(t *testing.T) (*auth.Service, *sql.DB, func()) {
+func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 	t.Helper() // marks this as a helper for better test output
 
 	ctx := context.Background()
 
-	testDB, err := NewPostgres(ctx)
+	testDB, err := testutil.NewPostgres(ctx)
 	require.NoError(t, err)
 
-	err = runMigrations(testDB.DB, "../db/migrations")
+	err = testutil.RunMigrations(testDB.DB, "../db/migrations")
 	require.NoError(t, err)
 
 	userRepo := user.NewRepo(postgres.New(testDB.DB))
@@ -36,8 +36,8 @@ func SetupTestService(t *testing.T) (*auth.Service, *sql.DB, func()) {
 
 	auditService := audit.NewService(auditRepo)
 
-	authRepo := auth.NewRepo(testDB.DB)
-	service := auth.NewService(authRepo, userService, passwordService, auditService, auth.Config{
+	authRepo := NewRepo(testDB.DB)
+	service := NewService(authRepo, userService, passwordService, auditService, Config{
 		Issuer:   "auth-service",
 		Audience: "auth-service",
 		JWTKey:   []byte("any random jwt key doesn't really matter or at least i think it doesn't matter"),
@@ -49,9 +49,4 @@ func SetupTestService(t *testing.T) (*auth.Service, *sql.DB, func()) {
 	}
 
 	return service, testDB.DB, cleanup
-}
-
-func NewTestUserService(db *sql.DB) *user.Service {
-	userRepo := user.NewRepo(postgres.New(db))
-	return user.NewService(userRepo)
 }

@@ -10,19 +10,19 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-type Service struct {
+type service struct {
 	repo *repo
 }
 
-func NewService(repo *repo) *Service {
-	return &Service{
+func NewService(repo *repo) *service {
+	return &service{
 		repo,
 	}
 }
 
 var tracer = otel.Tracer("auth-service/user")
 
-func (s *Service) GetUserByEmail(ctx context.Context, email string) (core.User, error) {
+func (s *service) GetUserByEmail(ctx context.Context, email string) (core.User, error) {
 	ctx, span := tracer.Start(ctx, "UserService.GetUserByEmail")
 	defer span.End()
 
@@ -41,7 +41,7 @@ func (s *Service) GetUserByEmail(ctx context.Context, email string) (core.User, 
 	return user, nil
 }
 
-func (s *Service) GetUserByID(ctx context.Context, userID uuid.UUID) (core.User, error) {
+func (s *service) GetUserByID(ctx context.Context, userID uuid.UUID) (core.User, error) {
 	ctx, span := tracer.Start(ctx, "UserService.GetUserByID")
 	defer span.End()
 
@@ -58,7 +58,7 @@ func (s *Service) GetUserByID(ctx context.Context, userID uuid.UUID) (core.User,
 	return user, nil
 }
 
-func (s *Service) UserExistsByEmail(ctx context.Context, email string) (bool, error) {
+func (s *service) UserExistsByEmail(ctx context.Context, email string) (bool, error) {
 	ctx, span := tracer.Start(ctx, "UserService.UpdatePassword")
 	defer span.End()
 
@@ -70,7 +70,7 @@ func (s *Service) UserExistsByEmail(ctx context.Context, email string) (bool, er
 	return exists, nil
 }
 
-func (s *Service) UserExistsByUsername(ctx context.Context, username string) (bool, error) {
+func (s *service) UserExistsByUsername(ctx context.Context, username string) (bool, error) {
 	ctx, span := tracer.Start(ctx, "UserService.UpdatePassword")
 	defer span.End()
 
@@ -82,7 +82,7 @@ func (s *Service) UserExistsByUsername(ctx context.Context, username string) (bo
 	return exists, nil
 }
 
-func (s *Service) CreateUser(ctx context.Context, username, email, passwordHash string) (core.User, error) {
+func (s *service) CreateUser(ctx context.Context, username, email, passwordHash string) (core.User, error) {
 	ctx, span := tracer.Start(ctx, "UserService.CreatUser")
 	defer span.End()
 
