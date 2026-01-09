@@ -81,6 +81,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (co
 
 	exists, err := s.userService.UserExistsByEmail(ctx, input.Email)
 	if err != nil {
+		slog.WarnContext(ctx, "failed to check if email exists", "email", input.Email)
 		return core.User{}, &apperrors.InternalError{
 			Msg: "failed to check email uniqueness",
 			Err: err,
@@ -88,12 +89,12 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (co
 	}
 	if exists {
 		span.SetStatus(codes.Error, "email already exists")
-		slog.WarnContext(ctx, "user already exists", "email", input.Email)
 		return core.User{}, &apperrors.InvalidCredentialsError{}
 	}
 
 	exists, err = s.userService.UserExistsByUsername(ctx, input.Username)
 	if err != nil {
+		slog.WarnContext(ctx, "failed to check if username exists", "username", input.Username)
 		return core.User{}, &apperrors.InternalError{
 			Msg: "failed to check username uniqueness",
 			Err: err,
@@ -101,7 +102,6 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (co
 	}
 	if exists {
 		span.SetStatus(codes.Error, "username already exists")
-		slog.WarnContext(ctx, "user already exists", "username", input.Username)
 		return core.User{}, &apperrors.InvalidCredentialsError{}
 	}
 
@@ -122,7 +122,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (co
 		}
 	}
 
-	if err := s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+	if err = s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
 		UserID:    &user.ID,
 		Action:    audit.ActionCreateUser,
 		IPAddress: &input.IPAddress,
@@ -186,7 +186,7 @@ func (s *service) Login(ctx context.Context, email, password string, meta observ
 	}
 
 	expiresAt := time.Now().Add(7 * 24 * time.Hour)
-	if _, err := s.repo.createSession(
+	if _, err = s.repo.createSession(
 		ctx,
 		user.ID,
 		expiresAt,
@@ -198,7 +198,7 @@ func (s *service) Login(ctx context.Context, email, password string, meta observ
 		return TokenPair{}, err
 	}
 
-	if err := s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+	if err = s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
 		UserID:    &user.ID,
 		Action:    audit.ActionLogin,
 		IPAddress: &meta.IPAddress,
@@ -369,11 +369,11 @@ func (s *service) Logout(ctx context.Context, refreshToken string, meta observab
 		return nil
 	}
 
-	if err := s.repo.revokeSession(ctx, session.ID, RevocationLogout); err != nil {
+	if err = s.repo.revokeSession(ctx, session.ID, RevocationLogout); err != nil {
 		slog.ErrorContext(ctx, "failed to revoke session", "err", err)
 	}
 
-	if err := s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+	if err = s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
 		UserID:    &session.UserID,
 		Action:    audit.ActionLogout,
 		IPAddress: &meta.IPAddress,
@@ -435,7 +435,7 @@ func (s *service) ChangePassword(ctx context.Context, input ChangePasswordInput)
 		return err
 	}
 
-	if err := s.repo.updatePasswordAndRevokeSessions(
+	if err = s.repo.updatePasswordAndRevokeSessions(
 		ctx,
 		input.UserID,
 		newPasswordHash,
@@ -445,7 +445,7 @@ func (s *service) ChangePassword(ctx context.Context, input ChangePasswordInput)
 		return err
 	}
 
-	if err := s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+	if err = s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
 		UserID:    &user.ID,
 		Action:    audit.ActionPasswordChange,
 		IPAddress: &input.IPAddress,

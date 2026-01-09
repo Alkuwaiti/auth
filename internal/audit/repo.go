@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/google/uuid"
 )
@@ -53,4 +54,26 @@ func (r *repo) CreateAuditLog(ctx context.Context, input CreateAuditLogInput) er
 	}
 
 	return nil
+}
+
+func (r *repo) GetAuditLogByUserID(ctx context.Context, userID uuid.UUID) (core.AuditLog, error) {
+	auditLog, err := r.queries.GetAuditLogByUserID(ctx, uuid.NullUUID{
+		UUID:  userID,
+		Valid: true,
+	})
+	if err != nil {
+		return core.AuditLog{}, err
+	}
+
+	return toModel(auditLog), nil
+}
+
+func toModel(auditLog postgres.AuthAuditLog) core.AuditLog {
+	return core.AuditLog{
+		UserID:    auditLog.UserID.UUID,
+		Action:    auditLog.Action,
+		IPAddress: auditLog.IpAddress.String,
+		UserAgent: auditLog.UserAgent.String,
+		CreatedAt: auditLog.CreatedAt.Time,
+	}
 }
