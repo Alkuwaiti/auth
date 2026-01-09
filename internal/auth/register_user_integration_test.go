@@ -8,7 +8,6 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/audit"
-	"github.com/alkuwaiti/auth/internal/user"
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,13 +25,22 @@ func Test_RegisterUser_Success(t *testing.T) {
 	_, err := service.RegisterUser(ctx, input)
 	require.NoError(t, err)
 
-	userService := user.NewTestUserService(db)
+	var (
+		email        string
+		passwordHash string
+		isActive     bool
+	)
 
-	user, err := userService.GetUserByEmail(ctx, input.Email)
+	err = db.QueryRow(`
+		SELECT email, password_hash, is_active
+		FROM users
+		WHERE email = $1
+	`, input.Email).Scan(&email, &passwordHash, &isActive)
 
 	require.NoError(t, err)
-	require.Equal(t, input.Email, user.Email)
-	require.NotEmpty(t, user.PasswordHash)
+	require.Equal(t, input.Email, email)
+	require.NotEmpty(t, passwordHash)
+	require.True(t, isActive)
 }
 
 func TestRegisterUser_Fail_DuplicateEmail(t *testing.T) {
