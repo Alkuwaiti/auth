@@ -30,6 +30,10 @@ test:
 	@echo "Running test"
 	go test -race -p 12 ./...
 
+test-integration:
+	@echo "Running Integration tests..."
+	go test -tags=integration ./internal/...
+
 build:
 	@echo "Building..."
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X main.commit=`git rev-parse HEAD` -X main.ref=`git rev-parse --abbrev-ref HEAD` -X main.version=`git describe --tags --always`" -o ./bin/server ./cmd/server

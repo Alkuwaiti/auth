@@ -8,28 +8,40 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type bcryptPasswordService struct {
+type passwordService struct {
 	cost int
 }
 
-func NewService(cost int) *bcryptPasswordService {
-	return &bcryptPasswordService{
+func NewService(cost int) *passwordService {
+	return &passwordService{
 		cost,
 	}
 }
 
-func (p *bcryptPasswordService) Hash(password string) (string, error) {
+func (p *passwordService) Hash(password string) (string, error) {
 	b, err := bcrypt.GenerateFromPassword([]byte(password), p.cost)
 	return string(b), err
 }
 
-func (p *bcryptPasswordService) Compare(hash, password string) error {
+func (p *passwordService) Compare(hash, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 }
 
-func (p *bcryptPasswordService) Validate(password string) error {
-	if len(password) < 8 {
-		return &apperrors.ValidationError{Field: "username", Msg: "must be at least 8 characters"}
+func (p *passwordService) Validate(password string) error {
+	runes := []rune(password)
+
+	if len(runes) < 8 {
+		return &apperrors.ValidationError{
+			Field: "password",
+			Msg:   "must be at least 8 characters",
+		}
+	}
+
+	if len(runes) > 255 {
+		return &apperrors.ValidationError{
+			Field: "password",
+			Msg:   "maximum 255 characters",
+		}
 	}
 
 	var hasUpper, hasLower, hasNumber, hasSpecial bool

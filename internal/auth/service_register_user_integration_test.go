@@ -109,3 +109,142 @@ func TestRegisterUser_Success_AuditTrail(t *testing.T) {
 	require.NotEmpty(t, auditLog.CreatedAt)
 
 }
+
+func TestRegisterUser_Success_ValidatePassword(t *testing.T) {
+	service, _, cleanup := setupTestAuthService(t)
+	defer cleanup()
+
+	ctx := context.Background()
+
+	// register user once
+	_, err := service.RegisterUser(ctx, RegisterUserInput{
+		Username: "testUser",
+		Email:    "test@example.com",
+		Password: "workingPassword123!!",
+	})
+
+	var ve *apperrors.ValidationError
+	require.ErrorAs(t, err, &ve)
+
+	require.Equal(t, "password", ve.Field)
+	require.Equal(t, "must be at least 8 characters", ve.Msg)
+}
+
+func TestRegisterUser_Fail_ValidatePasswordShortPassword(t *testing.T) {
+	service, _, cleanup := setupTestAuthService(t)
+	defer cleanup()
+
+	ctx := context.Background()
+
+	// register user once
+	_, err := service.RegisterUser(ctx, RegisterUserInput{
+		Username: "testUser",
+		Email:    "test@example.com",
+		Password: "pass",
+	})
+
+	var ve *apperrors.ValidationError
+	require.ErrorAs(t, err, &ve)
+
+	require.Equal(t, "password", ve.Field)
+	require.Equal(t, "must be at least 8 characters", ve.Msg)
+}
+
+func TestRegisterUser_Fail_ValidatePasswordLongPassword(t *testing.T) {
+	service, _, cleanup := setupTestAuthService(t)
+	defer cleanup()
+
+	ctx := context.Background()
+
+	// register user once
+	_, err := service.RegisterUser(ctx, RegisterUserInput{
+		Username: "testUser",
+		Email:    "test@example.com",
+		Password: "thisisaverylongpassword,letscontinueontillwehitthemaximumnumberofcharsavailableforushere.iamrunningoutofthingstosay,anditisgettingveryweirdsoireallyhopeigottoitbythislikewowokherewegoijustneedsomereallydumbcharactersforthistogettowhereineedittouhfjrtguvrybvpncqmyxemtchrgycnesrotcyuncyrbvngcp",
+	})
+
+	var ve *apperrors.ValidationError
+	require.ErrorAs(t, err, &ve)
+
+	require.Equal(t, "password", ve.Field)
+	require.Equal(t, "maximum 255 characters", ve.Msg)
+}
+func TestRegisterUser_Fail_ValidatePasswordNoUpperCase(t *testing.T) {
+	service, _, cleanup := setupTestAuthService(t)
+	defer cleanup()
+
+	ctx := context.Background()
+
+	// register user once
+	_, err := service.RegisterUser(ctx, RegisterUserInput{
+		Username: "testUser",
+		Email:    "test@example.com",
+		Password: "nouppercaseletters",
+	})
+
+	var ve *apperrors.ValidationError
+	require.ErrorAs(t, err, &ve)
+
+	require.Equal(t, "password", ve.Field)
+	require.Equal(t, "must contain at least one uppercase letter", ve.Msg)
+}
+
+func TestRegisterUser_Fail_ValidatePasswordNoLowerCase(t *testing.T) {
+	service, _, cleanup := setupTestAuthService(t)
+	defer cleanup()
+
+	ctx := context.Background()
+
+	// register user once
+	_, err := service.RegisterUser(ctx, RegisterUserInput{
+		Username: "testUser",
+		Email:    "test@example.com",
+		Password: "NOLOWERCASELETTERS",
+	})
+
+	var ve *apperrors.ValidationError
+	require.ErrorAs(t, err, &ve)
+
+	require.Equal(t, "password", ve.Field)
+	require.Equal(t, "must contain at least one lowercase letter", ve.Msg)
+}
+
+func TestRegisterUser_Fail_ValidatePasswordNoNumbers(t *testing.T) {
+	service, _, cleanup := setupTestAuthService(t)
+	defer cleanup()
+
+	ctx := context.Background()
+
+	// register user once
+	_, err := service.RegisterUser(ctx, RegisterUserInput{
+		Username: "testUser",
+		Email:    "test@example.com",
+		Password: "passwordWithNoNumbers",
+	})
+
+	var ve *apperrors.ValidationError
+	require.ErrorAs(t, err, &ve)
+
+	require.Equal(t, "password", ve.Field)
+	require.Equal(t, "must contain at least one number", ve.Msg)
+}
+
+func TestRegisterUser_Fail_ValidatePasswordNoSpecialCharacters(t *testing.T) {
+	service, _, cleanup := setupTestAuthService(t)
+	defer cleanup()
+
+	ctx := context.Background()
+
+	// register user once
+	_, err := service.RegisterUser(ctx, RegisterUserInput{
+		Username: "testUser",
+		Email:    "test@example.com",
+		Password: "passwordWithNoSpecialChars1",
+	})
+
+	var ve *apperrors.ValidationError
+	require.ErrorAs(t, err, &ve)
+
+	require.Equal(t, "password", ve.Field)
+	require.Equal(t, "must contain at least one special character", ve.Msg)
+}
