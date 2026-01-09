@@ -107,5 +107,4 @@ func TestRegisterUser_Success_AuditTrail(t *testing.T) {
 	require.Equal(t, string(audit.ActionCreateUser), auditLog.Action)
 	require.Equal(t, user.ID, auditLog.UserID)
 	require.NotEmpty(t, auditLog.CreatedAt)
-
 }

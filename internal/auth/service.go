@@ -186,7 +186,7 @@ func (s *service) Login(ctx context.Context, email, password string, meta observ
 	}
 
 	expiresAt := time.Now().Add(7 * 24 * time.Hour)
-	if _, err := s.repo.createSession(
+	if _, err = s.repo.createSession(
 		ctx,
 		user.ID,
 		expiresAt,
@@ -369,7 +369,7 @@ func (s *service) Logout(ctx context.Context, refreshToken string, meta observab
 		return nil
 	}
 
-	if err := s.repo.revokeSession(ctx, session.ID, RevocationLogout); err != nil {
+	if err = s.repo.revokeSession(ctx, session.ID, RevocationLogout); err != nil {
 		slog.ErrorContext(ctx, "failed to revoke session", "err", err)
 	}
 
@@ -435,7 +435,7 @@ func (s *service) ChangePassword(ctx context.Context, input ChangePasswordInput)
 		return err
 	}
 
-	if err := s.repo.updatePasswordAndRevokeSessions(
+	if err = s.repo.updatePasswordAndRevokeSessions(
 		ctx,
 		input.UserID,
 		newPasswordHash,
