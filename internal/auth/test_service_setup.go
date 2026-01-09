@@ -37,6 +37,7 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 	auditService := audit.NewService(auditRepo)
 
 	authRepo := NewRepo(testDB.DB)
+
 	service := NewService(authRepo, userService, passwordService, auditService, Config{
 		Issuer:   "auth-service",
 		Audience: "auth-service",
