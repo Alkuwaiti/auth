@@ -244,6 +244,22 @@ func (q *Queries) RevokeSession(ctx context.Context, arg RevokeSessionParams) er
 	return err
 }
 
+const setUserActiveState = `-- name: SetUserActiveState :exec
+UPDATE users SET 
+is_active = $1 
+WHERE id = $2
+`
+
+type SetUserActiveStateParams struct {
+	IsActive bool
+	ID       uuid.UUID
+}
+
+func (q *Queries) SetUserActiveState(ctx context.Context, arg SetUserActiveStateParams) error {
+	_, err := q.db.ExecContext(ctx, setUserActiveState, arg.IsActive, arg.ID)
+	return err
+}
+
 const updatePassword = `-- name: UpdatePassword :exec
 UPDATE users
 SET password_hash = $1

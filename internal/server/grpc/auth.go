@@ -23,7 +23,12 @@ func (s *server) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.T
 
 	meta := observability.RequestMetaFromContext(ctx)
 
-	res, err := s.authService.Login(ctx, req.Email, req.Password, meta)
+	res, err := s.authService.Login(ctx, auth.LoginInput{
+		Email:     req.Email,
+		Password:  req.Password,
+		IPAddress: meta.IPAddress,
+		UserAgent: meta.UserAgent,
+	})
 	if err != nil {
 		return nil, MapError(err)
 	}

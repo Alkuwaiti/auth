@@ -139,15 +139,15 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (co
 	return user, nil
 }
 
-func (s *service) Login(ctx context.Context, email, password string, meta observability.RequestMeta) (TokenPair, error) {
+func (s *service) Login(ctx context.Context, input LoginInput) (TokenPair, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.Login")
 	defer span.End()
 
 	span.SetAttributes(
-		attribute.String("user.email_hash", core.HashForTelemetry(email)),
+		attribute.String("user.email_hash", core.HashForTelemetry(input.Email)),
 	)
 
-	user, err := s.userService.GetUserByEmail(ctx, email)
+	user, err := s.userService.GetUserByEmail(ctx, input.Email)
 	if err != nil {
 		if errors.Is(err, core.ErrUserNotFound) {
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
@@ -157,7 +157,7 @@ func (s *service) Login(ctx context.Context, email, password string, meta observ
 		return TokenPair{}, err
 	}
 
-	if err = s.passwordService.Compare(user.PasswordHash, password); err != nil {
+	if err = s.passwordService.Compare(user.PasswordHash, input.Password); err != nil {
 		span.SetStatus(codes.Error, "invalid credentials")
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email)
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
@@ -191,8 +191,8 @@ func (s *service) Login(ctx context.Context, email, password string, meta observ
 		user.ID,
 		expiresAt,
 		refreshToken,
-		meta.IPAddress,
-		meta.UserAgent,
+		input.IPAddress,
+		input.UserAgent,
 	); err != nil {
 		slog.ErrorContext(ctx, "create session failed", "err", err)
 		return TokenPair{}, err
@@ -201,8 +201,8 @@ func (s *service) Login(ctx context.Context, email, password string, meta observ
 	if err = s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
 		UserID:    &user.ID,
 		Action:    audit.ActionLogin,
-		IPAddress: &meta.IPAddress,
-		UserAgent: &meta.UserAgent,
+		IPAddress: &input.IPAddress,
+		UserAgent: &input.UserAgent,
 	}); err != nil {
 		return TokenPair{}, err
 	}

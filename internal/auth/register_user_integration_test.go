@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRegisterUser_Success(t *testing.T) {
+func Test_RegisterUser_Success(t *testing.T) {
 	service, db, cleanup := setupTestAuthService(t)
 	defer cleanup()
 
