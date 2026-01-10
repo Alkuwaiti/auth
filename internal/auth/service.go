@@ -136,6 +136,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (co
 		IPAddress: &meta.IPAddress,
 		UserAgent: &meta.UserAgent,
 	}); err != nil {
+		slog.WarnContext(ctx, "failed to create audit log", "err", err)
 		return core.User{}, err
 	}
 
@@ -216,7 +217,7 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 		IPAddress: &meta.IPAddress,
 		UserAgent: &meta.UserAgent,
 	}); err != nil {
-		slog.ErrorContext(ctx, "failed to create an audit log", "err", err)
+		slog.ErrorContext(ctx, "failed to create audit log", "err", err)
 		return TokenPair{}, err
 	}
 
@@ -319,7 +320,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 			IPAddress: &meta.IPAddress,
 			UserAgent: &meta.UserAgent,
 		}); err != nil {
-			slog.ErrorContext(ctx, "failed to create an audit log", "err", err)
+			slog.ErrorContext(ctx, "failed to create audit log", "err", err)
 		}
 
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
