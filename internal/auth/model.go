@@ -96,3 +96,7 @@ type ChangePasswordInput struct {
 	IPAddress   string
 	UserAgent   string
 }
+
+type LoginInput struct {
+	Email, Password, IPAddress, UserAgent string
+}

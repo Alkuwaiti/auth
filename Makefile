@@ -32,7 +32,7 @@ test:
 
 test-integration:
 	@echo "Running Integration tests..."
-	go test -tags=integration ./internal/...
+	go test -tags=integration ./internal/... -v
 
 build:
 	@echo "Building..."

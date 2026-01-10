@@ -83,7 +83,7 @@ func (s *service) UserExistsByUsername(ctx context.Context, username string) (bo
 }
 
 func (s *service) CreateUser(ctx context.Context, username, email, passwordHash string) (core.User, error) {
-	ctx, span := tracer.Start(ctx, "UserService.CreatUser")
+	ctx, span := tracer.Start(ctx, "UserService.CreateUser")
 	defer span.End()
 
 	id, err := uuid.NewV7()
