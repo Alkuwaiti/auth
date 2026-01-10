@@ -91,7 +91,10 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (co
 	}
 	if exists {
 		span.SetStatus(codes.Error, "email already exists")
-		return core.User{}, &apperrors.InvalidCredentialsError{}
+		return core.User{}, &apperrors.BadRequestError{
+			Field: "email",
+			Msg:   "email already exists",
+		}
 	}
 
 	exists, err = s.userService.UserExistsByUsername(ctx, input.Username)
@@ -104,7 +107,10 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (co
 	}
 	if exists {
 		span.SetStatus(codes.Error, "username already exists")
-		return core.User{}, &apperrors.InvalidCredentialsError{}
+		return core.User{}, &apperrors.BadRequestError{
+			Field: "username",
+			Msg:   "username already exists",
+		}
 	}
 
 	if err = s.passwordService.Validate(input.Password); err != nil {
@@ -154,6 +160,7 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 	user, err := s.userService.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, core.ErrUserNotFound) {
+			// Return an invalid credentials here as this is a login endpoint.
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
 		}
 
@@ -170,6 +177,7 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 	if !user.IsActive {
 		span.SetStatus(codes.Error, "user inactive")
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email, "is_active", user.IsActive)
+		// Don't tell the user they're inactive.
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
@@ -208,6 +216,7 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 		IPAddress: &meta.IPAddress,
 		UserAgent: &meta.UserAgent,
 	}); err != nil {
+		slog.ErrorContext(ctx, "failed to create an audit log", "err", err)
 		return TokenPair{}, err
 	}
 
@@ -254,9 +263,7 @@ func generateRefreshToken() (string, error) {
 		return "", err
 	}
 
-	token := base64.URLEncoding.EncodeToString(b)
-
-	return token, nil
+	return base64.URLEncoding.EncodeToString(b), nil
 }
 
 func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenPair, error) {
@@ -281,7 +288,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 			"session_id", session.ID,
 			"compromised_at", session.CompromisedAt,
 		)
-		return TokenPair{}, &apperrors.SessionCompromisedError{}
+		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
 	if session.IsExpired() {
@@ -315,7 +322,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 			slog.ErrorContext(ctx, "failed to create an audit log", "err", err)
 		}
 
-		return TokenPair{}, &apperrors.SessionCompromisedError{}
+		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
 	newRefreshToken, err := generateRefreshToken()

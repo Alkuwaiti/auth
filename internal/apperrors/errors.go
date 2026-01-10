@@ -50,12 +50,6 @@ func (e *BadRequestError) Error() string {
 	return fmt.Sprintf("%s: %s", e.Field, e.Msg)
 }
 
-type SessionCompromisedError struct{}
-
-func (e *SessionCompromisedError) Error() string {
-	return "invalid credentials"
-}
-
 type PasswordReuseError struct{}
 
 func (e *PasswordReuseError) Error() string {

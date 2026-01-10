@@ -30,9 +30,6 @@ func MapError(err error) error {
 	case errors.As(err, new(*apperrors.BadRequestError)):
 		return status.Error(codes.InvalidArgument, err.Error())
 
-	case errors.As(err, new(*apperrors.SessionCompromisedError)):
-		return status.Error(codes.InvalidArgument, err.Error())
-
 	case errors.As(err, new(*apperrors.PasswordReuseError)):
 		return status.Error(codes.InvalidArgument, err.Error())
 

@@ -70,7 +70,7 @@ func TestLogout_PreventsRefreshReuse(t *testing.T) {
 
 	_, err = service.RefreshToken(ctx, loginTokens.RefreshToken)
 	require.Error(t, err)
-	require.IsType(t, &apperrors.SessionCompromisedError{}, err)
+	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
 }
 
 func TestLogout_CreatesAuditLog(t *testing.T) {
