@@ -3,6 +3,8 @@
 package auth
 
 import (
+	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -160,4 +162,153 @@ func TestRefreshToken_AlreadyCompromised(t *testing.T) {
 	_, err = service.RefreshToken(ctx, loginTokens.RefreshToken)
 	require.Error(t, err)
 	require.IsType(t, &apperrors.SessionCompromisedError{}, err)
+}
+
+func TestRefreshToken_ConcurrentRace(t *testing.T) {
+	service, _, cleanup := setupTestAuthService(t)
+	defer cleanup()
+
+	ctx := testutil.CtxWithRequestMeta()
+
+	_, err := service.RegisterUser(ctx, RegisterUserInput{
+		Username: "test",
+		Email:    "test@example.com",
+		Password: "StrongPassword123!",
+	})
+	require.NoError(t, err)
+
+	loginTokens, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	require.NoError(t, err)
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	errs := make(chan error, 2)
+
+	refresh := func() {
+		defer wg.Done()
+		_, err := service.RefreshToken(ctx, loginTokens.RefreshToken)
+		errs <- err
+	}
+
+	go refresh()
+	go refresh()
+	wg.Wait()
+	close(errs)
+
+	var success, compromised int
+	for err := range errs {
+		if err == nil {
+			success++
+		} else if errors.Is(err, &apperrors.SessionCompromisedError{}) {
+			compromised++
+		}
+	}
+
+	require.Equal(t, 1, success)
+	require.Equal(t, 1, compromised)
+}
+
+func TestRefreshToken_AfterPasswordChange(t *testing.T) {
+	service, _, cleanup := setupTestAuthService(t)
+	defer cleanup()
+
+	ctx := testutil.CtxWithRequestMeta()
+
+	user, err := service.RegisterUser(ctx, RegisterUserInput{
+		Username: "test",
+		Email:    "test@example.com",
+		Password: "OldPassword123!",
+	})
+	require.NoError(t, err)
+
+	loginTokens, err := service.Login(ctx, "test@example.com", "OldPassword123!")
+	require.NoError(t, err)
+
+	err = service.ChangePassword(ctx, user.ID, "OldPassword123!", "NewPassword123!")
+	require.NoError(t, err)
+
+	_, err = service.RefreshToken(ctx, loginTokens.RefreshToken)
+	require.Error(t, err)
+	require.IsType(t, &apperrors.SessionCompromisedError{}, err)
+}
+
+func TestRefreshToken_AfterLogout(t *testing.T) {
+	service, _, cleanup := setupTestAuthService(t)
+	defer cleanup()
+
+	ctx := testutil.CtxWithRequestMeta()
+
+	_, err := service.RegisterUser(ctx, RegisterUserInput{
+		Username: "test",
+		Email:    "test@example.com",
+		Password: "StrongPassword123!",
+	})
+	require.NoError(t, err)
+
+	loginTokens, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	require.NoError(t, err)
+
+	err = service.Logout(ctx, loginTokens.RefreshToken)
+	require.NoError(t, err)
+
+	_, err = service.RefreshToken(ctx, loginTokens.RefreshToken)
+	require.Error(t, err)
+	require.IsType(t, &apperrors.SessionCompromisedError{}, err)
+}
+
+func TestRefreshToken_LogoutThenReplay(t *testing.T) {
+	service, _, cleanup := setupTestAuthService(t)
+	defer cleanup()
+
+	ctx := testutil.CtxWithRequestMeta()
+
+	_, err := service.RegisterUser(ctx, RegisterUserInput{
+		Username: "test",
+		Email:    "test@example.com",
+		Password: "StrongPassword123!",
+	})
+	require.NoError(t, err)
+
+	loginTokens, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	require.NoError(t, err)
+
+	refreshed, err := service.RefreshToken(ctx, loginTokens.RefreshToken)
+	require.NoError(t, err)
+
+	err = service.Logout(ctx, refreshed.RefreshToken)
+	require.NoError(t, err)
+
+	_, err = service.RefreshToken(ctx, refreshed.RefreshToken)
+	require.Error(t, err)
+	require.IsType(t, &apperrors.SessionCompromisedError{}, err)
+}
+
+func TestRefreshToken_MultiDeviceIsolation(t *testing.T) {
+	service, _, cleanup := setupTestAuthService(t)
+	defer cleanup()
+
+	ctx1 := testutil.CtxWithRequestMeta()
+	ctx2 := testutil.CtxWithRequestMeta()
+
+	_, err := service.RegisterUser(ctx1, RegisterUserInput{
+		Username: "test",
+		Email:    "test@example.com",
+		Password: "StrongPassword123!",
+	})
+	require.NoError(t, err)
+
+	device1, err := service.Login(ctx1, "test@example.com", "StrongPassword123!")
+	require.NoError(t, err)
+
+	device2, err := service.Login(ctx2, "test@example.com", "StrongPassword123!")
+	require.NoError(t, err)
+
+	// compromise device 1
+	err = service.Logout(ctx1, device1.RefreshToken)
+	require.NoError(t, err)
+
+	// device 2 should still work
+	_, err = service.RefreshToken(ctx2, device2.RefreshToken)
+	require.NoError(t, err)
 }

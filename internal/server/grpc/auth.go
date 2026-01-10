@@ -4,11 +4,9 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/core"
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
-	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -74,14 +72,9 @@ func (s *server) ChangePassword(ctx context.Context, req *authv1.ChangePasswordR
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	id, ok := ctx.Value(core.UserIDKey{}).(string)
-	if !ok {
-		return &emptypb.Empty{}, &apperrors.InvalidCredentialsError{}
-	}
-
-	userID, err := uuid.Parse(id)
+	userID, err := core.UserIDFromContext(ctx)
 	if err != nil {
-		return &emptypb.Empty{}, err
+		return &emptypb.Empty{}, MapError(err)
 	}
 
 	err = s.authService.ChangePassword(ctx, userID, req.OldPassword, req.NewPassword)
