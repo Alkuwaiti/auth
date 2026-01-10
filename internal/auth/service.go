@@ -306,6 +306,15 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 			slog.ErrorContext(ctx, "failed to mark sessions as compromised", "err", err)
 		}
 
+		if err = s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+			UserID:    &session.UserID,
+			Action:    audit.ActionSessionCompromised,
+			IPAddress: &meta.IPAddress,
+			UserAgent: &meta.UserAgent,
+		}); err != nil {
+			slog.ErrorContext(ctx, "failed to create an audit log", "err", err)
+		}
+
 		return TokenPair{}, &apperrors.SessionCompromisedError{}
 	}
 
