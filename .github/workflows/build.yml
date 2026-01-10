@@ -3,6 +3,9 @@ name: Build & Push Image
 on:
   push:
     branches: [main]
+  # TODO: remove. for testing only.
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: read
