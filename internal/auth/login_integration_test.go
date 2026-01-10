@@ -23,12 +23,7 @@ func TestLogin_Success(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	tokens, err := service.Login(ctx, LoginInput{
-		Email:     "test@example.com",
-		Password:  "StrongPassword123!",
-		UserAgent: "test-agent",
-		IPAddress: "127.0.0.1",
-	})
+	tokens, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
 	require.NoError(t, err)
 
 	require.NotEmpty(t, tokens.AccessToken)
@@ -43,12 +38,7 @@ func TestLogin_InvalidEmail(t *testing.T) {
 
 	ctx := context.Background()
 
-	_, err := service.Login(ctx, LoginInput{
-		Email:     "doesnotexist@example.com",
-		Password:  "whatever",
-		UserAgent: "test-agent",
-		IPAddress: "127.0.0.1",
-	})
+	_, err := service.Login(ctx, "doesnotexist@example.com", "whatever")
 
 	require.Error(t, err)
 	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
@@ -67,12 +57,7 @@ func TestLogin_InvalidPassword(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = service.Login(ctx, LoginInput{
-		Email:     "test@example.com",
-		Password:  "WrongPassword!",
-		UserAgent: "test-agent",
-		IPAddress: "127.0.0.1",
-	})
+	_, err = service.Login(ctx, "test@example.com", "WrongPassword!")
 
 	require.Error(t, err)
 	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
@@ -96,12 +81,7 @@ func TestLogin_InactiveUser(t *testing.T) {
 	`, user.ID)
 	require.NoError(t, err)
 
-	_, err = service.Login(ctx, LoginInput{
-		Email:     "test@example.com",
-		Password:  "StrongPassword123!",
-		UserAgent: "test-agent",
-		IPAddress: "127.0.0.1",
-	})
+	_, err = service.Login(ctx, "test@example.com", "StrongPassword123!")
 
 	require.Error(t, err)
 	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
@@ -120,12 +100,7 @@ func TestLogin_CreatesSession(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = service.Login(ctx, LoginInput{
-		Email:     "test@example.com",
-		Password:  "StrongPassword123!",
-		UserAgent: "test-agent",
-		IPAddress: "127.0.0.1",
-	})
+	_, err = service.Login(ctx, "test@example.com", "StrongPassword123!")
 	require.NoError(t, err)
 
 	var count int
@@ -149,12 +124,7 @@ func TestLogin_CreatesAuditLog(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = service.Login(ctx, LoginInput{
-		Email:     "test@example.com",
-		Password:  "StrongPassword123!",
-		UserAgent: "test-agent",
-		IPAddress: "127.0.0.1",
-	})
+	_, err = service.Login(ctx, "test@example.com", "StrongPassword123!")
 	require.NoError(t, err)
 
 	var count int

@@ -7,7 +7,6 @@ import (
 	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/core"
-	"github.com/alkuwaiti/auth/internal/observability"
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
@@ -21,14 +20,7 @@ func (s *server) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.T
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	meta := observability.RequestMetaFromContext(ctx)
-
-	res, err := s.authService.Login(ctx, auth.LoginInput{
-		Email:     req.Email,
-		Password:  req.Password,
-		IPAddress: meta.IPAddress,
-		UserAgent: meta.UserAgent,
-	})
+	res, err := s.authService.Login(ctx, req.Email, req.Password)
 	if err != nil {
 		return nil, MapError(err)
 	}
@@ -48,9 +40,7 @@ func (s *server) RefreshToken(ctx context.Context, req *authv1.RefreshTokenReque
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	meta := observability.RequestMetaFromContext(ctx)
-
-	res, err := s.authService.RefreshToken(ctx, req.RefreshToken, meta)
+	res, err := s.authService.RefreshToken(ctx, req.RefreshToken)
 	if err != nil {
 		return nil, MapError(err)
 	}
@@ -70,9 +60,7 @@ func (s *server) Logout(ctx context.Context, req *authv1.RefreshTokenRequest) (*
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	meta := observability.RequestMetaFromContext(ctx)
-
-	err := s.authService.Logout(ctx, req.RefreshToken, meta)
+	err := s.authService.Logout(ctx, req.RefreshToken)
 	if err != nil {
 		return nil, MapError(err)
 	}
@@ -96,15 +84,7 @@ func (s *server) ChangePassword(ctx context.Context, req *authv1.ChangePasswordR
 		return &emptypb.Empty{}, err
 	}
 
-	meta := observability.RequestMetaFromContext(ctx)
-
-	err = s.authService.ChangePassword(ctx, auth.ChangePasswordInput{
-		UserID:      userID,
-		OldPassword: req.OldPassword,
-		NewPassword: req.NewPassword,
-		IPAddress:   meta.IPAddress,
-		UserAgent:   meta.UserAgent,
-	})
+	err = s.authService.ChangePassword(ctx, userID, req.OldPassword, req.NewPassword)
 	if err != nil {
 		return nil, MapError(err)
 	}
@@ -118,14 +98,10 @@ func (s *server) RegisterUser(ctx context.Context, req *authv1.RegisterUserReque
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	requestMetadata := observability.RequestMetaFromContext(ctx)
-
 	res, err := s.authService.RegisterUser(ctx, auth.RegisterUserInput{
-		Username:  req.Username,
-		Email:     req.Email,
-		Password:  req.Password,
-		UserAgent: requestMetadata.UserAgent,
-		IPAddress: requestMetadata.IPAddress,
+		Username: req.Username,
+		Email:    req.Email,
+		Password: req.Password,
 	})
 	if err != nil {
 		return nil, MapError(err)
