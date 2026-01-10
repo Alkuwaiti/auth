@@ -12,7 +12,7 @@ import (
 const batchSize = 1000
 
 func main() {
-	dbURL := os.Getenv("DATABASE_URL")
+	dbURL := os.Getenv("DATABASEURL")
 	if dbURL == "" {
 		panic("DATABASE_URL is not set")
 	}
