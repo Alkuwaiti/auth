@@ -123,7 +123,7 @@ func TestRefreshToken_RevokedTokenReuse(t *testing.T) {
 
 	_, err = service.RefreshToken(ctx, loginTokens.RefreshToken)
 	require.Error(t, err)
-	require.IsType(t, &apperrors.SessionCompromisedError{}, err)
+	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
 
 	// verify compromise escalation
 	var count int
@@ -161,7 +161,7 @@ func TestRefreshToken_AlreadyCompromised(t *testing.T) {
 
 	_, err = service.RefreshToken(ctx, loginTokens.RefreshToken)
 	require.Error(t, err)
-	require.IsType(t, &apperrors.SessionCompromisedError{}, err)
+	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
 }
 
 func TestRefreshToken_ConcurrentRace(t *testing.T) {
@@ -200,7 +200,7 @@ func TestRefreshToken_ConcurrentRace(t *testing.T) {
 	for err := range errs {
 		if err == nil {
 			success++
-		} else if errors.Is(err, &apperrors.SessionCompromisedError{}) {
+		} else if errors.Is(err, &apperrors.InvalidCredentialsError{}) {
 			compromised++
 		}
 	}
@@ -230,7 +230,7 @@ func TestRefreshToken_AfterPasswordChange(t *testing.T) {
 
 	_, err = service.RefreshToken(ctx, loginTokens.RefreshToken)
 	require.Error(t, err)
-	require.IsType(t, &apperrors.SessionCompromisedError{}, err)
+	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
 }
 
 func TestRefreshToken_AfterLogout(t *testing.T) {
@@ -254,7 +254,7 @@ func TestRefreshToken_AfterLogout(t *testing.T) {
 
 	_, err = service.RefreshToken(ctx, loginTokens.RefreshToken)
 	require.Error(t, err)
-	require.IsType(t, &apperrors.SessionCompromisedError{}, err)
+	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
 }
 
 func TestRefreshToken_LogoutThenReplay(t *testing.T) {
@@ -281,7 +281,7 @@ func TestRefreshToken_LogoutThenReplay(t *testing.T) {
 
 	_, err = service.RefreshToken(ctx, refreshed.RefreshToken)
 	require.Error(t, err)
-	require.IsType(t, &apperrors.SessionCompromisedError{}, err)
+	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
 }
 
 func TestRefreshToken_MultiDeviceIsolation(t *testing.T) {
