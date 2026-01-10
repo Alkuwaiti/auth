@@ -65,7 +65,7 @@ func TestRegisterUser_Fail_DuplicateEmail(t *testing.T) {
 	})
 
 	require.Error(t, err)
-	require.ErrorIs(t, err, &apperrors.InvalidCredentialsError{})
+	require.ErrorIs(t, err, &apperrors.BadRequestError{})
 }
 
 func TestRegisterUser_Fail_DuplicateUsername(t *testing.T) {
@@ -90,7 +90,7 @@ func TestRegisterUser_Fail_DuplicateUsername(t *testing.T) {
 	})
 
 	require.Error(t, err)
-	require.ErrorIs(t, err, &apperrors.InvalidCredentialsError{})
+	require.ErrorIs(t, err, &apperrors.BadRequestError{})
 }
 
 func TestRegisterUser_Success_AuditTrail(t *testing.T) {
