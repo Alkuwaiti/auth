@@ -38,6 +38,7 @@ func main() {
         `, batchSize)
 		if err != nil {
 			slog.ErrorContext(ctx, "failed to delete expired sessions", "err", err)
+			os.Exit(1)
 		}
 
 		rows, _ := res.RowsAffected()
