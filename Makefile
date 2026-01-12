@@ -36,7 +36,7 @@ test-integration:
 
 build:
 	@echo "Building..."
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X main.commit=`git rev-parse HEAD` -X main.ref=`git rev-parse --abbrev-ref HEAD` -X main.version=`git describe --tags --always`" -o ./bin/server ./cmd/server
+	go build -ldflags "-X main.commit=`git rev-parse HEAD` -X main.ref=`git rev-parse --abbrev-ref HEAD` -X main.version=`git describe --tags --always`" -o ./bin/server ./cmd/server
 
 run:
 	@echo "Running locally (--env local flag passed)"
