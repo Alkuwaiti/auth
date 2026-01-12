@@ -74,6 +74,3 @@ WHERE user_id = $1
 INSERT INTO auth_audit_logs (user_id, action, ip_address, user_agent)
 VALUES ($1, $2, $3, $4);
 
--- name: GetAuditLogByUserID :one
-SELECT * FROM auth_audit_logs 
-WHERE user_id = $1;

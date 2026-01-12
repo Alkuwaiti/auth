@@ -189,12 +189,10 @@ func (r *repo) deleteUserAndRevokeSessions(
 	userID uuid.UUID,
 	deletionReason DeletionReason,
 	revocationReason RevocationReason,
-
 ) error {
 	return r.execTx(ctx, func(q *postgres.Queries) error {
 		if err := q.DeleteUser(ctx, postgres.DeleteUserParams{
 			DeletionReason: sql.NullString{
-				// TODO: actually pass a proper string.
 				String: string(deletionReason),
 				Valid:  deletionReason != "",
 			},

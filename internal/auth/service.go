@@ -515,5 +515,4 @@ func (s *service) DeleteUser(ctx context.Context, userID uuid.UUID) error {
 	span.SetStatus(codes.Ok, "user deleted and sessions revoked")
 
 	return nil
-
 }

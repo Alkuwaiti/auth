@@ -132,25 +132,6 @@ func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) error {
 	return err
 }
 
-const getAuditLogByUserID = `-- name: GetAuditLogByUserID :one
-SELECT id, user_id, action, ip_address, user_agent, created_at FROM auth_audit_logs 
-WHERE user_id = $1
-`
-
-func (q *Queries) GetAuditLogByUserID(ctx context.Context, userID uuid.NullUUID) (AuthAuditLog, error) {
-	row := q.db.QueryRowContext(ctx, getAuditLogByUserID, userID)
-	var i AuthAuditLog
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.Action,
-		&i.IpAddress,
-		&i.UserAgent,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
 const getSessionByRefreshToken = `-- name: GetSessionByRefreshToken :one
 
 SELECT id, user_id, refresh_token, user_agent, ip_address, created_at, expires_at, revoked_at, revocation_reason, compromised_at FROM sessions WHERE refresh_token = $1
