@@ -407,6 +407,8 @@ func (s *service) Logout(ctx context.Context, refreshToken string) error {
 		slog.ErrorContext(ctx, "failed to create audit log", "err", err)
 	}
 
+	span.SetStatus(codes.Ok, "user logged out")
+
 	return nil
 }
 
@@ -487,4 +489,31 @@ func (s *service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 	span.SetStatus(codes.Ok, "password changed")
 
 	return nil
+}
+
+func (s *service) DeleteUser(ctx context.Context, userID uuid.UUID) error {
+	ctx, span := tracer.Start(ctx, "AuthService.DeleteUser")
+	defer span.End()
+
+	meta := observability.RequestMetaFromContext(ctx)
+
+	if err := s.repo.deleteUserAndRevokeSessions(ctx, userID, DeletionUserBot, RevocationUserDeleted); err != nil {
+		slog.ErrorContext(ctx, "failed to delete user and revoke sessions", "err", err)
+		return err
+	}
+
+	if err := s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+		UserID:    &userID,
+		Action:    audit.ActionDeleteUser,
+		IPAddress: &meta.IPAddress,
+		UserAgent: &meta.UserAgent,
+	}); err != nil {
+		slog.ErrorContext(ctx, "failed to create audit log", "err", err)
+		return err
+	}
+
+	span.SetStatus(codes.Ok, "user deleted and sessions revoked")
+
+	return nil
+
 }

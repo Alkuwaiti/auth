@@ -7,4 +7,11 @@ const (
 	RevocationSessionRotation    RevocationReason = "rotated session"
 	RevocationLogout             RevocationReason = "logout"
 	RevocationPasswordChange     RevocationReason = "password changed"
+	RevocationUserDeleted        RevocationReason = "user deleted"
+)
+
+type DeletionReason string
+
+const (
+	DeletionUserBot DeletionReason = "user is a bot"
 )

@@ -89,6 +89,8 @@ type User struct {
 	IsActive        bool
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+	DeletedAt       sql.NullTime
+	DeletionReason  sql.NullString
 }
 
 type UserRole struct {

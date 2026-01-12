@@ -8,4 +8,5 @@ const (
 	ActionLogin              Action = "login"
 	ActionPasswordChange     Action = "password_change"
 	ActionSessionCompromised Action = "session_compromised"
+	ActionDeleteUser         Action = "delete_user"
 )

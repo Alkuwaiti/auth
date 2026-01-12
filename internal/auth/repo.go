@@ -184,6 +184,38 @@ func (r *repo) revokeAndMarkSessionsCompromised(
 	})
 }
 
+func (r *repo) deleteUserAndRevokeSessions(
+	ctx context.Context,
+	userID uuid.UUID,
+	deletionReason DeletionReason,
+	revocationReason RevocationReason,
+
+) error {
+	return r.execTx(ctx, func(q *postgres.Queries) error {
+		if err := q.DeleteUser(ctx, postgres.DeleteUserParams{
+			DeletionReason: sql.NullString{
+				// TODO: actually pass a proper string.
+				String: string(deletionReason),
+				Valid:  deletionReason != "",
+			},
+		}); err != nil {
+			return err
+		}
+
+		if err := q.RevokeAllUserSessions(ctx, postgres.RevokeAllUserSessionsParams{
+			UserID: userID,
+			RevocationReason: sql.NullString{
+				String: string(revocationReason),
+				Valid:  revocationReason != "",
+			},
+		}); err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
 func toModel(session postgres.Session) Session {
 	var revokedAt *time.Time
 	if session.RevokedAt.Valid {

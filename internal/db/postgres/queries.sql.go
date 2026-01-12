@@ -79,7 +79,7 @@ const createUser = `-- name: CreateUser :one
 
 INSERT INTO users (id, username, email, password_hash , created_at, updated_at)
 VALUES ($1, $2, $3, $4, NOW(), NOW())
-RETURNING id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at
+RETURNING id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at, deleted_at, deletion_reason
 `
 
 type CreateUserParams struct {
@@ -107,8 +107,29 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeletionReason,
 	)
 	return i, err
+}
+
+const deleteUser = `-- name: DeleteUser :exec
+UPDATE users
+SET 
+  deleted_at = NOW(),
+  deletion_reason = $1
+WHERE
+  id = $2
+`
+
+type DeleteUserParams struct {
+	DeletionReason sql.NullString
+	ID             uuid.UUID
+}
+
+func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) error {
+	_, err := q.db.ExecContext(ctx, deleteUser, arg.DeletionReason, arg.ID)
+	return err
 }
 
 const getAuditLogByUserID = `-- name: GetAuditLogByUserID :one
@@ -155,7 +176,7 @@ func (q *Queries) GetSessionByRefreshToken(ctx context.Context, refreshToken str
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at FROM users WHERE email = $1
+SELECT id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at, deleted_at, deletion_reason FROM users WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -170,12 +191,14 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeletionReason,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at FROM users WHERE id = $1
+SELECT id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at, deleted_at, deletion_reason FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
@@ -190,6 +213,8 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeletionReason,
 	)
 	return i, err
 }
@@ -241,22 +266,6 @@ type RevokeSessionParams struct {
 
 func (q *Queries) RevokeSession(ctx context.Context, arg RevokeSessionParams) error {
 	_, err := q.db.ExecContext(ctx, revokeSession, arg.RevocationReason, arg.ID)
-	return err
-}
-
-const setUserActiveState = `-- name: SetUserActiveState :exec
-UPDATE users SET 
-is_active = $1 
-WHERE id = $2
-`
-
-type SetUserActiveStateParams struct {
-	IsActive bool
-	ID       uuid.UUID
-}
-
-func (q *Queries) SetUserActiveState(ctx context.Context, arg SetUserActiveStateParams) error {
-	_, err := q.db.ExecContext(ctx, setUserActiveState, arg.IsActive, arg.ID)
 	return err
 }
 
