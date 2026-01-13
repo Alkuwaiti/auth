@@ -15,3 +15,8 @@ type DeletionReason string
 const (
 	DeletionUserBot DeletionReason = "user is a bot"
 )
+
+func (d *DeletionReason) validate() error {
+
+	return nil
+}

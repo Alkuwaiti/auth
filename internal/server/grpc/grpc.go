@@ -31,6 +31,7 @@ type authService interface {
 	Logout(ctx context.Context, refreshToken string) error
 	ChangePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error
 	RegisterUser(context.Context, auth.RegisterUserInput) (core.User, error)
+	DeleteUser(ctx context.Context, userID uuid.UUID, deletionReason auth.DeletionReason) error
 }
 
 type Config struct {

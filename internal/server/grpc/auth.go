@@ -7,6 +7,7 @@ import (
 	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/core"
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
+	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -105,4 +106,23 @@ func (s *server) RegisterUser(ctx context.Context, req *authv1.RegisterUserReque
 		Username: res.Username,
 		Email:    res.Email,
 	}, nil
+}
+
+func (s *server) DeleteUser(ctx context.Context, req *authv1.DeleteUserRequest) (*emptypb.Empty, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	userID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "user id is not a uuid")
+	}
+
+	err = s.authService.DeleteUser(ctx, userID, auth.DeletionReason(req.Reason))
+	if err != nil {
+		return nil, MapError(err)
+	}
+
+	return &emptypb.Empty{}, nil
 }

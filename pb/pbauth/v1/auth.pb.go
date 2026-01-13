@@ -366,6 +366,58 @@ func (x *User) GetUsername() string {
 	return ""
 }
 
+type DeleteUserRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteUserRequest) Reset() {
+	*x = DeleteUserRequest{}
+	mi := &file___proto_auth_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteUserRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteUserRequest) ProtoMessage() {}
+
+func (x *DeleteUserRequest) ProtoReflect() protoreflect.Message {
+	mi := &file___proto_auth_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteUserRequest.ProtoReflect.Descriptor instead.
+func (*DeleteUserRequest) Descriptor() ([]byte, []int) {
+	return file___proto_auth_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *DeleteUserRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *DeleteUserRequest) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
 var File___proto_auth_proto protoreflect.FileDescriptor
 
 const file___proto_auth_proto_rawDesc = "" +
@@ -394,14 +446,19 @@ const file___proto_auth_proto_rawDesc = "" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
-	"\busername\x18\x03 \x01(\tR\busername2\x8e\x03\n" +
+	"\busername\x18\x03 \x01(\tR\busername\"D\n" +
+	"\x11DeleteUserRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason2\xd2\x03\n" +
 	"\vAuthService\x128\n" +
 	"\x04Ping\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x00\x124\n" +
 	"\x05Login\x12\x15.auth.v1.LoginRequest\x1a\x12.auth.v1.TokenPair\"\x00\x12B\n" +
 	"\fRefreshToken\x12\x1c.auth.v1.RefreshTokenRequest\x1a\x12.auth.v1.TokenPair\"\x00\x12@\n" +
 	"\x06Logout\x12\x1c.auth.v1.RefreshTokenRequest\x1a\x16.google.protobuf.Empty\"\x00\x12J\n" +
 	"\x0eChangePassword\x12\x1e.auth.v1.ChangePasswordRequest\x1a\x16.google.protobuf.Empty\"\x00\x12=\n" +
-	"\fRegisterUser\x12\x1c.auth.v1.RegisterUserRequest\x1a\r.auth.v1.User\"\x00B/Z-github.com/alkuwaiti/auth/pb/pbauth/v1;authv1b\x06proto3"
+	"\fRegisterUser\x12\x1c.auth.v1.RegisterUserRequest\x1a\r.auth.v1.User\"\x00\x12B\n" +
+	"\n" +
+	"DeleteUser\x12\x1a.auth.v1.DeleteUserRequest\x1a\x16.google.protobuf.Empty\"\x00B/Z-github.com/alkuwaiti/auth/pb/pbauth/v1;authv1b\x06proto3"
 
 var (
 	file___proto_auth_proto_rawDescOnce sync.Once
@@ -415,7 +472,7 @@ func file___proto_auth_proto_rawDescGZIP() []byte {
 	return file___proto_auth_proto_rawDescData
 }
 
-var file___proto_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file___proto_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file___proto_auth_proto_goTypes = []any{
 	(*LoginRequest)(nil),          // 0: auth.v1.LoginRequest
 	(*TokenPair)(nil),             // 1: auth.v1.TokenPair
@@ -423,23 +480,26 @@ var file___proto_auth_proto_goTypes = []any{
 	(*ChangePasswordRequest)(nil), // 3: auth.v1.ChangePasswordRequest
 	(*RegisterUserRequest)(nil),   // 4: auth.v1.RegisterUserRequest
 	(*User)(nil),                  // 5: auth.v1.User
-	(*emptypb.Empty)(nil),         // 6: google.protobuf.Empty
+	(*DeleteUserRequest)(nil),     // 6: auth.v1.DeleteUserRequest
+	(*emptypb.Empty)(nil),         // 7: google.protobuf.Empty
 }
 var file___proto_auth_proto_depIdxs = []int32{
-	6, // 0: auth.v1.AuthService.Ping:input_type -> google.protobuf.Empty
+	7, // 0: auth.v1.AuthService.Ping:input_type -> google.protobuf.Empty
 	0, // 1: auth.v1.AuthService.Login:input_type -> auth.v1.LoginRequest
 	2, // 2: auth.v1.AuthService.RefreshToken:input_type -> auth.v1.RefreshTokenRequest
 	2, // 3: auth.v1.AuthService.Logout:input_type -> auth.v1.RefreshTokenRequest
 	3, // 4: auth.v1.AuthService.ChangePassword:input_type -> auth.v1.ChangePasswordRequest
 	4, // 5: auth.v1.AuthService.RegisterUser:input_type -> auth.v1.RegisterUserRequest
-	6, // 6: auth.v1.AuthService.Ping:output_type -> google.protobuf.Empty
-	1, // 7: auth.v1.AuthService.Login:output_type -> auth.v1.TokenPair
-	1, // 8: auth.v1.AuthService.RefreshToken:output_type -> auth.v1.TokenPair
-	6, // 9: auth.v1.AuthService.Logout:output_type -> google.protobuf.Empty
-	6, // 10: auth.v1.AuthService.ChangePassword:output_type -> google.protobuf.Empty
-	5, // 11: auth.v1.AuthService.RegisterUser:output_type -> auth.v1.User
-	6, // [6:12] is the sub-list for method output_type
-	0, // [0:6] is the sub-list for method input_type
+	6, // 6: auth.v1.AuthService.DeleteUser:input_type -> auth.v1.DeleteUserRequest
+	7, // 7: auth.v1.AuthService.Ping:output_type -> google.protobuf.Empty
+	1, // 8: auth.v1.AuthService.Login:output_type -> auth.v1.TokenPair
+	1, // 9: auth.v1.AuthService.RefreshToken:output_type -> auth.v1.TokenPair
+	7, // 10: auth.v1.AuthService.Logout:output_type -> google.protobuf.Empty
+	7, // 11: auth.v1.AuthService.ChangePassword:output_type -> google.protobuf.Empty
+	5, // 12: auth.v1.AuthService.RegisterUser:output_type -> auth.v1.User
+	7, // 13: auth.v1.AuthService.DeleteUser:output_type -> google.protobuf.Empty
+	7, // [7:14] is the sub-list for method output_type
+	0, // [0:7] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -456,7 +516,7 @@ func file___proto_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file___proto_auth_proto_rawDesc), len(file___proto_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -491,7 +491,7 @@ func (s *service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 	return nil
 }
 
-func (s *service) DeleteUser(ctx context.Context, userID uuid.UUID) error {
+func (s *service) DeleteUser(ctx context.Context, userID uuid.UUID, deletionReason DeletionReason) error {
 	ctx, span := tracer.Start(ctx, "AuthService.DeleteUser")
 	defer span.End()
 
