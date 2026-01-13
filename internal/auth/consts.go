@@ -1,5 +1,7 @@
 package auth
 
+import "github.com/alkuwaiti/auth/internal/apperrors"
+
 type RevocationReason string
 
 const (
@@ -13,10 +15,14 @@ const (
 type DeletionReason string
 
 const (
-	DeletionUserBot DeletionReason = "user is a bot"
+	DeletionUserBot DeletionReason = "USER_IS_BOT"
 )
 
-func (d *DeletionReason) validate() error {
-
-	return nil
+func (d DeletionReason) validate() error {
+	switch d {
+	case DeletionUserBot:
+		return nil
+	default:
+		return &apperrors.ValidationError{Field: "deletion reason", Msg: "invalid deletion reason"}
+	}
 }

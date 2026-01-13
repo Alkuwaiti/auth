@@ -26,13 +26,13 @@ UPDATE users
 SET password_hash = $1
 WHERE id = $2;
 
--- name: DeleteUser :exec
+-- name: DeleteUser :execrows
 UPDATE users
-SET 
+SET
   deleted_at = NOW(),
   deletion_reason = $1
-WHERE
-  id = $2;
+WHERE id = $2
+  AND deleted_at IS NULL;
 
 
 -- sessions

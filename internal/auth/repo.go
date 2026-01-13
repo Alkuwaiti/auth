@@ -191,13 +191,19 @@ func (r *repo) deleteUserAndRevokeSessions(
 	revocationReason RevocationReason,
 ) error {
 	return r.execTx(ctx, func(q *postgres.Queries) error {
-		if err := q.DeleteUser(ctx, postgres.DeleteUserParams{
+		rows, err := q.DeleteUser(ctx, postgres.DeleteUserParams{
+			ID: userID,
 			DeletionReason: sql.NullString{
 				String: string(deletionReason),
 				Valid:  deletionReason != "",
 			},
-		}); err != nil {
+		})
+		if err != nil {
 			return err
+		}
+
+		if rows == 0 {
+			return core.ErrUserNotFoundOrAlreadyDeleted
 		}
 
 		if err := q.RevokeAllUserSessions(ctx, postgres.RevokeAllUserSessionsParams{

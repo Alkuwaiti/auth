@@ -80,7 +80,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (co
 		span.SetStatus(codes.Error, "validation failed")
 		return core.User{}, err
 	}
-
+	// TODO: change this to UserExists
 	exists, err := s.userService.UserExistsByEmail(ctx, input.Email)
 	if err != nil {
 		slog.WarnContext(ctx, "failed to check if email exists", "email", input.Email)
@@ -495,9 +495,22 @@ func (s *service) DeleteUser(ctx context.Context, userID uuid.UUID, deletionReas
 	ctx, span := tracer.Start(ctx, "AuthService.DeleteUser")
 	defer span.End()
 
+	if err := deletionReason.validate(); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to validate deletion reason")
+		slog.ErrorContext(ctx, "failed to validate deletion reason", "err", err)
+		return err
+	}
+
 	meta := observability.RequestMetaFromContext(ctx)
 
-	if err := s.repo.deleteUserAndRevokeSessions(ctx, userID, DeletionUserBot, RevocationUserDeleted); err != nil {
+	if err := s.repo.deleteUserAndRevokeSessions(ctx, userID, deletionReason, RevocationUserDeleted); err != nil {
+		if errors.Is(err, core.ErrUserNotFoundOrAlreadyDeleted) {
+			return &apperrors.BadRequestError{
+				Field: "user uuid",
+				Msg:   "User not found or already deleted",
+			}
+		}
 		slog.ErrorContext(ctx, "failed to delete user and revoke sessions", "err", err)
 		return err
 	}

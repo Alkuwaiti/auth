@@ -113,13 +113,13 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
-const deleteUser = `-- name: DeleteUser :exec
+const deleteUser = `-- name: DeleteUser :execrows
 UPDATE users
-SET 
+SET
   deleted_at = NOW(),
   deletion_reason = $1
-WHERE
-  id = $2
+WHERE id = $2
+  AND deleted_at IS NULL
 `
 
 type DeleteUserParams struct {
@@ -127,9 +127,12 @@ type DeleteUserParams struct {
 	ID             uuid.UUID
 }
 
-func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) error {
-	_, err := q.db.ExecContext(ctx, deleteUser, arg.DeletionReason, arg.ID)
-	return err
+func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteUser, arg.DeletionReason, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const getSessionByRefreshToken = `-- name: GetSessionByRefreshToken :one
