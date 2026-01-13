@@ -21,20 +21,15 @@ func NewRepo(queries *postgres.Queries) *repo {
 	}
 }
 
-func (r *repo) userExistsByEmail(ctx context.Context, email string) (bool, error) {
-	exists, err := r.queries.UserExistsByEmail(ctx, email)
+func (r *repo) userExists(ctx context.Context, username, email string) (bool, error) {
+	exists, err := r.queries.UserExists(ctx, postgres.UserExistsParams{
+		Username: username,
+		Email:    email,
+	})
 	if err != nil {
 		return false, err
 	}
 
-	return exists, nil
-}
-
-func (r *repo) userExistsByUsername(ctx context.Context, username string) (bool, error) {
-	exists, err := r.queries.UserExistsByUsername(ctx, username)
-	if err != nil {
-		return false, err
-	}
 	return exists, nil
 }
 

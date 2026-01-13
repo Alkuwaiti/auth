@@ -58,23 +58,11 @@ func (s *service) GetUserByID(ctx context.Context, userID uuid.UUID) (core.User,
 	return user, nil
 }
 
-func (s *service) UserExistsByEmail(ctx context.Context, email string) (bool, error) {
-	ctx, span := tracer.Start(ctx, "UserService.UpdatePassword")
+func (s *service) UserExists(ctx context.Context, username, email string) (bool, error) {
+	ctx, span := tracer.Start(ctx, "UserService.UserExists")
 	defer span.End()
 
-	exists, err := s.repo.userExistsByEmail(ctx, email)
-	if err != nil {
-		return false, err
-	}
-
-	return exists, nil
-}
-
-func (s *service) UserExistsByUsername(ctx context.Context, username string) (bool, error) {
-	ctx, span := tracer.Start(ctx, "UserService.UpdatePassword")
-	defer span.End()
-
-	exists, err := s.repo.userExistsByUsername(ctx, username)
+	exists, err := s.repo.userExists(ctx, username, email)
 	if err != nil {
 		return false, err
 	}
