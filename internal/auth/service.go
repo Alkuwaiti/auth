@@ -20,6 +20,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
+// TODO: move this downstairs.
 type auditService interface {
 	CreateAuditLog(ctx context.Context, input audit.CreateAuditLogInput) error
 }
@@ -51,8 +52,7 @@ func NewService(repo *repo, userService userService, passwordService passwordSer
 type userService interface {
 	GetUserByEmail(ctx context.Context, email string) (core.User, error)
 	GetUserByID(ctx context.Context, userID uuid.UUID) (core.User, error)
-	UserExistsByEmail(ctx context.Context, email string) (bool, error)
-	UserExistsByUsername(ctx context.Context, username string) (bool, error)
+	UserExists(ctx context.Context, username, email string) (bool, error)
 	CreateUser(ctx context.Context, username, email, passwordHash string) (core.User, error)
 }
 
@@ -81,35 +81,19 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (co
 		return core.User{}, err
 	}
 
-	exists, err := s.userService.UserExistsByEmail(ctx, input.Email)
+	exists, err := s.userService.UserExists(ctx, input.Username, input.Email)
 	if err != nil {
-		slog.WarnContext(ctx, "failed to check if email exists", "email", input.Email)
+		slog.WarnContext(ctx, "failed to check if user exists", "email", input.Email, "username", input.Username)
 		return core.User{}, &apperrors.InternalError{
-			Msg: "failed to check email uniqueness",
+			Msg: "failed to check username or email uniqueness",
 			Err: err,
 		}
 	}
 	if exists {
-		span.SetStatus(codes.Error, "email already exists")
+		span.SetStatus(codes.Error, "user already exists")
 		return core.User{}, &apperrors.BadRequestError{
-			Field: "email",
-			Msg:   "email already exists",
-		}
-	}
-
-	exists, err = s.userService.UserExistsByUsername(ctx, input.Username)
-	if err != nil {
-		slog.WarnContext(ctx, "failed to check if username exists", "username", input.Username)
-		return core.User{}, &apperrors.InternalError{
-			Msg: "failed to check username uniqueness",
-			Err: err,
-		}
-	}
-	if exists {
-		span.SetStatus(codes.Error, "username already exists")
-		return core.User{}, &apperrors.BadRequestError{
-			Field: "username",
-			Msg:   "username already exists",
+			Field: "user",
+			Msg:   "user already exists",
 		}
 	}
 
