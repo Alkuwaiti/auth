@@ -244,22 +244,6 @@ func (q *Queries) RevokeSession(ctx context.Context, arg RevokeSessionParams) er
 	return err
 }
 
-const setUserActiveState = `-- name: SetUserActiveState :exec
-UPDATE users SET 
-is_active = $1 
-WHERE id = $2
-`
-
-type SetUserActiveStateParams struct {
-	IsActive bool
-	ID       uuid.UUID
-}
-
-func (q *Queries) SetUserActiveState(ctx context.Context, arg SetUserActiveStateParams) error {
-	_, err := q.db.ExecContext(ctx, setUserActiveState, arg.IsActive, arg.ID)
-	return err
-}
-
 const updatePassword = `-- name: UpdatePassword :exec
 UPDATE users
 SET password_hash = $1
@@ -276,27 +260,19 @@ func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) 
 	return err
 }
 
-const userExistsByEmail = `-- name: UserExistsByEmail :one
+const userExists = `-- name: UserExists :one
 SELECT EXISTS (
-  SELECT 1 FROM users WHERE email = $1
+  SELECT 1 FROM users WHERE username = $1 OR email = $2
 )
 `
 
-func (q *Queries) UserExistsByEmail(ctx context.Context, email string) (bool, error) {
-	row := q.db.QueryRowContext(ctx, userExistsByEmail, email)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
+type UserExistsParams struct {
+	Username string
+	Email    string
 }
 
-const userExistsByUsername = `-- name: UserExistsByUsername :one
-SELECT EXISTS (
-  SELECT 1 FROM users WHERE username = $1
-)
-`
-
-func (q *Queries) UserExistsByUsername(ctx context.Context, username string) (bool, error) {
-	row := q.db.QueryRowContext(ctx, userExistsByUsername, username)
+func (q *Queries) UserExists(ctx context.Context, arg UserExistsParams) (bool, error) {
+	row := q.db.QueryRowContext(ctx, userExists, arg.Username, arg.Email)
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
