@@ -515,6 +515,7 @@ func (s *service) DeleteUser(ctx context.Context, userID uuid.UUID, deletionReas
 		return err
 	}
 
+	// TODO: audit actor and metadata (reason for deletion)
 	if err := s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
 		UserID:    &userID,
 		Action:    audit.ActionDeleteUser,
