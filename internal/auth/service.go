@@ -64,6 +64,8 @@ type passwordService interface {
 
 var tracer = otel.Tracer("auth-service/auth")
 
+// TODO: have is user deleted checks wherever necessary. courtesy of the DeleteUser Method
+
 func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (core.User, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.RegisterUser")
 	defer span.End()
@@ -475,6 +477,7 @@ func (s *service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 	return nil
 }
 
+// TODO: only allow specific roles to use this method.
 func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 	ctx, span := tracer.Start(ctx, "AuthService.DeleteUser")
 	defer span.End()
