@@ -11,12 +11,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/sqlc-dev/pqtype"
 )
 
 const createAuditLog = `-- name: CreateAuditLog :exec
 
-INSERT INTO auth_audit_logs (user_id, action, ip_address, user_agent)
-VALUES ($1, $2, $3, $4)
+INSERT INTO auth_audit_logs (user_id, action, ip_address, user_agent, actor_id, context)
+VALUES ($1, $2, $3, $4, $5, $6)
 `
 
 type CreateAuditLogParams struct {
@@ -24,6 +25,8 @@ type CreateAuditLogParams struct {
 	Action    string
 	IpAddress sql.NullString
 	UserAgent sql.NullString
+	ActorID   uuid.NullUUID
+	Context   pqtype.NullRawMessage
 }
 
 // audit
@@ -33,6 +36,8 @@ func (q *Queries) CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) 
 		arg.Action,
 		arg.IpAddress,
 		arg.UserAgent,
+		arg.ActorID,
+		arg.Context,
 	)
 	return err
 }

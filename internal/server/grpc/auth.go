@@ -119,7 +119,17 @@ func (s *server) DeleteUser(ctx context.Context, req *authv1.DeleteUserRequest) 
 		return nil, status.Error(codes.InvalidArgument, "user id is not a uuid")
 	}
 
-	err = s.authService.DeleteUser(ctx, userID, auth.DeletionReason(req.Reason))
+	actorID, err := core.UserIDFromContext(ctx)
+	if err != nil {
+		return &emptypb.Empty{}, MapError(err)
+	}
+
+	err = s.authService.DeleteUser(ctx, auth.DeleteUserInput{
+		UserID:         userID,
+		ActorID:        actorID,
+		DeletionReason: auth.DeletionReason(req.Reason),
+		Note:           req.Note,
+	})
 	if err != nil {
 		return nil, MapError(err)
 	}

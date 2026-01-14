@@ -88,3 +88,18 @@ func (r *RegisterUserInput) validateUsername() error {
 func (r *RegisterUserInput) validatePassword() error {
 	return nil
 }
+
+type DeleteUserInput struct {
+	UserID         uuid.UUID
+	DeletionReason DeletionReason
+	ActorID        uuid.UUID
+	Note           string
+}
+
+func (d *DeleteUserInput) validate() error {
+	if err := d.DeletionReason.validate(); err != nil {
+		return err
+	}
+
+	return nil
+}

@@ -20,11 +20,6 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-// TODO: move this downstairs.
-type auditService interface {
-	CreateAuditLog(ctx context.Context, input audit.CreateAuditLogInput) error
-}
-
 type service struct {
 	repo            *repo
 	userService     userService
@@ -54,6 +49,11 @@ type userService interface {
 	GetUserByID(ctx context.Context, userID uuid.UUID) (core.User, error)
 	UserExists(ctx context.Context, username, email string) (bool, error)
 	CreateUser(ctx context.Context, username, email, passwordHash string) (core.User, error)
+}
+
+// TODO: add the complete audit.CreateAuditLogInput wherever needed in these methods.
+type auditService interface {
+	CreateAuditLog(ctx context.Context, input audit.CreateAuditLogInput) error
 }
 
 type passwordService interface {
@@ -475,11 +475,11 @@ func (s *service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 	return nil
 }
 
-func (s *service) DeleteUser(ctx context.Context, userID uuid.UUID, deletionReason DeletionReason) error {
+func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 	ctx, span := tracer.Start(ctx, "AuthService.DeleteUser")
 	defer span.End()
 
-	if err := deletionReason.validate(); err != nil {
+	if err := input.validate(); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to validate deletion reason")
 		slog.ErrorContext(ctx, "failed to validate deletion reason", "err", err)
@@ -488,7 +488,7 @@ func (s *service) DeleteUser(ctx context.Context, userID uuid.UUID, deletionReas
 
 	meta := observability.RequestMetaFromContext(ctx)
 
-	if err := s.repo.deleteUserAndRevokeSessions(ctx, userID, deletionReason, RevocationUserDeleted); err != nil {
+	if err := s.repo.deleteUserAndRevokeSessions(ctx, input.UserID, input.DeletionReason, RevocationUserDeleted); err != nil {
 		if errors.Is(err, core.ErrUserNotFoundOrAlreadyDeleted) {
 			return &apperrors.BadRequestError{
 				Field: "user uuid",
@@ -501,10 +501,11 @@ func (s *service) DeleteUser(ctx context.Context, userID uuid.UUID, deletionReas
 
 	// TODO: audit actor and metadata (reason for deletion)
 	if err := s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
-		UserID:    &userID,
+		UserID:    &input.UserID,
 		Action:    audit.ActionDeleteUser,
 		IPAddress: &meta.IPAddress,
 		UserAgent: &meta.UserAgent,
+		ActorID:   &input.ActorID,
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to create audit log", "err", err)
 		return err

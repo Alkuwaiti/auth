@@ -3,9 +3,11 @@ package audit
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/google/uuid"
+	"github.com/sqlc-dev/pqtype"
 )
 
 type repo struct {
@@ -27,6 +29,14 @@ func (r *repo) CreateAuditLog(ctx context.Context, input CreateAuditLogInput) er
 		}
 	}
 
+	var actorID uuid.NullUUID
+	if input.ActorID != nil {
+		actorID = uuid.NullUUID{
+			UUID:  *input.ActorID,
+			Valid: true,
+		}
+	}
+
 	var ip sql.NullString
 	if input.IPAddress != nil {
 		ip = sql.NullString{
@@ -43,14 +53,25 @@ func (r *repo) CreateAuditLog(ctx context.Context, input CreateAuditLogInput) er
 		}
 	}
 
-	if err := r.queries.CreateAuditLog(ctx, postgres.CreateAuditLogParams{
-		UserID:    userID,
-		Action:    string(input.Action),
-		IpAddress: ip,
-		UserAgent: ua,
-	}); err != nil {
-		return err
+	var ctxJSON pqtype.NullRawMessage
+	if input.Context != nil {
+		b, err := json.Marshal(input.Context)
+		if err != nil {
+			return err
+		}
+
+		ctxJSON = pqtype.NullRawMessage{
+			RawMessage: b,
+			Valid:      true,
+		}
 	}
 
-	return nil
+	return r.queries.CreateAuditLog(ctx, postgres.CreateAuditLogParams{
+		UserID:    userID,
+		ActorID:   actorID,
+		Action:    string(input.Action),
+		Context:   ctxJSON,
+		IpAddress: ip,
+		UserAgent: ua,
+	})
 }

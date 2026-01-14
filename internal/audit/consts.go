@@ -1,12 +1,12 @@
 package audit
 
-type Action string
+type AuditAction string
 
 const (
-	ActionCreateUser         Action = "create_user"
-	ActionLogout             Action = "logout"
-	ActionLogin              Action = "login"
-	ActionPasswordChange     Action = "password_change"
-	ActionSessionCompromised Action = "session_compromised"
-	ActionDeleteUser         Action = "delete_user"
+	ActionCreateUser         AuditAction = "create_user"
+	ActionLogout             AuditAction = "logout"
+	ActionLogin              AuditAction = "login"
+	ActionPasswordChange     AuditAction = "password_change"
+	ActionSessionCompromised AuditAction = "session_compromised"
+	ActionDeleteUser         AuditAction = "delete_user"
 )

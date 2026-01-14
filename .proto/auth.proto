@@ -53,4 +53,5 @@ message User {
 message DeleteUserRequest {
   string user_id = 1;
   string reason = 2;
+  string note = 3;
 }

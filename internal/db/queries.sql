@@ -67,6 +67,6 @@ WHERE user_id = $1
 -- audit
 
 -- name: CreateAuditLog :exec
-INSERT INTO auth_audit_logs (user_id, action, ip_address, user_agent)
-VALUES ($1, $2, $3, $4);
+INSERT INTO auth_audit_logs (user_id, action, ip_address, user_agent, actor_id, context)
+VALUES ($1, $2, $3, $4, $5, $6);
 

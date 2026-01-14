@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/sqlc-dev/pqtype"
 )
 
 type AuthAuditLog struct {
@@ -18,6 +19,8 @@ type AuthAuditLog struct {
 	IpAddress sql.NullString
 	UserAgent sql.NullString
 	CreatedAt sql.NullTime
+	ActorID   uuid.NullUUID
+	Context   pqtype.NullRawMessage
 }
 
 type AuthToken struct {
