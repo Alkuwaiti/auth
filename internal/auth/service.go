@@ -502,13 +502,18 @@ func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 		return err
 	}
 
-	// TODO: audit actor and metadata (reason for deletion)
 	if err := s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
 		UserID:    &input.UserID,
+		ActorID:   &input.ActorID,
 		Action:    audit.ActionDeleteUser,
 		IPAddress: &meta.IPAddress,
 		UserAgent: &meta.UserAgent,
-		ActorID:   &input.ActorID,
+		Context: audit.AuditContext{
+			"deletion": map[string]any{
+				"reason": string(input.DeletionReason),
+				"note":   input.Note,
+			},
+		},
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to create audit log", "err", err)
 		return err
