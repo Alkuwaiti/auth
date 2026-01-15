@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TODO: change these to table-driven unit tests.
 func TestValidatePassword_Success(t *testing.T) {
 	service := NewService(12)
 

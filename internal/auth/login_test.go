@@ -137,3 +137,31 @@ func TestLogin_CreatesAuditLog(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, count)
 }
+
+func TestLogin_DeletedUser(t *testing.T) {
+	service, db, cleanup := setupTestAuthService(t)
+	defer cleanup()
+
+	ctx := context.Background()
+
+	email := "test@example.com"
+	password := "OldPassword123!"
+
+	user, err := service.RegisterUser(ctx, RegisterUserInput{
+		Username: "testUser",
+		Email:    email,
+		Password: password,
+	})
+	require.NoError(t, err)
+
+	_, err = db.Exec(`
+		UPDATE users
+		SET deleted_at = NOW()
+		WHERE id = $1
+	`, user.ID)
+	require.NoError(t, err)
+
+	_, err = service.Login(ctx, email, password)
+	require.Error(t, err)
+	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
+}

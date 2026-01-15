@@ -312,3 +312,33 @@ func TestRefreshToken_MultiDeviceIsolation(t *testing.T) {
 	_, err = service.RefreshToken(ctx2, device2.RefreshToken)
 	require.NoError(t, err)
 }
+
+func TestRefreshToken_DeletedUser(t *testing.T) {
+	service, db, cleanup := setupTestAuthService(t)
+	defer cleanup()
+
+	ctx := testutil.CtxWithRequestMeta()
+
+	user, err := service.RegisterUser(ctx, RegisterUserInput{
+		Username: "testUser",
+		Email:    "test@example.com",
+		Password: "StrongPassword123!",
+	})
+	require.NoError(t, err)
+
+	loginTokens, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	require.NoError(t, err)
+
+	require.NoError(t, err)
+
+	_, err = db.Exec(`
+		UPDATE users
+		SET deleted_at = NOW()
+		WHERE id = $1
+	`, user.ID)
+	require.NoError(t, err)
+
+	_, err = service.RefreshToken(ctx, loginTokens.RefreshToken)
+	require.Error(t, err)
+	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
+}

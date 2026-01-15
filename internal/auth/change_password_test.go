@@ -155,3 +155,28 @@ func TestChangePassword_RevokesSessions(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, revokedAt)
 }
+
+func TestChangePassword_DeletedUser(t *testing.T) {
+	service, db, cleanup := setupTestAuthService(t)
+	defer cleanup()
+
+	ctx := testutil.CtxWithRequestMeta()
+
+	user, err := service.RegisterUser(ctx, RegisterUserInput{
+		Username: "testUser",
+		Email:    "test@example.com",
+		Password: "OldPassword123!",
+	})
+	require.NoError(t, err)
+
+	_, err = db.Exec(`
+		UPDATE users
+		SET deleted_at = NOW()
+		WHERE id = $1
+	`, user.ID)
+	require.NoError(t, err)
+
+	err = service.ChangePassword(ctx, user.ID, "OldPassword123!", "NewPassword123!")
+	require.Error(t, err)
+	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
+}
