@@ -7,97 +7,70 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TODO: change these to table-driven unit tests.
-func TestValidatePassword_Success(t *testing.T) {
+func TestService(t *testing.T) {
+	tests := []struct {
+		name        string
+		password    string
+		expectedMsg string
+		shouldPass  bool
+	}{
+		{
+			name:       "Success",
+			password:   "ValidPassword123!",
+			shouldPass: true,
+		},
+		{
+			name:        "ShortPassword",
+			password:    "pass",
+			expectedMsg: "must be at least 8 characters",
+			shouldPass:  false,
+		},
+		{
+			name:        "LongPassword",
+			password:    "thisisaverylongpassword,letscontinueontillwehitthemaximumnumberofcharsavailableforushere.iamrunningoutofthingstosay,anditisgettingveryweirdsoireallyhopeigottoitbythislikewowokherewegoijustneedsomereallydumbcharactersforthistogettowhereineedittouhfjrtguvrybvpncqmyxemtchrgycnesrotcyuncyrbvngcp",
+			expectedMsg: "maximum 255 characters",
+			shouldPass:  false,
+		},
+		{
+			name:        "NoUpperCase",
+			password:    "nouppercaseletters",
+			expectedMsg: "must contain at least one uppercase letter",
+			shouldPass:  false,
+		},
+		{
+			name:        "NoLowerCase",
+			password:    "NOLOWERCASELETTERS",
+			expectedMsg: "must contain at least one lowercase letter",
+			shouldPass:  false,
+		},
+		{
+			name:        "NoNumbers",
+			password:    "passwordWithNoNumbers",
+			expectedMsg: "must contain at least one number",
+			shouldPass:  false,
+		},
+		{
+			name:        "NoSpecialCharacters",
+			password:    "passwordWithNoSpecialChars1",
+			expectedMsg: "must contain at least one special character",
+			shouldPass:  false,
+		},
+	}
+
 	service := NewService(12)
 
-	password := "workingPassword123!!"
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := service.Validate(tt.password)
 
-	err := service.Validate(password)
-
-	require.NoError(t, err)
-}
-
-func TestValidatePasswordShortPassword_Fail(t *testing.T) {
-	service := NewService(12)
-
-	password := "pass"
-
-	err := service.Validate(password)
-
-	var ve *apperrors.ValidationError
-	require.ErrorAs(t, err, &ve)
-
-	require.Equal(t, "password", ve.Field)
-	require.Equal(t, "must be at least 8 characters", ve.Msg)
-}
-
-func TestValidatePasswordLongPassword_Fail(t *testing.T) {
-	service := NewService(12)
-
-	password := "thisisaverylongpassword,letscontinueontillwehitthemaximumnumberofcharsavailableforushere.iamrunningoutofthingstosay,anditisgettingveryweirdsoireallyhopeigottoitbythislikewowokherewegoijustneedsomereallydumbcharactersforthistogettowhereineedittouhfjrtguvrybvpncqmyxemtchrgycnesrotcyuncyrbvngcp"
-
-	err := service.Validate(password)
-
-	var ve *apperrors.ValidationError
-	require.ErrorAs(t, err, &ve)
-
-	require.Equal(t, "password", ve.Field)
-	require.Equal(t, "maximum 255 characters", ve.Msg)
-}
-
-func TestValidatePasswordNoUpperCase_Fail(t *testing.T) {
-	service := NewService(12)
-
-	password := "nouppercaseletters"
-
-	err := service.Validate(password)
-
-	var ve *apperrors.ValidationError
-	require.ErrorAs(t, err, &ve)
-
-	require.Equal(t, "password", ve.Field)
-	require.Equal(t, "must contain at least one uppercase letter", ve.Msg)
-}
-
-func TestValidatePasswordNoLowerCase_Fail(t *testing.T) {
-	service := NewService(12)
-
-	password := "NOLOWERCASELETTERS"
-
-	err := service.Validate(password)
-
-	var ve *apperrors.ValidationError
-	require.ErrorAs(t, err, &ve)
-
-	require.Equal(t, "password", ve.Field)
-	require.Equal(t, "must contain at least one lowercase letter", ve.Msg)
-}
-
-func TestValidatePasswordNoNumbers_Fail(t *testing.T) {
-	service := NewService(12)
-
-	password := "passwordWithNoNumbers"
-
-	err := service.Validate(password)
-
-	var ve *apperrors.ValidationError
-	require.ErrorAs(t, err, &ve)
-
-	require.Equal(t, "password", ve.Field)
-	require.Equal(t, "must contain at least one number", ve.Msg)
-}
-
-func TestValidatePasswordNoSpecialCharacters_Fail(t *testing.T) {
-	service := NewService(12)
-
-	password := "passwordWithNoSpecialChars1"
-
-	err := service.Validate(password)
-
-	var ve *apperrors.ValidationError
-	require.ErrorAs(t, err, &ve)
-
-	require.Equal(t, "password", ve.Field)
-	require.Equal(t, "must contain at least one special character", ve.Msg)
+			if tt.shouldPass {
+				require.NoError(t, err)
+			} else {
+				var ve *apperrors.ValidationError
+				require.ErrorAs(t, err, &ve)
+				require.Equal(t, "password", ve.Field)
+				require.Equal(t, tt.expectedMsg, ve.Msg)
+			}
+		})
+	}
 }

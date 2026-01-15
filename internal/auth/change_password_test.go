@@ -1,3 +1,5 @@
+//go:build integration
+
 package auth
 
 import (
@@ -10,94 +12,112 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestChangePassword_Success(t *testing.T) {
-	service, _, cleanup := setupTestAuthService(t)
-	defer cleanup()
+func TestChangePassword(t *testing.T) {
+	tests := []struct {
+		name        string
+		setupUser   bool
+		oldPassword string
+		newPassword string
+		deleteUser  bool
+		expectedErr error
+		checkLogin  bool
+	}{
+		{
+			name:        "Success",
+			setupUser:   true,
+			oldPassword: "OldPassword123!",
+			newPassword: "NewPassword123!",
+			expectedErr: nil,
+			checkLogin:  true,
+		},
+		{
+			name:        "InvalidOldPassword",
+			setupUser:   true,
+			oldPassword: "WrongPassword!",
+			newPassword: "NewPassword123!",
+			expectedErr: &apperrors.InvalidCredentialsError{},
+		},
+		{
+			name:        "ReuseOldPassword",
+			setupUser:   true,
+			oldPassword: "OldPassword123!",
+			newPassword: "OldPassword123!",
+			expectedErr: &apperrors.PasswordReuseError{},
+		},
+		{
+			name:        "WeakPassword",
+			setupUser:   true,
+			oldPassword: "OldPassword123!",
+			newPassword: "123",
+			expectedErr: &apperrors.ValidationError{},
+		},
+		{
+			name:        "UserNotFound",
+			setupUser:   false,
+			oldPassword: "OldPassword123!",
+			newPassword: "NewPassword123!",
+			expectedErr: &apperrors.InvalidCredentialsError{},
+		},
+		{
+			name:        "DeletedUser",
+			setupUser:   true,
+			oldPassword: "OldPassword123!",
+			newPassword: "NewPassword123!",
+			deleteUser:  true,
+			expectedErr: &apperrors.InvalidCredentialsError{},
+		},
+	}
 
-	ctx := testutil.CtxWithRequestMeta()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			service, db, cleanup := setupTestAuthService(t)
+			defer cleanup()
 
-	user, err := service.RegisterUser(ctx, RegisterUserInput{
-		Username: "testUser",
-		Email:    "test@example.com",
-		Password: "OldPassword123!",
-	})
-	require.NoError(t, err)
+			ctx := testutil.CtxWithRequestMeta()
 
-	err = service.ChangePassword(ctx, user.ID, "OldPassword123!", "NewPassword123!")
-	require.NoError(t, err)
+			var userID uuid.UUID
+			if tt.setupUser {
+				user, err := service.RegisterUser(ctx, RegisterUserInput{
+					Username: "testUser",
+					Email:    "test@example.com",
+					Password: "OldPassword123!",
+				})
+				require.NoError(t, err)
+				userID = user.ID
 
-	// login with old password fails
-	_, err = service.Login(ctx, "test@example.com", "OldPassword123!")
-	require.Error(t, err)
-	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
+				if tt.deleteUser {
+					_, err = db.Exec(`
+						UPDATE users
+						SET deleted_at = NOW()
+						WHERE id = $1
+					`, userID)
+					require.NoError(t, err)
+				}
+			} else {
+				userID = uuid.New()
+			}
 
-	// login with new password succeeds
-	_, err = service.Login(ctx, "test@example.com", "NewPassword123!")
-	require.NoError(t, err)
-}
+			err := service.ChangePassword(ctx, userID, tt.oldPassword, tt.newPassword)
 
-func TestChangePassword_InvalidOldPassword(t *testing.T) {
-	service, _, cleanup := setupTestAuthService(t)
-	defer cleanup()
+			if tt.expectedErr != nil {
+				require.Error(t, err)
+				require.IsType(t, tt.expectedErr, err)
+			} else {
+				require.NoError(t, err)
 
-	ctx := testutil.CtxWithRequestMeta()
+				if tt.checkLogin {
+					// login with old password fails
+					_, err = service.Login(ctx, "test@example.com", "OldPassword123!")
+					require.Error(t, err)
+					require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
 
-	user, err := service.RegisterUser(ctx, RegisterUserInput{
-		Username: "testUser",
-		Email:    "test@example.com",
-		Password: "OldPassword123!",
-	})
-	require.NoError(t, err)
-
-	err = service.ChangePassword(ctx, user.ID, "WrongPassword!", "NewPassword123!")
-	require.Error(t, err)
-	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
-}
-
-func TestChangePassword_ReuseOldPassword(t *testing.T) {
-	service, _, cleanup := setupTestAuthService(t)
-	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
-
-	user, err := service.RegisterUser(ctx, RegisterUserInput{
-		Username: "testUser",
-		Email:    "test@example.com",
-		Password: "OldPassword123!",
-	})
-	require.NoError(t, err)
-
-	err = service.ChangePassword(ctx, user.ID, "OldPassword123!", "OldPassword123!")
-	require.Error(t, err)
-	require.IsType(t, &apperrors.PasswordReuseError{}, err)
-}
-
-func TestChangePassword_WeakPassword(t *testing.T) {
-	service, _, cleanup := setupTestAuthService(t)
-	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
-
-	user, err := service.RegisterUser(ctx, RegisterUserInput{
-		Username: "testUser",
-		Email:    "test@example.com",
-		Password: "OldPassword123!",
-	})
-	require.NoError(t, err)
-
-	err = service.ChangePassword(ctx, user.ID, "OldPassword123!", "123")
-	require.Error(t, err)
-}
-
-func TestChangePassword_UserNotFound(t *testing.T) {
-	service, _, cleanup := setupTestAuthService(t)
-	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
-
-	err := service.ChangePassword(ctx, uuid.New(), "OldPassword123!", "NewPassword123!")
-	require.Error(t, err)
-	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
+					// login with new password succeeds
+					_, err = service.Login(ctx, "test@example.com", tt.newPassword)
+					require.NoError(t, err)
+				}
+			}
+		})
+	}
 }
 
 func TestChangePassword_CreatesAuditLog(t *testing.T) {
@@ -154,29 +174,4 @@ func TestChangePassword_RevokesSessions(t *testing.T) {
 	`, loginTokens.RefreshToken).Scan(&revokedAt)
 	require.NoError(t, err)
 	require.NotNil(t, revokedAt)
-}
-
-func TestChangePassword_DeletedUser(t *testing.T) {
-	service, db, cleanup := setupTestAuthService(t)
-	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
-
-	user, err := service.RegisterUser(ctx, RegisterUserInput{
-		Username: "testUser",
-		Email:    "test@example.com",
-		Password: "OldPassword123!",
-	})
-	require.NoError(t, err)
-
-	_, err = db.Exec(`
-		UPDATE users
-		SET deleted_at = NOW()
-		WHERE id = $1
-	`, user.ID)
-	require.NoError(t, err)
-
-	err = service.ChangePassword(ctx, user.ID, "OldPassword123!", "NewPassword123!")
-	require.Error(t, err)
-	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
 }
