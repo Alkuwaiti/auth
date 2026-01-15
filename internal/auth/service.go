@@ -63,8 +63,6 @@ type passwordService interface {
 
 var tracer = otel.Tracer("auth-service/auth")
 
-// TODO: have is user deleted checks wherever necessary. courtesy of the DeleteUser Method
-
 func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (core.User, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.RegisterUser")
 	defer span.End()
@@ -435,6 +433,13 @@ func (s *service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 		slog.ErrorContext(ctx, "failed to get user by id", "err", err)
 
 		return err
+	}
+
+	if user.DeletedAt != nil {
+		span.SetStatus(codes.Error, "user deleted")
+		slog.WarnContext(ctx, "failed login attempt", "email", user.Email, "deleted_at", user.DeletedAt)
+		// Don't tell the user they're deleted.
+		return &apperrors.InvalidCredentialsError{}
 	}
 
 	if err = s.passwordService.Compare(
