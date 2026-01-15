@@ -20,11 +20,6 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-// TODO: move this downstairs.
-type auditService interface {
-	CreateAuditLog(ctx context.Context, input audit.CreateAuditLogInput) error
-}
-
 type service struct {
 	repo            *repo
 	userService     userService
@@ -54,6 +49,10 @@ type userService interface {
 	GetUserByID(ctx context.Context, userID uuid.UUID) (core.User, error)
 	UserExists(ctx context.Context, username, email string) (bool, error)
 	CreateUser(ctx context.Context, username, email, passwordHash string) (core.User, error)
+}
+
+type auditService interface {
+	CreateAuditLog(ctx context.Context, input audit.CreateAuditLogInput) error
 }
 
 type passwordService interface {
@@ -156,6 +155,13 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 	if err = s.passwordService.Compare(user.PasswordHash, password); err != nil {
 		span.SetStatus(codes.Error, "invalid credentials")
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email)
+		return TokenPair{}, &apperrors.InvalidCredentialsError{}
+	}
+
+	if user.DeletedAt != nil {
+		span.SetStatus(codes.Error, "user deleted")
+		slog.WarnContext(ctx, "failed login attempt", "email", user.Email, "deleted_at", user.DeletedAt)
+		// Don't tell the user they're deleted.
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
@@ -310,6 +316,23 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
+	user, err := s.userService.GetUserByID(ctx, session.UserID)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to get user by id", "err", err)
+
+		if errors.Is(err, core.ErrUserNotFound) {
+			return TokenPair{}, &apperrors.InvalidCredentialsError{}
+		}
+		return TokenPair{}, err
+	}
+
+	if user.DeletedAt != nil {
+		span.SetStatus(codes.Error, "user deleted")
+		slog.WarnContext(ctx, "failed login attempt", "email", user.Email, "deleted_at", user.DeletedAt)
+		// Don't tell the user they're deleted.
+		return TokenPair{}, &apperrors.InvalidCredentialsError{}
+	}
+
 	newRefreshToken, err := generateRefreshToken()
 	if err != nil {
 		span.RecordError(err)
@@ -331,16 +354,6 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 		},
 	); err != nil {
 		slog.ErrorContext(ctx, "session rotation failed", "err", err)
-		return TokenPair{}, err
-	}
-
-	user, err := s.userService.GetUserByID(ctx, session.UserID)
-	if err != nil {
-		slog.ErrorContext(ctx, "failed to get user by id", "err", err)
-
-		if errors.Is(err, core.ErrUserNotFound) {
-			return TokenPair{}, &apperrors.InvalidCredentialsError{}
-		}
 		return TokenPair{}, err
 	}
 
@@ -391,6 +404,8 @@ func (s *service) Logout(ctx context.Context, refreshToken string) error {
 		slog.ErrorContext(ctx, "failed to create audit log", "err", err)
 	}
 
+	span.SetStatus(codes.Ok, "user logged out")
+
 	return nil
 }
 
@@ -418,6 +433,13 @@ func (s *service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 		slog.ErrorContext(ctx, "failed to get user by id", "err", err)
 
 		return err
+	}
+
+	if user.DeletedAt != nil {
+		span.SetStatus(codes.Error, "user deleted")
+		slog.WarnContext(ctx, "failed login attempt", "email", user.Email, "deleted_at", user.DeletedAt)
+		// Don't tell the user they're deleted.
+		return &apperrors.InvalidCredentialsError{}
 	}
 
 	if err = s.passwordService.Compare(
@@ -469,6 +491,53 @@ func (s *service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 		attribute.String("user.email_hash", core.HashForTelemetry(user.Email)),
 	)
 	span.SetStatus(codes.Ok, "password changed")
+
+	return nil
+}
+
+// TODO: only allow specific roles to use this method.
+func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
+	ctx, span := tracer.Start(ctx, "AuthService.DeleteUser")
+	defer span.End()
+
+	if err := input.validate(); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to validate deletion reason")
+		slog.ErrorContext(ctx, "failed to validate deletion reason", "err", err)
+		return err
+	}
+
+	meta := observability.RequestMetaFromContext(ctx)
+
+	if err := s.repo.deleteUserAndRevokeSessions(ctx, input.UserID, input.DeletionReason, RevocationUserDeleted); err != nil {
+		if errors.Is(err, core.ErrUserNotFoundOrAlreadyDeleted) {
+			return &apperrors.BadRequestError{
+				Field: "user uuid",
+				Msg:   "User not found or already deleted",
+			}
+		}
+		slog.ErrorContext(ctx, "failed to delete user and revoke sessions", "err", err)
+		return err
+	}
+
+	if err := s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+		UserID:    &input.UserID,
+		ActorID:   &input.ActorID,
+		Action:    audit.ActionDeleteUser,
+		IPAddress: &meta.IPAddress,
+		UserAgent: &meta.UserAgent,
+		Context: audit.AuditContext{
+			"deletion": map[string]any{
+				"reason": string(input.DeletionReason),
+				"note":   input.Note,
+			},
+		},
+	}); err != nil {
+		slog.ErrorContext(ctx, "failed to create audit log", "err", err)
+		return err
+	}
+
+	span.SetStatus(codes.Ok, "user deleted and sessions revoked")
 
 	return nil
 }

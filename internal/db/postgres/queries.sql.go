@@ -11,12 +11,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/sqlc-dev/pqtype"
 )
 
 const createAuditLog = `-- name: CreateAuditLog :exec
 
-INSERT INTO auth_audit_logs (user_id, action, ip_address, user_agent)
-VALUES ($1, $2, $3, $4)
+INSERT INTO auth_audit_logs (user_id, action, ip_address, user_agent, actor_id, context)
+VALUES ($1, $2, $3, $4, $5, $6)
 `
 
 type CreateAuditLogParams struct {
@@ -24,6 +25,8 @@ type CreateAuditLogParams struct {
 	Action    string
 	IpAddress sql.NullString
 	UserAgent sql.NullString
+	ActorID   uuid.NullUUID
+	Context   pqtype.NullRawMessage
 }
 
 // audit
@@ -33,6 +36,8 @@ func (q *Queries) CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) 
 		arg.Action,
 		arg.IpAddress,
 		arg.UserAgent,
+		arg.ActorID,
+		arg.Context,
 	)
 	return err
 }
@@ -79,7 +84,7 @@ const createUser = `-- name: CreateUser :one
 
 INSERT INTO users (id, username, email, password_hash , created_at, updated_at)
 VALUES ($1, $2, $3, $4, NOW(), NOW())
-RETURNING id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at
+RETURNING id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at, deleted_at, deletion_reason
 `
 
 type CreateUserParams struct {
@@ -107,27 +112,32 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeletionReason,
 	)
 	return i, err
 }
 
-const getAuditLogByUserID = `-- name: GetAuditLogByUserID :one
-SELECT id, user_id, action, ip_address, user_agent, created_at FROM auth_audit_logs 
-WHERE user_id = $1
+const deleteUser = `-- name: DeleteUser :execrows
+UPDATE users
+SET
+  deleted_at = NOW(),
+  deletion_reason = $1
+WHERE id = $2
+  AND deleted_at IS NULL
 `
 
-func (q *Queries) GetAuditLogByUserID(ctx context.Context, userID uuid.NullUUID) (AuthAuditLog, error) {
-	row := q.db.QueryRowContext(ctx, getAuditLogByUserID, userID)
-	var i AuthAuditLog
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.Action,
-		&i.IpAddress,
-		&i.UserAgent,
-		&i.CreatedAt,
-	)
-	return i, err
+type DeleteUserParams struct {
+	DeletionReason sql.NullString
+	ID             uuid.UUID
+}
+
+func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteUser, arg.DeletionReason, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const getSessionByRefreshToken = `-- name: GetSessionByRefreshToken :one
@@ -155,7 +165,7 @@ func (q *Queries) GetSessionByRefreshToken(ctx context.Context, refreshToken str
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at FROM users WHERE email = $1
+SELECT id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at, deleted_at, deletion_reason FROM users WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -170,12 +180,14 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeletionReason,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at FROM users WHERE id = $1
+SELECT id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at, deleted_at, deletion_reason FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
@@ -190,6 +202,8 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeletionReason,
 	)
 	return i, err
 }

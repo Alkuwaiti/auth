@@ -1,0 +1,3 @@
+ALTER TABLE users
+DROP COLUMN deleted_at TIMESTAMPTZ NULL,
+DROP COLUMN deletion_reason TEXT NULL;

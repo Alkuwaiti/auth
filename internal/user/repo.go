@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
@@ -72,6 +73,17 @@ func (r *repo) getUserByID(ctx context.Context, userID uuid.UUID) (core.User, er
 }
 
 func toModel(postgresUser postgres.User) core.User {
+	var deletedAt *time.Time
+	if postgresUser.DeletedAt.Valid {
+		deletedAt = &postgresUser.DeletedAt.Time
+	}
+
+	var deletionReason *core.DeletionReason
+	if postgresUser.DeletionReason.Valid {
+		dr := core.DeletionReason(postgresUser.DeletionReason.String)
+		deletionReason = &dr
+	}
+
 	return core.User{
 		ID:              postgresUser.ID,
 		Email:           postgresUser.Email,
@@ -81,5 +93,7 @@ func toModel(postgresUser postgres.User) core.User {
 		IsActive:        postgresUser.IsActive,
 		CreatedAt:       postgresUser.CreatedAt,
 		UpdatedAt:       postgresUser.UpdatedAt,
+		DeletedAt:       deletedAt,
+		DeletionReason:  deletionReason,
 	}
 }

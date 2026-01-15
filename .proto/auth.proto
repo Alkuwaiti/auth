@@ -13,6 +13,7 @@ service AuthService {
   rpc Logout(RefreshTokenRequest) returns (google.protobuf.Empty) {}
   rpc ChangePassword(ChangePasswordRequest) returns (google.protobuf.Empty) {}
   rpc RegisterUser(RegisterUserRequest) returns (User) {}
+  rpc DeleteUser(DeleteUserRequest) returns (google.protobuf.Empty) {}
 }
 
 message LoginRequest {
@@ -47,4 +48,10 @@ message User {
   string id = 1;
   string email = 2;
   string username = 3;
+}
+
+message DeleteUserRequest {
+  string user_id = 1;
+  string reason = 2;
+  string note = 3;
 }

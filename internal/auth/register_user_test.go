@@ -5,9 +5,11 @@ package auth
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/audit"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -99,7 +101,6 @@ func TestRegisterUser_Success_AuditTrail(t *testing.T) {
 
 	ctx := context.Background()
 
-	// register user once
 	user, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "testUser",
 		Email:    "test@example.com",
@@ -107,12 +108,21 @@ func TestRegisterUser_Success_AuditTrail(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	auditService := audit.NewTestAuditService(db)
+	var auditLog struct {
+		Action    string
+		UserID    uuid.UUID
+		CreatedAt time.Time
+	}
 
-	auditLog, err := auditService.GetAuditLogByUserID(ctx, user.ID)
+	err = db.QueryRow(`
+		SELECT action, user_id, created_at
+		FROM auth_audit_logs
+		WHERE action = $1 AND user_id = $2
+	`, audit.ActionCreateUser, user.ID).
+		Scan(&auditLog.Action, &auditLog.UserID, &auditLog.CreatedAt)
+
 	require.NoError(t, err)
-
 	require.Equal(t, string(audit.ActionCreateUser), auditLog.Action)
 	require.Equal(t, user.ID, auditLog.UserID)
-	require.NotEmpty(t, auditLog.CreatedAt)
+	require.False(t, auditLog.CreatedAt.IsZero())
 }

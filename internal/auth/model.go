@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
+	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/google/uuid"
 )
 
@@ -86,5 +87,20 @@ func (r *RegisterUserInput) validateUsername() error {
 }
 
 func (r *RegisterUserInput) validatePassword() error {
+	return nil
+}
+
+type DeleteUserInput struct {
+	UserID         uuid.UUID
+	DeletionReason core.DeletionReason
+	ActorID        uuid.UUID
+	Note           string
+}
+
+func (d *DeleteUserInput) validate() error {
+	if err := d.DeletionReason.Validate(); err != nil {
+		return err
+	}
+
 	return nil
 }

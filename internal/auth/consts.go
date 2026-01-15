@@ -7,4 +7,5 @@ const (
 	RevocationSessionRotation    RevocationReason = "rotated session"
 	RevocationLogout             RevocationReason = "logout"
 	RevocationPasswordChange     RevocationReason = "password changed"
+	RevocationUserDeleted        RevocationReason = "user deleted"
 )
