@@ -51,7 +51,6 @@ type userService interface {
 	CreateUser(ctx context.Context, username, email, passwordHash string) (core.User, error)
 }
 
-// TODO: add the complete audit.CreateAuditLogInput wherever needed in these methods.
 type auditService interface {
 	CreateAuditLog(ctx context.Context, input audit.CreateAuditLogInput) error
 }
@@ -158,6 +157,13 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 	if err = s.passwordService.Compare(user.PasswordHash, password); err != nil {
 		span.SetStatus(codes.Error, "invalid credentials")
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email)
+		return TokenPair{}, &apperrors.InvalidCredentialsError{}
+	}
+
+	if user.DeletedAt != nil {
+		span.SetStatus(codes.Error, "user deleted")
+		slog.WarnContext(ctx, "failed login attempt", "email", user.Email, "deleted_at", user.DeletedAt)
+		// Don't tell the user they're deleted.
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
@@ -312,6 +318,23 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
+	user, err := s.userService.GetUserByID(ctx, session.UserID)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to get user by id", "err", err)
+
+		if errors.Is(err, core.ErrUserNotFound) {
+			return TokenPair{}, &apperrors.InvalidCredentialsError{}
+		}
+		return TokenPair{}, err
+	}
+
+	if user.DeletedAt != nil {
+		span.SetStatus(codes.Error, "user deleted")
+		slog.WarnContext(ctx, "failed login attempt", "email", user.Email, "deleted_at", user.DeletedAt)
+		// Don't tell the user they're deleted.
+		return TokenPair{}, &apperrors.InvalidCredentialsError{}
+	}
+
 	newRefreshToken, err := generateRefreshToken()
 	if err != nil {
 		span.RecordError(err)
@@ -333,16 +356,6 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 		},
 	); err != nil {
 		slog.ErrorContext(ctx, "session rotation failed", "err", err)
-		return TokenPair{}, err
-	}
-
-	user, err := s.userService.GetUserByID(ctx, session.UserID)
-	if err != nil {
-		slog.ErrorContext(ctx, "failed to get user by id", "err", err)
-
-		if errors.Is(err, core.ErrUserNotFound) {
-			return TokenPair{}, &apperrors.InvalidCredentialsError{}
-		}
 		return TokenPair{}, err
 	}
 

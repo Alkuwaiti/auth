@@ -187,7 +187,7 @@ func (r *repo) revokeAndMarkSessionsCompromised(
 func (r *repo) deleteUserAndRevokeSessions(
 	ctx context.Context,
 	userID uuid.UUID,
-	deletionReason DeletionReason,
+	deletionReason core.DeletionReason,
 	revocationReason RevocationReason,
 ) error {
 	return r.execTx(ctx, func(q *postgres.Queries) error {
