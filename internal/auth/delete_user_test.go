@@ -5,7 +5,6 @@ package auth
 import (
 	"testing"
 
-	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -33,7 +32,7 @@ func TestDeleteUser_Success(t *testing.T) {
 
 	err = service.DeleteUser(ctx, DeleteUserInput{
 		UserID:         user.ID,
-		DeletionReason: core.DeletionReason("USER_IS_BOT"),
+		DeletionReason: DeletionReason("USER_IS_BOT"),
 		ActorID:        actor.ID,
 		Note:           "Some note",
 	})
@@ -63,7 +62,7 @@ func TestDeleteUser_AlreadyDeleted(t *testing.T) {
 
 	err = service.DeleteUser(ctx, DeleteUserInput{
 		UserID:         user.ID,
-		DeletionReason: core.DeletionReason("USER_REQUEST"),
+		DeletionReason: DeletionReason("USER_REQUEST"),
 		ActorID:        actor.ID,
 	})
 	require.NoError(t, err)
@@ -71,7 +70,7 @@ func TestDeleteUser_AlreadyDeleted(t *testing.T) {
 	// second delete
 	err = service.DeleteUser(ctx, DeleteUserInput{
 		UserID:         user.ID,
-		DeletionReason: core.DeletionReason("USER_REQUEST"),
+		DeletionReason: DeletionReason("USER_REQUEST"),
 		ActorID:        actor.ID,
 	})
 
@@ -94,7 +93,7 @@ func TestDeleteUser_UserDoesNotExist(t *testing.T) {
 
 	err = service.DeleteUser(ctx, DeleteUserInput{
 		UserID:         uuid.New(),
-		DeletionReason: core.DeletionReason("ADMIN_ACTION"),
+		DeletionReason: DeletionReason("ADMIN_ACTION"),
 		ActorID:        actor.ID,
 	})
 
@@ -137,13 +136,13 @@ func TestDeleteUser_UserIsSoftDeleted(t *testing.T) {
 
 	err = service.DeleteUser(ctx, DeleteUserInput{
 		UserID:         user.ID,
-		DeletionReason: core.DeletionReason("USER_REQUEST"),
+		DeletionReason: DeletionReason("USER_REQUEST"),
 		ActorID:        actor.ID,
 	})
 	require.NoError(t, err)
 
-	deletedUser, err := service.userService.GetUserByID(ctx, user.ID)
+	deletedUser, err := service.repo.getUserByID(ctx, user.ID)
 	require.NoError(t, err)
 	require.NotNil(t, deletedUser.DeletedAt)
-	require.Equal(t, core.DeletionUserRequest, *deletedUser.DeletionReason)
+	require.Equal(t, DeletionUserRequest, *deletedUser.DeletionReason)
 }

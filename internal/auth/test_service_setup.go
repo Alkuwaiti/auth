@@ -10,7 +10,6 @@ import (
 	"github.com/alkuwaiti/auth/internal/flags"
 	"github.com/alkuwaiti/auth/internal/password"
 	"github.com/alkuwaiti/auth/internal/testutil"
-	"github.com/alkuwaiti/auth/internal/user"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,10 +26,6 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 	err = testutil.RunMigrations(testDB.DB, "../db/migrations")
 	require.NoError(t, err)
 
-	userRepo := user.NewRepo(postgres.New(testDB.DB))
-
-	userService := user.NewService(userRepo)
-
 	passwordService := password.NewService(12)
 
 	auditRepo := audit.NewRepo(postgres.New(testDB.DB))
@@ -43,7 +38,7 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 
 	authRepo := NewRepo(testDB.DB)
 
-	service := NewService(authRepo, userService, passwordService, auditService, flagsService, Config{
+	service := NewService(authRepo, passwordService, auditService, flagsService, Config{
 		Issuer:   "auth-service",
 		Audience: "auth-service",
 		JWTKey:   []byte("any random jwt key doesn't really matter or at least i think it doesn't matter"),

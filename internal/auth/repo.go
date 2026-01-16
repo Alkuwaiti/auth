@@ -6,7 +6,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/google/uuid"
 )
@@ -64,7 +63,7 @@ func (r *repo) getSessionByRefreshToken(ctx context.Context, refreshToken string
 	session, err := r.queries.GetSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return Session{}, core.ErrSessionNotFound
+			return Session{}, ErrSessionNotFound
 		}
 		return Session{}, err
 	}
@@ -187,7 +186,7 @@ func (r *repo) revokeAndMarkSessionsCompromised(
 func (r *repo) deleteUserAndRevokeSessions(
 	ctx context.Context,
 	userID uuid.UUID,
-	deletionReason core.DeletionReason,
+	deletionReason DeletionReason,
 	revocationReason RevocationReason,
 ) error {
 	return r.execTx(ctx, func(q *postgres.Queries) error {
@@ -203,7 +202,7 @@ func (r *repo) deleteUserAndRevokeSessions(
 		}
 
 		if rows == 0 {
-			return core.ErrUserNotFoundOrAlreadyDeleted
+			return ErrUserNotFoundOrAlreadyDeleted
 		}
 
 		if err := q.RevokeAllUserSessions(ctx, postgres.RevokeAllUserSessionsParams{
@@ -218,6 +217,42 @@ func (r *repo) deleteUserAndRevokeSessions(
 
 		return nil
 	})
+}
+
+func (r *repo) userExists(ctx context.Context, username, email string) (bool, error) {
+	exists, err := r.queries.UserExists(ctx, postgres.UserExistsParams{
+		Username: username,
+		Email:    email,
+	})
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}
+
+func (r *repo) getUserByEmail(ctx context.Context, email string) (User, error) {
+	user, err := r.queries.GetUserByEmail(ctx, email)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return User{}, ErrUserNotFound
+		}
+		return User{}, err
+	}
+
+	return toUserModel(user), nil
+}
+
+func (r *repo) getUserByID(ctx context.Context, userID uuid.UUID) (User, error) {
+	user, err := r.queries.GetUserByID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return User{}, ErrUserNotFound
+		}
+		return User{}, err
+	}
+
+	return toUserModel(user), nil
 }
 
 func (r *repo) createUser(
@@ -297,9 +332,27 @@ func toSessionModel(session postgres.Session) Session {
 }
 
 func toUserModel(user postgres.User) User {
+	var deletedAt *time.Time
+	if user.DeletedAt.Valid {
+		deletedAt = &user.DeletedAt.Time
+	}
+
+	var deletionReason *DeletionReason
+	if user.DeletionReason.Valid {
+		dr := DeletionReason(user.DeletionReason.String)
+		deletionReason = &dr
+	}
+
 	return User{
-		ID:       user.ID,
-		Email:    user.Email,
-		Username: user.Username,
+		ID:              user.ID,
+		Email:           user.Email,
+		Username:        user.Username,
+		PasswordHash:    user.PasswordHash,
+		IsEmailVerified: user.IsEmailVerified,
+		IsActive:        user.IsActive,
+		CreatedAt:       user.CreatedAt,
+		UpdatedAt:       user.UpdatedAt,
+		DeletedAt:       deletedAt,
+		DeletionReason:  deletionReason,
 	}
 }

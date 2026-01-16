@@ -21,7 +21,6 @@ import (
 	"github.com/alkuwaiti/auth/internal/observability"
 	"github.com/alkuwaiti/auth/internal/password"
 	"github.com/alkuwaiti/auth/internal/server/grpc"
-	"github.com/alkuwaiti/auth/internal/user"
 )
 
 var (
@@ -79,17 +78,13 @@ func main() {
 
 	auditService := audit.NewService(auditRepo)
 
-	userRepo := user.NewRepo(postgres.New(dbConn))
-
-	userService := user.NewService(userRepo)
-
 	flagsService := flags.New(flags.Config{
 		RefreshTokensEnabled: cfg.RefreshEnabled,
 	})
 
 	authRepo := auth.NewRepo(dbConn)
 
-	authService := auth.NewService(authRepo, userService, passwordService, auditService, flagsService, auth.Config{
+	authService := auth.NewService(authRepo, passwordService, auditService, flagsService, auth.Config{
 		Issuer:   name,
 		Audience: name,
 		JWTKey:   []byte(cfg.JWTKey),

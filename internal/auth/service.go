@@ -22,7 +22,6 @@ import (
 
 type service struct {
 	repo            *repo
-	userService     userService
 	config          Config
 	passwordService passwordService
 	auditService    auditService
@@ -35,21 +34,14 @@ type Config struct {
 	Audience string
 }
 
-func NewService(repo *repo, userService userService, passwordService passwordService, auditService auditService, flags featureFlags, config Config) *service {
+func NewService(repo *repo, passwordService passwordService, auditService auditService, flags featureFlags, config Config) *service {
 	return &service{
 		repo:            repo,
-		userService:     userService,
 		config:          config,
 		passwordService: passwordService,
 		auditService:    auditService,
 		flags:           flags,
 	}
-}
-
-type userService interface {
-	GetUserByEmail(ctx context.Context, email string) (core.User, error)
-	GetUserByID(ctx context.Context, userID uuid.UUID) (core.User, error)
-	UserExists(ctx context.Context, username, email string) (bool, error)
 }
 
 type auditService interface {
@@ -68,8 +60,6 @@ type featureFlags interface {
 
 var tracer = otel.Tracer("auth-service/auth")
 
-// TODO: assign default user to a role.
-// TODO: attach permissions to jwt.
 func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (User, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.RegisterUser")
 	defer span.End()
@@ -87,7 +77,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 		return User{}, err
 	}
 
-	exists, err := s.userService.UserExists(ctx, input.Username, input.Email)
+	exists, err := s.repo.userExists(ctx, input.Username, input.Email)
 	if err != nil {
 		slog.WarnContext(ctx, "failed to check if user exists", "email", input.Email, "username", input.Username)
 		return User{}, &apperrors.InternalError{
@@ -154,9 +144,9 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 		attribute.String("user.email_hash", core.HashForTelemetry(email)),
 	)
 
-	user, err := s.userService.GetUserByEmail(ctx, email)
+	user, err := s.repo.getUserByEmail(ctx, email)
 	if err != nil {
-		if errors.Is(err, core.ErrUserNotFound) {
+		if errors.Is(err, ErrUserNotFound) {
 			// Return an invalid credentials here as this is a login endpoint.
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
 		}
@@ -238,6 +228,7 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 	}, nil
 }
 
+// TODO: change the audience when the time comes.
 func generateAccessToken(
 	userID, email string,
 	secret []byte,
@@ -283,7 +274,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 
 	session, err := s.repo.getSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
-		if errors.Is(err, core.ErrSessionNotFound) {
+		if errors.Is(err, ErrSessionNotFound) {
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
 		}
 
@@ -334,11 +325,11 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
-	user, err := s.userService.GetUserByID(ctx, session.UserID)
+	user, err := s.repo.getUserByID(ctx, session.UserID)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to get user by id", "err", err)
 
-		if errors.Is(err, core.ErrUserNotFound) {
+		if errors.Is(err, ErrUserNotFound) {
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
 		}
 		return TokenPair{}, err
@@ -443,9 +434,9 @@ func (s *service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 		return err
 	}
 
-	user, err := s.userService.GetUserByID(ctx, userID)
+	user, err := s.repo.getUserByID(ctx, userID)
 	if err != nil {
-		if errors.Is(err, core.ErrUserNotFound) {
+		if errors.Is(err, ErrUserNotFound) {
 			_ = s.passwordService.Compare(dummyBcryptHash, oldPassword)
 			return &apperrors.InvalidCredentialsError{}
 		}
@@ -530,7 +521,7 @@ func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 	meta := observability.RequestMetaFromContext(ctx)
 
 	if err := s.repo.deleteUserAndRevokeSessions(ctx, input.UserID, input.DeletionReason, RevocationUserDeleted); err != nil {
-		if errors.Is(err, core.ErrUserNotFoundOrAlreadyDeleted) {
+		if errors.Is(err, ErrUserNotFoundOrAlreadyDeleted) {
 			return &apperrors.BadRequestError{
 				Field: "user uuid",
 				Msg:   "User not found or already deleted",
