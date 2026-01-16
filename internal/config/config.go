@@ -29,6 +29,7 @@ type Config struct {
 	DatabaseURL      string
 	JWTKey           string
 	OTLPEndpoint     string
+	RefreshEnabled   bool
 }
 
 func Load(env, jur string) Config {

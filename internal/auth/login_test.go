@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
+	"github.com/alkuwaiti/auth/internal/flags"
 	"github.com/stretchr/testify/require"
 )
 
@@ -164,4 +165,25 @@ func TestLogin_DeletedUser(t *testing.T) {
 	_, err = service.Login(ctx, email, password)
 	require.Error(t, err)
 	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
+}
+
+func TestLogin_Disabled(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	flagsService := flags.New(flags.Config{
+		RefreshTokensEnabled: false,
+	})
+
+	svc := &service{
+		flags: flagsService,
+	}
+
+	_, err := svc.Login(ctx, "some_email", "some_password")
+
+	require.Error(t, err)
+
+	var refreshDisabledErr *apperrors.RefreshDisabledError
+	require.ErrorAs(t, err, &refreshDisabledErr)
 }

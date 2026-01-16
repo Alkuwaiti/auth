@@ -3,12 +3,14 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
+	"github.com/alkuwaiti/auth/internal/flags"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
@@ -341,4 +343,25 @@ func TestRefreshToken_DeletedUser(t *testing.T) {
 	_, err = service.RefreshToken(ctx, loginTokens.RefreshToken)
 	require.Error(t, err)
 	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
+}
+
+func TestRefreshToken_Disabled(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	flagsService := flags.New(flags.Config{
+		RefreshTokensEnabled: false,
+	})
+
+	svc := &service{
+		flags: flagsService,
+	}
+
+	_, err := svc.RefreshToken(ctx, "some-refresh-token")
+
+	require.Error(t, err)
+
+	var refreshDisabledErr *apperrors.RefreshDisabledError
+	require.ErrorAs(t, err, &refreshDisabledErr)
 }
