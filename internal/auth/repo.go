@@ -220,18 +220,55 @@ func (r *repo) deleteUserAndRevokeSessions(
 	})
 }
 
-func (r *repo) createUser(ctx context.Context, userID uuid.UUID, username, email, passwordHash string) (User, error) {
-	user, err := r.queries.CreateUser(ctx, postgres.CreateUserParams{
-		ID:           userID,
-		Username:     username,
-		Email:        email,
-		PasswordHash: passwordHash,
-	})
+func (r *repo) createUser(
+	ctx context.Context,
+	username, email, passwordHash string,
+) (User, error) {
+
+	userID, err := uuid.NewV7()
 	if err != nil {
 		return User{}, err
 	}
 
-	return toUserModel(user), nil
+	var (
+		user   User
+		dbUser postgres.User
+		roleID uuid.UUID
+	)
+
+	err = r.execTx(ctx, func(q *postgres.Queries) error {
+		dbUser, err = q.CreateUser(ctx, postgres.CreateUserParams{
+			ID:           userID,
+			Username:     username,
+			Email:        email,
+			PasswordHash: passwordHash,
+		})
+		if err != nil {
+			return err
+		}
+
+		roleID, err = q.GetRoleIDByName(ctx, "user")
+		if err != nil {
+			return err
+		}
+
+		err = q.AssignRoleToUser(ctx, postgres.AssignRoleToUserParams{
+			UserID: userID,
+			RoleID: roleID,
+		})
+		if err != nil {
+			return err
+		}
+
+		user = toUserModel(dbUser)
+		return nil
+	})
+
+	if err != nil {
+		return User{}, err
+	}
+
+	return user, nil
 }
 
 func toSessionModel(session postgres.Session) Session {

@@ -112,12 +112,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 		return User{}, err
 	}
 
-	id, err := uuid.NewV7()
-	if err != nil {
-		return User{}, err
-	}
-
-	user, err := s.repo.createUser(ctx, id, input.Username, input.Email, newPasswordHash)
+	user, err := s.repo.createUser(ctx, input.Username, input.Email, newPasswordHash)
 	if err != nil {
 		return User{}, &apperrors.InternalError{
 			Msg: "failed to register a user",
