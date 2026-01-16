@@ -3,6 +3,7 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"testing"
@@ -341,4 +342,25 @@ func TestRefreshToken_DeletedUser(t *testing.T) {
 	_, err = service.RefreshToken(ctx, loginTokens.RefreshToken)
 	require.Error(t, err)
 	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
+}
+
+func TestRefreshToken_Disabled(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	flags := &fakeFlags{
+		refreshEnabled: false,
+	}
+
+	svc := &service{
+		flags: flags,
+	}
+
+	_, err := svc.RefreshToken(ctx, "some-refresh-token")
+
+	require.Error(t, err)
+
+	var refreshDisabledErr *apperrors.RefreshDisabledError
+	require.ErrorAs(t, err, &refreshDisabledErr)
 }

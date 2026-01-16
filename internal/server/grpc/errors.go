@@ -33,6 +33,9 @@ func MapError(err error) error {
 	case errors.As(err, new(*apperrors.PasswordReuseError)):
 		return status.Error(codes.InvalidArgument, err.Error())
 
+	case errors.As(err, new(*apperrors.RefreshDisabledError)):
+		return status.Error(codes.Unavailable, err.Error())
+
 	default:
 		slog.Error("unexpected service error", "error", err)
 		return status.Error(codes.Internal, "internal server error")

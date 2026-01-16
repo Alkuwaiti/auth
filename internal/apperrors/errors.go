@@ -55,3 +55,9 @@ type PasswordReuseError struct{}
 func (e *PasswordReuseError) Error() string {
 	return "new password cannot be old password"
 }
+
+type RefreshDisabledError struct{}
+
+func (e *RefreshDisabledError) Error() string {
+	return "refresh tokens disabled by system"
+}

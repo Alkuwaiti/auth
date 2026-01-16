@@ -17,6 +17,7 @@ import (
 	"github.com/alkuwaiti/auth/internal/config"
 	"github.com/alkuwaiti/auth/internal/db"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
+	"github.com/alkuwaiti/auth/internal/flags"
 	"github.com/alkuwaiti/auth/internal/observability"
 	"github.com/alkuwaiti/auth/internal/password"
 	"github.com/alkuwaiti/auth/internal/server/grpc"
@@ -82,9 +83,13 @@ func main() {
 
 	userService := user.NewService(userRepo)
 
+	flagsService := flags.New(flags.Config{
+		RefreshTokensEnabled: cfg.RefreshEnabled,
+	})
+
 	authRepo := auth.NewRepo(dbConn)
 
-	authService := auth.NewService(authRepo, userService, passwordService, auditService, auth.Config{
+	authService := auth.NewService(authRepo, userService, passwordService, auditService, flagsService, auth.Config{
 		Issuer:   name,
 		Audience: name,
 		JWTKey:   []byte(cfg.JWTKey),

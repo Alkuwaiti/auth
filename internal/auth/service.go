@@ -26,6 +26,7 @@ type service struct {
 	config          Config
 	passwordService passwordService
 	auditService    auditService
+	flags           featureFlags
 }
 
 type Config struct {
@@ -34,13 +35,14 @@ type Config struct {
 	Audience string
 }
 
-func NewService(repo *repo, userService userService, passwordService passwordService, auditService auditService, config Config) *service {
+func NewService(repo *repo, userService userService, passwordService passwordService, auditService auditService, flags featureFlags, config Config) *service {
 	return &service{
 		repo:            repo,
 		userService:     userService,
 		config:          config,
 		passwordService: passwordService,
 		auditService:    auditService,
+		flags:           flags,
 	}
 }
 
@@ -59,6 +61,10 @@ type passwordService interface {
 	Validate(password string) error
 	Hash(password string) (string, error)
 	Compare(hash string, password string) error
+}
+
+type featureFlags interface {
+	RefreshTokensEnabled(ctx context.Context) bool
 }
 
 var tracer = otel.Tracer("auth-service/auth")
@@ -134,6 +140,11 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (co
 func (s *service) Login(ctx context.Context, email, password string) (TokenPair, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.Login")
 	defer span.End()
+
+	if !s.flags.RefreshTokensEnabled(ctx) {
+		span.SetStatus(codes.Error, "Refresh tokens disabled")
+		return TokenPair{}, &apperrors.RefreshDisabledError{}
+	}
 
 	meta := observability.RequestMetaFromContext(ctx)
 
@@ -260,6 +271,11 @@ func generateRefreshToken() (string, error) {
 func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenPair, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.RefreshToken")
 	defer span.End()
+
+	if !s.flags.RefreshTokensEnabled(ctx) {
+		span.SetStatus(codes.Error, "Refresh tokens disabled")
+		return TokenPair{}, &apperrors.RefreshDisabledError{}
+	}
 
 	meta := observability.RequestMetaFromContext(ctx)
 
