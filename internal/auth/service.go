@@ -50,7 +50,6 @@ type userService interface {
 	GetUserByEmail(ctx context.Context, email string) (core.User, error)
 	GetUserByID(ctx context.Context, userID uuid.UUID) (core.User, error)
 	UserExists(ctx context.Context, username, email string) (bool, error)
-	CreateUser(ctx context.Context, username, email, passwordHash string) (core.User, error)
 }
 
 type auditService interface {
@@ -71,7 +70,7 @@ var tracer = otel.Tracer("auth-service/auth")
 
 // TODO: assign default user to a role.
 // TODO: attach permissions to jwt.
-func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (core.User, error) {
+func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (User, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.RegisterUser")
 	defer span.End()
 
@@ -85,37 +84,42 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (co
 	if err := input.validate(); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "validation failed")
-		return core.User{}, err
+		return User{}, err
 	}
 
 	exists, err := s.userService.UserExists(ctx, input.Username, input.Email)
 	if err != nil {
 		slog.WarnContext(ctx, "failed to check if user exists", "email", input.Email, "username", input.Username)
-		return core.User{}, &apperrors.InternalError{
+		return User{}, &apperrors.InternalError{
 			Msg: "failed to check username or email uniqueness",
 			Err: err,
 		}
 	}
 	if exists {
 		span.SetStatus(codes.Error, "user already exists")
-		return core.User{}, &apperrors.BadRequestError{
+		return User{}, &apperrors.BadRequestError{
 			Field: "user",
 			Msg:   "user already exists",
 		}
 	}
 
 	if err = s.passwordService.Validate(input.Password); err != nil {
-		return core.User{}, err
+		return User{}, err
 	}
 
 	newPasswordHash, err := s.passwordService.Hash(input.Password)
 	if err != nil {
-		return core.User{}, err
+		return User{}, err
 	}
 
-	user, err := s.userService.CreateUser(ctx, input.Username, input.Email, newPasswordHash)
+	id, err := uuid.NewV7()
 	if err != nil {
-		return core.User{}, &apperrors.InternalError{
+		return User{}, err
+	}
+
+	user, err := s.repo.createUser(ctx, id, input.Username, input.Email, newPasswordHash)
+	if err != nil {
+		return User{}, &apperrors.InternalError{
 			Msg: "failed to register a user",
 			Err: err,
 		}
@@ -128,7 +132,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (co
 		UserAgent: &meta.UserAgent,
 	}); err != nil {
 		slog.WarnContext(ctx, "failed to create audit log", "err", err)
-		return core.User{}, err
+		return User{}, err
 	}
 
 	span.SetAttributes(

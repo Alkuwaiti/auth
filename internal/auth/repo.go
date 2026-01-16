@@ -57,7 +57,7 @@ func (r *repo) createSession(ctx context.Context, userID uuid.UUID, expiry time.
 		return Session{}, err
 	}
 
-	return toModel(session), nil
+	return toSessionModel(session), nil
 }
 
 func (r *repo) getSessionByRefreshToken(ctx context.Context, refreshToken string) (Session, error) {
@@ -69,7 +69,7 @@ func (r *repo) getSessionByRefreshToken(ctx context.Context, refreshToken string
 		return Session{}, err
 	}
 
-	return toModel(session), err
+	return toSessionModel(session), err
 }
 
 func (r *repo) revokeSession(ctx context.Context, SessionID uuid.UUID, revocationReason RevocationReason) error {
@@ -220,7 +220,21 @@ func (r *repo) deleteUserAndRevokeSessions(
 	})
 }
 
-func toModel(session postgres.Session) Session {
+func (r *repo) createUser(ctx context.Context, userID uuid.UUID, username, email, passwordHash string) (User, error) {
+	user, err := r.queries.CreateUser(ctx, postgres.CreateUserParams{
+		ID:           userID,
+		Username:     username,
+		Email:        email,
+		PasswordHash: passwordHash,
+	})
+	if err != nil {
+		return User{}, err
+	}
+
+	return toUserModel(user), nil
+}
+
+func toSessionModel(session postgres.Session) Session {
 	var revokedAt *time.Time
 	if session.RevokedAt.Valid {
 		revokedAt = &session.RevokedAt.Time
@@ -242,5 +256,13 @@ func toModel(session postgres.Session) Session {
 		RevokedAt:        revokedAt,
 		RevocationReason: RevocationReason(session.RevocationReason.String),
 		CompromisedAt:    compromisedAt,
+	}
+}
+
+func toUserModel(user postgres.User) User {
+	return User{
+		ID:       user.ID,
+		Email:    user.Email,
+		Username: user.Username,
 	}
 }

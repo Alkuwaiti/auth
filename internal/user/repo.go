@@ -34,20 +34,6 @@ func (r *repo) userExists(ctx context.Context, username, email string) (bool, er
 	return exists, nil
 }
 
-func (r *repo) createUser(ctx context.Context, userID uuid.UUID, username, email, passwordHash string) (core.User, error) {
-	user, err := r.queries.CreateUser(ctx, postgres.CreateUserParams{
-		ID:           userID,
-		Username:     username,
-		Email:        email,
-		PasswordHash: passwordHash,
-	})
-	if err != nil {
-		return core.User{}, err
-	}
-
-	return toModel(user), nil
-}
-
 func (r *repo) getUserByEmail(ctx context.Context, email string) (core.User, error) {
 	user, err := r.queries.GetUserByEmail(ctx, email)
 	if err != nil {

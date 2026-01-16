@@ -104,3 +104,9 @@ func (d *DeleteUserInput) validate() error {
 
 	return nil
 }
+
+type User struct {
+	ID       uuid.UUID
+	Username string
+	Email    string
+}

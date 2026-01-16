@@ -69,20 +69,3 @@ func (s *service) UserExists(ctx context.Context, username, email string) (bool,
 
 	return exists, nil
 }
-
-func (s *service) CreateUser(ctx context.Context, username, email, passwordHash string) (core.User, error) {
-	ctx, span := tracer.Start(ctx, "UserService.CreateUser")
-	defer span.End()
-
-	id, err := uuid.NewV7()
-	if err != nil {
-		return core.User{}, err
-	}
-
-	user, err := s.repo.createUser(ctx, id, username, email, passwordHash)
-	if err != nil {
-		return core.User{}, err
-	}
-
-	return user, nil
-}

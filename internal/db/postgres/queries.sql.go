@@ -14,6 +14,21 @@ import (
 	"github.com/sqlc-dev/pqtype"
 )
 
+const assignRoleToUser = `-- name: AssignRoleToUser :exec
+INSERT INTO user_roles (user_id, role_id, assigned_at)
+VALUES ($1, $2, NOW())
+`
+
+type AssignRoleToUserParams struct {
+	UserID uuid.UUID
+	RoleID uuid.UUID
+}
+
+func (q *Queries) AssignRoleToUser(ctx context.Context, arg AssignRoleToUserParams) error {
+	_, err := q.db.ExecContext(ctx, assignRoleToUser, arg.UserID, arg.RoleID)
+	return err
+}
+
 const createAuditLog = `-- name: CreateAuditLog :exec
 
 INSERT INTO auth_audit_logs (user_id, action, ip_address, user_agent, actor_id, context)
@@ -138,6 +153,21 @@ func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) (int64, 
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const getRoleIDByName = `-- name: GetRoleIDByName :one
+
+SELECT id
+FROM roles
+WHERE name = $1
+`
+
+// authorization
+func (q *Queries) GetRoleIDByName(ctx context.Context, name string) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, getRoleIDByName, name)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
 }
 
 const getSessionByRefreshToken = `-- name: GetSessionByRefreshToken :one

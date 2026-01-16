@@ -70,3 +70,15 @@ WHERE user_id = $1
 INSERT INTO auth_audit_logs (user_id, action, ip_address, user_agent, actor_id, context)
 VALUES ($1, $2, $3, $4, $5, $6);
 
+
+-- authorization
+
+-- name: GetRoleIDByName :one
+SELECT id
+FROM roles
+WHERE name = $1;
+
+-- name: AssignRoleToUser :exec
+INSERT INTO user_roles (user_id, role_id, assigned_at)
+VALUES ($1, $2, NOW());
+
