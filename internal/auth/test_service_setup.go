@@ -56,11 +56,3 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 
 	return service, testDB.DB, cleanup
 }
-
-type fakeFlags struct {
-	refreshEnabled bool
-}
-
-func (f *fakeFlags) RefreshTokensEnabled(ctx context.Context) bool {
-	return f.refreshEnabled
-}

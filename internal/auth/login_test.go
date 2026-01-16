@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
+	"github.com/alkuwaiti/auth/internal/flags"
 	"github.com/stretchr/testify/require"
 )
 
@@ -171,12 +172,12 @@ func TestLogin_Disabled(t *testing.T) {
 
 	ctx := context.Background()
 
-	flags := &fakeFlags{
-		refreshEnabled: false,
-	}
+	flagsService := flags.New(flags.Config{
+		RefreshTokensEnabled: false,
+	})
 
 	svc := &service{
-		flags: flags,
+		flags: flagsService,
 	}
 
 	_, err := svc.Login(ctx, "some_email", "some_password")

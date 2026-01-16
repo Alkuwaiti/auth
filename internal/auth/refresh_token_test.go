@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
+	"github.com/alkuwaiti/auth/internal/flags"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
@@ -349,12 +350,12 @@ func TestRefreshToken_Disabled(t *testing.T) {
 
 	ctx := context.Background()
 
-	flags := &fakeFlags{
-		refreshEnabled: false,
-	}
+	flagsService := flags.New(flags.Config{
+		RefreshTokensEnabled: false,
+	})
 
 	svc := &service{
-		flags: flags,
+		flags: flagsService,
 	}
 
 	_, err := svc.RefreshToken(ctx, "some-refresh-token")
