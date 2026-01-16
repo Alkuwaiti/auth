@@ -69,6 +69,8 @@ type featureFlags interface {
 
 var tracer = otel.Tracer("auth-service/auth")
 
+// TODO: assign default user to a role.
+// TODO: attach permissions to jwt.
 func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (core.User, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.RegisterUser")
 	defer span.End()
@@ -137,6 +139,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (co
 	return user, nil
 }
 
+// TODO: attach permissions to jwt as per role.
 func (s *service) Login(ctx context.Context, email, password string) (TokenPair, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.Login")
 	defer span.End()
@@ -427,6 +430,8 @@ func (s *service) Logout(ctx context.Context, refreshToken string) error {
 
 var dummyBcryptHash = "$2b$12$C6UzMDM.H6dfI/f/IKcEeOe2x7yZ0pniS3pSDOMkMt2rt7V6F2i4G"
 
+// This is the authenticated flow.
+// TODO: check if auth.password.change.self.
 func (s *service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error {
 	ctx, span := tracer.Start(ctx, "AuthService.ChangePassword")
 	defer span.End()
