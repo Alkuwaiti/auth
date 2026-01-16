@@ -14,6 +14,7 @@ type UserAgentKey struct{}
 type IPAddressKey struct{}
 
 type AccessClaims struct {
-	Email string `json:"email"`
+	Email string   `json:"email"`
+	Roles []string `json:"roles"`
 	jwt.RegisteredClaims
 }

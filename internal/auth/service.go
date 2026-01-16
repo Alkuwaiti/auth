@@ -144,6 +144,7 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 		attribute.String("user.email_hash", core.HashForTelemetry(email)),
 	)
 
+	// TODO: index email in the db.
 	user, err := s.repo.getUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
@@ -175,7 +176,7 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
-	accessToken, err := generateAccessToken(user.ID.String(), user.Email, s.config.JWTKey, s.config.Issuer, s.config.Audience)
+	accessToken, err := generateAccessToken(s.config.JWTKey, user.Roles, user.ID.String(), user.Email, s.config.Issuer, s.config.Audience)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "access token generation failed")
@@ -230,14 +231,14 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 
 // TODO: change the audience when the time comes.
 func generateAccessToken(
-	userID, email string,
 	secret []byte,
-	issuer string,
-	audience string,
+	roles []string,
+	userID, email, issuer, audience string,
 ) (string, error) {
 
 	claims := core.AccessClaims{
 		Email: email,
+		Roles: roles,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   userID,
 			Issuer:    issuer,
@@ -366,7 +367,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 		return TokenPair{}, err
 	}
 
-	accessToken, err := generateAccessToken(user.ID.String(), user.Email, s.config.JWTKey, s.config.Issuer, s.config.Audience)
+	accessToken, err := generateAccessToken(s.config.JWTKey, user.Roles, user.ID.String(), user.Email, s.config.Issuer, s.config.Audience)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "access token generation failed")

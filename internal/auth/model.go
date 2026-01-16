@@ -115,4 +115,5 @@ type User struct {
 	UpdatedAt       time.Time       `json:"updated_at"`
 	DeletedAt       *time.Time      `json:"deleted_at"`
 	DeletionReason  *DeletionReason `json:"deletion_reason"`
+	Roles           []string        `json:"roles"`
 }

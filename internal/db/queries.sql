@@ -12,7 +12,14 @@ SELECT EXISTS (
 
 
 -- name: GetUserByEmail :one
-SELECT * FROM users WHERE email = $1;
+SELECT
+  u.*,
+  ARRAY_AGG(r.name)::text[] AS roles
+FROM users u
+JOIN user_roles ur ON u.id = ur.user_id
+JOIN roles r ON ur.role_id = r.id
+WHERE u.email = $1
+GROUP BY u.id;
 
 -- name: GetUserByID :one
 SELECT * FROM users WHERE id = $1;
