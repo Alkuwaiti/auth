@@ -3,6 +3,7 @@
 package auth
 
 import (
+	"context"
 	"testing"
 
 	"github.com/alkuwaiti/auth/internal/core"
@@ -16,6 +17,7 @@ func TestDeleteUser_Success(t *testing.T) {
 	defer cleanup()
 
 	ctx := testutil.CtxWithRequestMeta()
+	ctx = CtxWithRoles(ctx, []string{"admin"})
 
 	actor, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "actorUser",
@@ -33,7 +35,7 @@ func TestDeleteUser_Success(t *testing.T) {
 
 	err = service.DeleteUser(ctx, DeleteUserInput{
 		UserID:         user.ID,
-		DeletionReason: core.DeletionReason("USER_IS_BOT"),
+		DeletionReason: DeletionReason("USER_IS_BOT"),
 		ActorID:        actor.ID,
 		Note:           "Some note",
 	})
@@ -46,6 +48,7 @@ func TestDeleteUser_AlreadyDeleted(t *testing.T) {
 	defer cleanup()
 
 	ctx := testutil.CtxWithRequestMeta()
+	ctx = CtxWithRoles(ctx, []string{"admin"})
 
 	actor, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "actorUser",
@@ -63,7 +66,7 @@ func TestDeleteUser_AlreadyDeleted(t *testing.T) {
 
 	err = service.DeleteUser(ctx, DeleteUserInput{
 		UserID:         user.ID,
-		DeletionReason: core.DeletionReason("USER_REQUEST"),
+		DeletionReason: DeletionReason("USER_REQUEST"),
 		ActorID:        actor.ID,
 	})
 	require.NoError(t, err)
@@ -71,7 +74,7 @@ func TestDeleteUser_AlreadyDeleted(t *testing.T) {
 	// second delete
 	err = service.DeleteUser(ctx, DeleteUserInput{
 		UserID:         user.ID,
-		DeletionReason: core.DeletionReason("USER_REQUEST"),
+		DeletionReason: DeletionReason("USER_REQUEST"),
 		ActorID:        actor.ID,
 	})
 
@@ -84,6 +87,7 @@ func TestDeleteUser_UserDoesNotExist(t *testing.T) {
 	defer cleanup()
 
 	ctx := testutil.CtxWithRequestMeta()
+	ctx = CtxWithRoles(ctx, []string{"admin"})
 
 	actor, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "actorUser",
@@ -94,7 +98,7 @@ func TestDeleteUser_UserDoesNotExist(t *testing.T) {
 
 	err = service.DeleteUser(ctx, DeleteUserInput{
 		UserID:         uuid.New(),
-		DeletionReason: core.DeletionReason("ADMIN_ACTION"),
+		DeletionReason: DeletionReason("ADMIN_ACTION"),
 		ActorID:        actor.ID,
 	})
 
@@ -120,6 +124,7 @@ func TestDeleteUser_UserIsSoftDeleted(t *testing.T) {
 	defer cleanup()
 
 	ctx := testutil.CtxWithRequestMeta()
+	ctx = CtxWithRoles(ctx, []string{"admin"})
 
 	user, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "softDeleteUser",
@@ -137,13 +142,18 @@ func TestDeleteUser_UserIsSoftDeleted(t *testing.T) {
 
 	err = service.DeleteUser(ctx, DeleteUserInput{
 		UserID:         user.ID,
-		DeletionReason: core.DeletionReason("USER_REQUEST"),
+		DeletionReason: DeletionReason("USER_REQUEST"),
 		ActorID:        actor.ID,
 	})
 	require.NoError(t, err)
 
-	deletedUser, err := service.userService.GetUserByID(ctx, user.ID)
+	deletedUser, err := service.repo.getUserByID(ctx, user.ID)
 	require.NoError(t, err)
 	require.NotNil(t, deletedUser.DeletedAt)
-	require.Equal(t, core.DeletionUserRequest, *deletedUser.DeletionReason)
+	require.Equal(t, DeletionUserRequest, *deletedUser.DeletionReason)
+}
+
+// TODO: this needs cleaning up.
+func CtxWithRoles(ctx context.Context, roles []string) context.Context {
+	return context.WithValue(ctx, core.RolesKey{}, roles)
 }

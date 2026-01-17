@@ -3,10 +3,12 @@
 package auth
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
+	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -85,6 +87,8 @@ func TestChangePassword(t *testing.T) {
 				require.NoError(t, err)
 				userID = user.ID
 
+				ctx = ContextWithUserID(ctx, user.ID)
+
 				if tt.deleteUser {
 					_, err = db.Exec(`
 						UPDATE users
@@ -93,11 +97,9 @@ func TestChangePassword(t *testing.T) {
 					`, userID)
 					require.NoError(t, err)
 				}
-			} else {
-				userID = uuid.New()
 			}
 
-			err := service.ChangePassword(ctx, userID, tt.oldPassword, tt.newPassword)
+			err := service.ChangePassword(ctx, tt.oldPassword, tt.newPassword)
 
 			if tt.expectedErr != nil {
 				require.Error(t, err)
@@ -133,7 +135,9 @@ func TestChangePassword_CreatesAuditLog(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = service.ChangePassword(ctx, user.ID, "OldPassword123!", "NewPassword123!")
+	ctx = ContextWithUserID(ctx, user.ID)
+
+	err = service.ChangePassword(ctx, "OldPassword123!", "NewPassword123!")
 	require.NoError(t, err)
 
 	var count int
@@ -159,11 +163,13 @@ func TestChangePassword_RevokesSessions(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	ctx = ContextWithUserID(ctx, user.ID)
+
 	// login generates a session
 	loginTokens, err := service.Login(ctx, "test@example.com", "OldPassword123!")
 	require.NoError(t, err)
 
-	err = service.ChangePassword(ctx, user.ID, "OldPassword123!", "NewPassword123!")
+	err = service.ChangePassword(ctx, "OldPassword123!", "NewPassword123!")
 	require.NoError(t, err)
 
 	var revokedAt *time.Time
@@ -174,4 +180,9 @@ func TestChangePassword_RevokesSessions(t *testing.T) {
 	`, loginTokens.RefreshToken).Scan(&revokedAt)
 	require.NoError(t, err)
 	require.NotNil(t, revokedAt)
+}
+
+// TODO: this needs cleaning up.
+func ContextWithUserID(ctx context.Context, userID uuid.UUID) context.Context {
+	return context.WithValue(ctx, core.UserIDKey{}, userID.String())
 }

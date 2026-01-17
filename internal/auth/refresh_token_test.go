@@ -224,10 +224,12 @@ func TestRefreshToken_AfterPasswordChange(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	ctx = ContextWithUserID(ctx, user.ID)
+
 	loginTokens, err := service.Login(ctx, "test@example.com", "OldPassword123!")
 	require.NoError(t, err)
 
-	err = service.ChangePassword(ctx, user.ID, "OldPassword123!", "NewPassword123!")
+	err = service.ChangePassword(ctx, "OldPassword123!", "NewPassword123!")
 	require.NoError(t, err)
 
 	_, err = service.RefreshToken(ctx, loginTokens.RefreshToken)

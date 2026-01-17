@@ -8,9 +8,7 @@ import (
 	"net"
 
 	"github.com/alkuwaiti/auth/internal/auth"
-	"github.com/alkuwaiti/auth/internal/core"
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
-	"github.com/google/uuid"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -29,8 +27,8 @@ type authService interface {
 	Login(ctx context.Context, email, password string) (auth.TokenPair, error)
 	RefreshToken(ctx context.Context, refreshToken string) (auth.TokenPair, error)
 	Logout(ctx context.Context, refreshToken string) error
-	ChangePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error
-	RegisterUser(context.Context, auth.RegisterUserInput) (core.User, error)
+	ChangePassword(ctx context.Context, oldPassword, newPassword string) error
+	RegisterUser(context.Context, auth.RegisterUserInput) (auth.User, error)
 	DeleteUser(ctx context.Context, input auth.DeleteUserInput) error
 }
 

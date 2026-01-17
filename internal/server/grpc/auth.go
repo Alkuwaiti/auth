@@ -73,12 +73,7 @@ func (s *server) ChangePassword(ctx context.Context, req *authv1.ChangePasswordR
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	userID, err := core.UserIDFromContext(ctx)
-	if err != nil {
-		return &emptypb.Empty{}, MapError(err)
-	}
-
-	err = s.authService.ChangePassword(ctx, userID, req.OldPassword, req.NewPassword)
+	err := s.authService.ChangePassword(ctx, req.OldPassword, req.NewPassword)
 	if err != nil {
 		return nil, MapError(err)
 	}
@@ -127,7 +122,7 @@ func (s *server) DeleteUser(ctx context.Context, req *authv1.DeleteUserRequest) 
 	err = s.authService.DeleteUser(ctx, auth.DeleteUserInput{
 		UserID:         userID,
 		ActorID:        actorID,
-		DeletionReason: core.DeletionReason(req.Reason),
+		DeletionReason: auth.DeletionReason(req.Reason),
 		Note:           req.Note,
 	})
 	if err != nil {

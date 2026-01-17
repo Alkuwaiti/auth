@@ -12,7 +12,14 @@ SELECT EXISTS (
 
 
 -- name: GetUserByEmail :one
-SELECT * FROM users WHERE email = $1;
+SELECT
+  u.*,
+  ARRAY_AGG(r.name)::text[] AS roles
+FROM users u
+JOIN user_roles ur ON u.id = ur.user_id
+JOIN roles r ON ur.role_id = r.id
+WHERE u.email = $1
+GROUP BY u.id;
 
 -- name: GetUserByID :one
 SELECT * FROM users WHERE id = $1;
@@ -69,4 +76,16 @@ WHERE user_id = $1
 -- name: CreateAuditLog :exec
 INSERT INTO auth_audit_logs (user_id, action, ip_address, user_agent, actor_id, context)
 VALUES ($1, $2, $3, $4, $5, $6);
+
+
+-- authorization
+
+-- name: GetRoleIDByName :one
+SELECT id
+FROM roles
+WHERE name = $1;
+
+-- name: AssignRoleToUser :exec
+INSERT INTO user_roles (user_id, role_id, assigned_at)
+VALUES ($1, $2, NOW());
 

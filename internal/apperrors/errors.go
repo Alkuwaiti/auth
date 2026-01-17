@@ -61,3 +61,9 @@ type RefreshDisabledError struct{}
 func (e *RefreshDisabledError) Error() string {
 	return "refresh tokens disabled by system"
 }
+
+type ForbiddenError struct{}
+
+func (e *ForbiddenError) Error() string {
+	return "forbidden"
+}

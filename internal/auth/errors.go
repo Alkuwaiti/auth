@@ -1,4 +1,4 @@
-package core
+package auth
 
 import "errors"
 
@@ -7,5 +7,5 @@ var (
 
 	ErrSessionNotFound = errors.New("session not found")
 
-	ErrUserNotFoundOrAlreadyDeleted = errors.New("User not found or already deleted")
+	ErrUserNotFoundOrAlreadyDeleted = errors.New("user not found or already deleted")
 )
