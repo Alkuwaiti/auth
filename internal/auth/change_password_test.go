@@ -97,8 +97,6 @@ func TestChangePassword(t *testing.T) {
 					`, userID)
 					require.NoError(t, err)
 				}
-			} else {
-				userID = uuid.New()
 			}
 
 			err := service.ChangePassword(ctx, tt.oldPassword, tt.newPassword)
