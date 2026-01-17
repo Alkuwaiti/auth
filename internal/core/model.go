@@ -13,6 +13,8 @@ type UserAgentKey struct{}
 
 type IPAddressKey struct{}
 
+type RolesKey struct{}
+
 type AccessClaims struct {
 	Email string   `json:"email"`
 	Roles []string `json:"roles"`

@@ -50,6 +50,7 @@ func AuthUnaryInterceptor(
 
 		ctx = context.WithValue(ctx, core.EmailKey{}, claims.Email)
 		ctx = context.WithValue(ctx, core.UserIDKey{}, claims.Subject)
+		ctx = context.WithValue(ctx, core.RolesKey{}, claims.Roles)
 
 		return handler(ctx, req)
 	}

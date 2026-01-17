@@ -20,3 +20,12 @@ func UserIDFromContext(ctx context.Context) (uuid.UUID, error) {
 
 	return id, nil
 }
+
+func UserRolesFromContext(ctx context.Context) ([]string, error) {
+	roles, ok := ctx.Value(RolesKey{}).([]string)
+	if !ok {
+		return nil, &apperrors.InvalidCredentialsError{}
+	}
+
+	return roles, nil
+}

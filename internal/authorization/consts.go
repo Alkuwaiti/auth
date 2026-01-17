@@ -3,8 +3,10 @@ package authz
 
 type Role string
 
+type Capability string
+
 const (
-	UserRole   Role = "user"
-	AdminRole  Role = "admin"
-	SuperAdmin Role = "super_admin"
+	CanDeleteUser    Capability = "user.delete"
+	CanRevokeSession Capability = "session.revoke"
+	CanAssignRole    Capability = "role.assign"
 )

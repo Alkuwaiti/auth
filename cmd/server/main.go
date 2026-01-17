@@ -14,6 +14,7 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth"
+	authz "github.com/alkuwaiti/auth/internal/authorization"
 	"github.com/alkuwaiti/auth/internal/config"
 	"github.com/alkuwaiti/auth/internal/db"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
@@ -82,9 +83,11 @@ func main() {
 		RefreshTokensEnabled: cfg.RefreshEnabled,
 	})
 
+	authorizerService := authz.New()
+
 	authRepo := auth.NewRepo(dbConn)
 
-	authService := auth.NewService(authRepo, passwordService, auditService, flagsService, auth.Config{
+	authService := auth.NewService(authRepo, passwordService, auditService, authorizerService, flagsService, auth.Config{
 		Issuer:   name,
 		Audience: name,
 		JWTKey:   []byte(cfg.JWTKey),

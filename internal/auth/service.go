@@ -11,6 +11,7 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/audit"
+	authz "github.com/alkuwaiti/auth/internal/authorization"
 	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/observability"
 	"github.com/golang-jwt/jwt/v5"
@@ -20,11 +21,12 @@ import (
 )
 
 type service struct {
-	repo            *repo
-	config          Config
-	passwordService passwordService
-	auditService    auditService
-	flags           featureFlags
+	repo              *repo
+	config            Config
+	passwordService   passwordService
+	auditService      auditService
+	authorizerService authorizerService
+	flags             featureFlags
 }
 
 type Config struct {
@@ -33,13 +35,14 @@ type Config struct {
 	Audience string
 }
 
-func NewService(repo *repo, passwordService passwordService, auditService auditService, flags featureFlags, config Config) *service {
+func NewService(repo *repo, passwordService passwordService, auditService auditService, authorizerService authorizerService, flags featureFlags, config Config) *service {
 	return &service{
-		repo:            repo,
-		config:          config,
-		passwordService: passwordService,
-		auditService:    auditService,
-		flags:           flags,
+		repo:              repo,
+		config:            config,
+		passwordService:   passwordService,
+		auditService:      auditService,
+		authorizerService: authorizerService,
+		flags:             flags,
 	}
 }
 
@@ -51,6 +54,10 @@ type passwordService interface {
 	Validate(password string) error
 	Hash(password string) (string, error)
 	Compare(hash string, password string) error
+}
+
+type authorizerService interface {
+	CanWithRoles(roles []string, cap authz.Capability) bool
 }
 
 type featureFlags interface {
@@ -419,8 +426,6 @@ func (s *service) Logout(ctx context.Context, refreshToken string) error {
 
 var dummyBcryptHash = "$2b$12$C6UzMDM.H6dfI/f/IKcEeOe2x7yZ0pniS3pSDOMkMt2rt7V6F2i4G"
 
-// This is the authenticated flow.
-// TODO: check if user is admin.
 func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword string) error {
 	ctx, span := tracer.Start(ctx, "AuthService.ChangePassword")
 	defer span.End()
@@ -510,10 +515,20 @@ func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 	return nil
 }
 
-// TODO: only allow specific roles to use this method.
 func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 	ctx, span := tracer.Start(ctx, "AuthService.DeleteUser")
 	defer span.End()
+
+	roles, err := core.UserRolesFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	if !s.authorizerService.CanWithRoles(roles, authz.CanDeleteUser) {
+		userID, _ := core.UserIDFromContext(ctx)
+		slog.ErrorContext(ctx, "forbidden user attempt", "user_id", userID)
+		return &apperrors.ForbiddenError{}
+	}
 
 	if err := input.validate(); err != nil {
 		span.RecordError(err)

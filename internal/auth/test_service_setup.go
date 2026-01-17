@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/alkuwaiti/auth/internal/audit"
+	authz "github.com/alkuwaiti/auth/internal/authorization"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/alkuwaiti/auth/internal/flags"
 	"github.com/alkuwaiti/auth/internal/password"
@@ -32,13 +33,15 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 
 	auditService := audit.NewService(auditRepo)
 
+	authorizerService := authz.New()
+
 	flagsService := flags.New(flags.Config{
 		RefreshTokensEnabled: true,
 	})
 
 	authRepo := NewRepo(testDB.DB)
 
-	service := NewService(authRepo, passwordService, auditService, flagsService, Config{
+	service := NewService(authRepo, passwordService, auditService, authorizerService, flagsService, Config{
 		Issuer:   "auth-service",
 		Audience: "auth-service",
 		JWTKey:   []byte("any random jwt key doesn't really matter or at least i think it doesn't matter"),
