@@ -153,6 +153,7 @@ func TestDeleteUser_UserIsSoftDeleted(t *testing.T) {
 	require.Equal(t, DeletionUserRequest, *deletedUser.DeletionReason)
 }
 
+// TODO: this needs cleaning up.
 func CtxWithRoles(ctx context.Context, roles []string) context.Context {
 	return context.WithValue(ctx, core.RolesKey{}, roles)
 }

@@ -182,6 +182,7 @@ func TestChangePassword_RevokesSessions(t *testing.T) {
 	require.NotNil(t, revokedAt)
 }
 
+// TODO: this needs cleaning up.
 func ContextWithUserID(ctx context.Context, userID uuid.UUID) context.Context {
 	return context.WithValue(ctx, core.UserIDKey{}, userID.String())
 }

@@ -15,6 +15,8 @@ type IPAddressKey struct{}
 
 type RolesKey struct{}
 
+// TODO: this probably shouldn't be here.
+
 type AccessClaims struct {
 	Email string   `json:"email"`
 	Roles []string `json:"roles"`
