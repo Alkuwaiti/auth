@@ -14,7 +14,6 @@ import (
 	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/observability"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -422,13 +421,18 @@ var dummyBcryptHash = "$2b$12$C6UzMDM.H6dfI/f/IKcEeOe2x7yZ0pniS3pSDOMkMt2rt7V6F2
 
 // This is the authenticated flow.
 // TODO: check if user is admin.
-func (s *service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error {
+func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword string) error {
 	ctx, span := tracer.Start(ctx, "AuthService.ChangePassword")
 	defer span.End()
 
+	userID, err := core.UserIDFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
 	meta := observability.RequestMetaFromContext(ctx)
 
-	if err := s.passwordService.Validate(newPassword); err != nil {
+	if err = s.passwordService.Validate(newPassword); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to validate password")
 		return err

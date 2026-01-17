@@ -217,7 +217,7 @@ func TestRefreshToken_AfterPasswordChange(t *testing.T) {
 
 	ctx := testutil.CtxWithRequestMeta()
 
-	user, err := service.RegisterUser(ctx, RegisterUserInput{
+	_, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "test",
 		Email:    "test@example.com",
 		Password: "OldPassword123!",
@@ -227,7 +227,7 @@ func TestRefreshToken_AfterPasswordChange(t *testing.T) {
 	loginTokens, err := service.Login(ctx, "test@example.com", "OldPassword123!")
 	require.NoError(t, err)
 
-	err = service.ChangePassword(ctx, user.ID, "OldPassword123!", "NewPassword123!")
+	err = service.ChangePassword(ctx, "OldPassword123!", "NewPassword123!")
 	require.NoError(t, err)
 
 	_, err = service.RefreshToken(ctx, loginTokens.RefreshToken)

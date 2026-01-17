@@ -73,12 +73,7 @@ func (s *server) ChangePassword(ctx context.Context, req *authv1.ChangePasswordR
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	userID, err := core.UserIDFromContext(ctx)
-	if err != nil {
-		return &emptypb.Empty{}, MapError(err)
-	}
-
-	err = s.authService.ChangePassword(ctx, userID, req.OldPassword, req.NewPassword)
+	err := s.authService.ChangePassword(ctx, req.OldPassword, req.NewPassword)
 	if err != nil {
 		return nil, MapError(err)
 	}
