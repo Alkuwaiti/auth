@@ -8,6 +8,8 @@ import (
 	"github.com/alkuwaiti/auth/internal/core"
 )
 
+// TODO: maybe create two sub packages: logging & tracing.
+
 type ContextHandler struct {
 	next slog.Handler
 }
