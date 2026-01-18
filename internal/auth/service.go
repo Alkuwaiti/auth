@@ -3,8 +3,6 @@ package auth
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"errors"
 	"log/slog"
 	"time"
@@ -14,7 +12,7 @@ import (
 	authz "github.com/alkuwaiti/auth/internal/authorization"
 	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/observability"
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/alkuwaiti/auth/internal/tokens"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -181,7 +179,7 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
-	accessToken, err := generateAccessToken(s.config.JWTKey, user.Roles, user.ID.String(), user.Email, s.config.Issuer, s.config.Audience)
+	accessToken, err := tokens.GenerateAccessToken(s.config.JWTKey, user.Roles, user.ID.String(), user.Email, s.config.Issuer, s.config.Audience)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "access token generation failed")
@@ -189,7 +187,7 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 		return TokenPair{}, err
 	}
 
-	refreshToken, err := generateRefreshToken()
+	refreshToken, err := tokens.GenerateRefreshToken()
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "refresh token generation failed")
@@ -232,39 +230,6 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 		RefreshExpiresAt: expiresAt,
 		UserID:           user.ID,
 	}, nil
-}
-
-// TODO: change the audience when the time comes.
-func generateAccessToken(
-	secret []byte,
-	roles []string,
-	userID, email, issuer, audience string,
-) (string, error) {
-
-	claims := core.AccessClaims{
-		Email: email,
-		Roles: roles,
-		RegisteredClaims: jwt.RegisteredClaims{
-			Subject:   userID,
-			Issuer:    issuer,
-			Audience:  jwt.ClaimStrings{audience},
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(secret)
-}
-
-func generateRefreshToken() (string, error) {
-	b := make([]byte, 32)
-	_, err := rand.Read(b)
-	if err != nil {
-		return "", err
-	}
-
-	return base64.URLEncoding.EncodeToString(b), nil
 }
 
 func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenPair, error) {
@@ -348,7 +313,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
-	newRefreshToken, err := generateRefreshToken()
+	newRefreshToken, err := tokens.GenerateRefreshToken()
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "refresh token generation failed")
@@ -372,7 +337,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 		return TokenPair{}, err
 	}
 
-	accessToken, err := generateAccessToken(s.config.JWTKey, user.Roles, user.ID.String(), user.Email, s.config.Issuer, s.config.Audience)
+	accessToken, err := tokens.GenerateAccessToken(s.config.JWTKey, user.Roles, user.ID.String(), user.Email, s.config.Issuer, s.config.Audience)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "access token generation failed")

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/alkuwaiti/auth/internal/core"
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/alkuwaiti/auth/internal/tokens"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -44,7 +44,7 @@ func AuthUnaryInterceptor(
 			return nil, status.Error(codes.Unauthenticated, "missing token")
 		}
 
-		claims, err := validateJWT(tokenStr, jwtKey, issuer, audience)
+		claims, err := tokens.ValidateJWT(tokenStr, jwtKey, issuer, audience)
 		if err != nil {
 			return nil, status.Error(codes.Unauthenticated, "invalid token")
 		}
@@ -74,35 +74,4 @@ func extractBearerToken(ctx context.Context) (string, error) {
 	}
 
 	return strings.TrimPrefix(values[0], prefix), nil
-}
-
-func validateJWT(
-	tokenStr string,
-	key []byte,
-	issuer string,
-	audience string,
-) (*core.AccessClaims, error) {
-
-	token, err := jwt.ParseWithClaims(
-		tokenStr,
-		&core.AccessClaims{},
-		func(t *jwt.Token) (any, error) {
-			if t.Method != jwt.SigningMethodHS256 {
-				return nil, errors.New("unexpected signing method")
-			}
-			return key, nil
-		},
-		jwt.WithIssuer(issuer),
-		jwt.WithAudience(audience),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	claims, ok := token.Claims.(*core.AccessClaims)
-	if !ok || !token.Valid {
-		return nil, errors.New("invalid token")
-	}
-
-	return claims, nil
 }
