@@ -17,6 +17,7 @@ var publicMethods = map[string]struct{}{
 	"/auth.v1.AuthService/Login":        {},
 	"/auth.v1.AuthService/RegisterUser": {},
 	"/auth.v1.AuthService/RefreshToken": {},
+	"/auth.v1.AuthService/Logout":       {},
 }
 
 func AuthUnaryInterceptor(
