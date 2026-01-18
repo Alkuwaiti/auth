@@ -3,10 +3,8 @@
 package auth
 
 import (
-	"context"
 	"testing"
 
-	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -17,7 +15,7 @@ func TestDeleteUser_Success(t *testing.T) {
 	defer cleanup()
 
 	ctx := testutil.CtxWithRequestMeta()
-	ctx = CtxWithRoles(ctx, []string{"admin"})
+	ctx = testutil.CtxWithRoles(ctx, []string{"admin"})
 
 	actor, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "actorUser",
@@ -48,7 +46,7 @@ func TestDeleteUser_AlreadyDeleted(t *testing.T) {
 	defer cleanup()
 
 	ctx := testutil.CtxWithRequestMeta()
-	ctx = CtxWithRoles(ctx, []string{"admin"})
+	ctx = testutil.CtxWithRoles(ctx, []string{"admin"})
 
 	actor, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "actorUser",
@@ -87,7 +85,7 @@ func TestDeleteUser_UserDoesNotExist(t *testing.T) {
 	defer cleanup()
 
 	ctx := testutil.CtxWithRequestMeta()
-	ctx = CtxWithRoles(ctx, []string{"admin"})
+	ctx = testutil.CtxWithRoles(ctx, []string{"admin"})
 
 	actor, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "actorUser",
@@ -124,7 +122,7 @@ func TestDeleteUser_UserIsSoftDeleted(t *testing.T) {
 	defer cleanup()
 
 	ctx := testutil.CtxWithRequestMeta()
-	ctx = CtxWithRoles(ctx, []string{"admin"})
+	ctx = testutil.CtxWithRoles(ctx, []string{"admin"})
 
 	user, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "softDeleteUser",
@@ -151,9 +149,4 @@ func TestDeleteUser_UserIsSoftDeleted(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, deletedUser.DeletedAt)
 	require.Equal(t, DeletionUserRequest, *deletedUser.DeletionReason)
-}
-
-// TODO: this needs cleaning up.
-func CtxWithRoles(ctx context.Context, roles []string) context.Context {
-	return context.WithValue(ctx, core.RolesKey{}, roles)
 }

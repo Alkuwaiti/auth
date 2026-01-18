@@ -47,7 +47,6 @@ func main() {
 		panic(err)
 	}
 
-	// TODO: fix this logger to show user ID or email as a default.
 	observability.SetDefaultLogger(level, name, cfg.Environment)
 
 	tp, err := observability.InitTracer(
