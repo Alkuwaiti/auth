@@ -1,4 +1,4 @@
-// Package auth handles tokens business logic
+// Package auth handles tokenManager business logic
 package auth
 
 import (
@@ -20,27 +20,21 @@ import (
 
 type service struct {
 	repo              *repo
-	config            Config
 	passwordService   passwordService
 	auditService      auditService
 	authorizerService authorizerService
 	flags             featureFlags
+	tokenManager      tokenManager
 }
 
-type Config struct {
-	JWTKey   []byte
-	Issuer   string
-	Audience string
-}
-
-func NewService(repo *repo, passwordService passwordService, auditService auditService, authorizerService authorizerService, flags featureFlags, config Config) *service {
+func NewService(repo *repo, passwordService passwordService, auditService auditService, authorizerService authorizerService, flags featureFlags, tokenManager tokenManager) *service {
 	return &service{
 		repo:              repo,
-		config:            config,
 		passwordService:   passwordService,
 		auditService:      auditService,
 		authorizerService: authorizerService,
 		flags:             flags,
+		tokenManager:      tokenManager,
 	}
 }
 
@@ -60,6 +54,12 @@ type authorizerService interface {
 
 type featureFlags interface {
 	RefreshTokensEnabled(ctx context.Context) bool
+}
+
+type tokenManager interface {
+	GenerateAccessToken(roles []string, userID, email string) (string, error)
+	ValidateJWT(tokenStr string) (*tokens.AccessClaims, error)
+	GenerateRefreshToken() (string, error)
 }
 
 var tracer = otel.Tracer("auth-service/auth")
@@ -137,7 +137,7 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 	defer span.End()
 
 	if !s.flags.RefreshTokensEnabled(ctx) {
-		span.SetStatus(codes.Error, "Refresh tokens disabled")
+		span.SetStatus(codes.Error, "Refresh tokenManager disabled")
 		return TokenPair{}, &apperrors.RefreshDisabledError{}
 	}
 
@@ -179,7 +179,7 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
-	accessToken, err := tokens.GenerateAccessToken(s.config.JWTKey, user.Roles, user.ID.String(), user.Email, s.config.Issuer, s.config.Audience)
+	accessToken, err := s.tokenManager.GenerateAccessToken(user.Roles, user.ID.String(), user.Email)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "access token generation failed")
@@ -187,7 +187,7 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 		return TokenPair{}, err
 	}
 
-	refreshToken, err := tokens.GenerateRefreshToken()
+	refreshToken, err := s.tokenManager.GenerateRefreshToken()
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "refresh token generation failed")
@@ -237,7 +237,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 	defer span.End()
 
 	if !s.flags.RefreshTokensEnabled(ctx) {
-		span.SetStatus(codes.Error, "Refresh tokens disabled")
+		span.SetStatus(codes.Error, "Refresh tokenManager disabled")
 		return TokenPair{}, &apperrors.RefreshDisabledError{}
 	}
 
@@ -313,7 +313,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
-	newRefreshToken, err := tokens.GenerateRefreshToken()
+	newRefreshToken, err := s.tokenManager.GenerateRefreshToken()
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "refresh token generation failed")
@@ -337,7 +337,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 		return TokenPair{}, err
 	}
 
-	accessToken, err := tokens.GenerateAccessToken(s.config.JWTKey, user.Roles, user.ID.String(), user.Email, s.config.Issuer, s.config.Audience)
+	accessToken, err := s.tokenManager.GenerateAccessToken(user.Roles, user.ID.String(), user.Email)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "access token generation failed")

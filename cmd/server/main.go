@@ -22,6 +22,7 @@ import (
 	"github.com/alkuwaiti/auth/internal/observability"
 	"github.com/alkuwaiti/auth/internal/password"
 	"github.com/alkuwaiti/auth/internal/server/grpc"
+	"github.com/alkuwaiti/auth/internal/tokens"
 )
 
 var (
@@ -85,21 +86,22 @@ func main() {
 
 	authorizerService := authz.New()
 
-	authRepo := auth.NewRepo(dbConn)
-
-	authService := auth.NewService(authRepo, passwordService, auditService, authorizerService, flagsService, auth.Config{
+	tokenManager := tokens.New(tokens.Config{
+		JWTKey:   []byte(cfg.JWTKey),
 		Issuer:   name,
 		Audience: name,
-		JWTKey:   []byte(cfg.JWTKey),
 	})
+
+	authRepo := auth.NewRepo(dbConn)
+
+	authService := auth.NewService(authRepo, passwordService, auditService, authorizerService, flagsService, tokenManager)
 
 	port := 8081
 
 	srv := grpc.NewServer(authService, grpc.Config{
-		Host:   "", // listen on all interfaces ":8081"
-		Port:   port,
-		JWTKey: []byte(cfg.JWTKey),
-		Name:   name,
+		Host:         "", // listen on all interfaces ":8081"
+		Port:         port,
+		TokenManager: *tokenManager,
 	})
 
 	slog.InfoContext(ctx, "starting grpc server", "port", port, "commit", commit, "ref", ref, "version", version)

@@ -8,6 +8,7 @@ import (
 	"net"
 
 	"github.com/alkuwaiti/auth/internal/auth"
+	"github.com/alkuwaiti/auth/internal/tokens"
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
@@ -33,10 +34,9 @@ type authService interface {
 }
 
 type Config struct {
-	Host   string
-	Port   int
-	JWTKey []byte
-	Name   string
+	Host         string
+	Port         int
+	TokenManager tokens.Manager
 }
 
 func (c Config) String() string {
@@ -69,11 +69,13 @@ func (s *server) Start(ctx context.Context) error {
 		return err
 	}
 
+	authInterceptor := NewAuthInterceptor(s.cfg.TokenManager)
+
 	s.srv = grpc.NewServer(
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		grpc.ChainUnaryInterceptor(
 			RequestMetaInterceptor(),
-			AuthUnaryInterceptor(s.cfg.JWTKey, s.cfg.Name, s.cfg.Name),
+			authInterceptor.Unary(),
 		),
 	)
 

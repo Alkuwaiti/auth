@@ -20,12 +20,15 @@ var publicMethods = map[string]struct{}{
 	"/auth.v1.AuthService/Logout":       {},
 }
 
-func AuthUnaryInterceptor(
-	jwtKey []byte,
-	issuer string,
-	audience string,
-) grpc.UnaryServerInterceptor {
+type AuthInterceptor struct {
+	tokenManager tokens.Manager
+}
 
+func NewAuthInterceptor(tm tokens.Manager) *AuthInterceptor {
+	return &AuthInterceptor{tokenManager: tm}
+}
+
+func (i *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req any,
@@ -44,7 +47,7 @@ func AuthUnaryInterceptor(
 			return nil, status.Error(codes.Unauthenticated, "missing token")
 		}
 
-		claims, err := tokens.ValidateJWT(tokenStr, jwtKey, issuer, audience)
+		claims, err := i.tokenManager.ValidateJWT(tokenStr)
 		if err != nil {
 			return nil, status.Error(codes.Unauthenticated, "invalid token")
 		}

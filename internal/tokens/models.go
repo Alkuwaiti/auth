@@ -8,3 +8,9 @@ type AccessClaims struct {
 	Roles []string `json:"roles"`
 	jwt.RegisteredClaims
 }
+
+type Config struct {
+	JWTKey   []byte
+	Issuer   string
+	Audience string
+}
