@@ -8,7 +8,6 @@ import (
 	"net"
 
 	"github.com/alkuwaiti/auth/internal/auth"
-	"github.com/alkuwaiti/auth/internal/tokens"
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
@@ -34,16 +33,20 @@ type authService interface {
 }
 
 type Config struct {
-	Host         string
-	Port         int
-	TokenManager tokens.Manager
+	Host string
+	Port int
 }
 
 func (c Config) String() string {
 	return fmt.Sprintf("%s: %d", c.Host, c.Port)
 }
 
-func NewServer(authService authService, cfg Config) *server {
+func NewServer(
+	authService authService,
+	cfg Config,
+	interceptors ...grpc.UnaryServerInterceptor,
+) *server {
+
 	if authService == nil {
 		panic("auth service is nil")
 	}
@@ -52,32 +55,32 @@ func NewServer(authService authService, cfg Config) *server {
 		panic(fmt.Sprintf("invalid port: %d", cfg.Port))
 	}
 
-	return &server{
+	serverOpts := []grpc.ServerOption{
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+	}
+
+	if len(interceptors) > 0 {
+		serverOpts = append(
+			serverOpts,
+			grpc.ChainUnaryInterceptor(interceptors...),
+		)
+	}
+
+	s := &server{
 		cfg:         cfg,
 		authService: authService,
+		srv:         grpc.NewServer(serverOpts...),
 	}
+
+	return s
 }
 
 func (s *server) Start(ctx context.Context) error {
-	if s.srv != nil {
-		return fmt.Errorf("server already started")
-	}
-
 	lc := net.ListenConfig{}
 	lis, err := lc.Listen(ctx, "tcp", s.cfg.String())
 	if err != nil {
 		return err
 	}
-
-	authInterceptor := NewAuthInterceptor(s.cfg.TokenManager)
-
-	s.srv = grpc.NewServer(
-		grpc.StatsHandler(otelgrpc.NewServerHandler()),
-		grpc.ChainUnaryInterceptor(
-			RequestMetaInterceptor(),
-			authInterceptor.Unary(),
-		),
-	)
 
 	authv1.RegisterAuthServiceServer(s.srv, s)
 
