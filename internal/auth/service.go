@@ -1,10 +1,8 @@
-// Package auth handles tokens business logic
+// Package auth handles tokenManager business logic
 package auth
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"errors"
 	"log/slog"
 	"time"
@@ -13,8 +11,7 @@ import (
 	"github.com/alkuwaiti/auth/internal/audit"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
 	"github.com/alkuwaiti/auth/internal/core"
-	"github.com/alkuwaiti/auth/internal/observability"
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/alkuwaiti/auth/internal/tokens"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -22,27 +19,21 @@ import (
 
 type service struct {
 	repo              *repo
-	config            Config
 	passwordService   passwordService
 	auditService      auditService
 	authorizerService authorizerService
 	flags             featureFlags
+	tokenManager      tokenManager
 }
 
-type Config struct {
-	JWTKey   []byte
-	Issuer   string
-	Audience string
-}
-
-func NewService(repo *repo, passwordService passwordService, auditService auditService, authorizerService authorizerService, flags featureFlags, config Config) *service {
+func NewService(repo *repo, passwordService passwordService, auditService auditService, authorizerService authorizerService, flags featureFlags, tokenManager tokenManager) *service {
 	return &service{
 		repo:              repo,
-		config:            config,
 		passwordService:   passwordService,
 		auditService:      auditService,
 		authorizerService: authorizerService,
 		flags:             flags,
+		tokenManager:      tokenManager,
 	}
 }
 
@@ -64,13 +55,19 @@ type featureFlags interface {
 	RefreshTokensEnabled(ctx context.Context) bool
 }
 
+type tokenManager interface {
+	GenerateAccessToken(roles []string, userID, email string) (string, error)
+	ValidateJWT(tokenStr string) (*tokens.AccessClaims, error)
+	GenerateRefreshToken() (string, error)
+}
+
 var tracer = otel.Tracer("auth-service/auth")
 
 func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (User, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.RegisterUser")
 	defer span.End()
 
-	meta := observability.RequestMetaFromContext(ctx)
+	meta := core.RequestMetaFromContext(ctx)
 
 	span.SetAttributes(
 		attribute.String("user.username", input.Username),
@@ -139,17 +136,16 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 	defer span.End()
 
 	if !s.flags.RefreshTokensEnabled(ctx) {
-		span.SetStatus(codes.Error, "Refresh tokens disabled")
+		span.SetStatus(codes.Error, "Refresh tokenManager disabled")
 		return TokenPair{}, &apperrors.RefreshDisabledError{}
 	}
 
-	meta := observability.RequestMetaFromContext(ctx)
+	meta := core.RequestMetaFromContext(ctx)
 
 	span.SetAttributes(
 		attribute.String("user.email_hash", core.HashForTelemetry(email)),
 	)
 
-	// TODO: index email in the db.
 	user, err := s.repo.getUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
@@ -181,7 +177,7 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
-	accessToken, err := generateAccessToken(s.config.JWTKey, user.Roles, user.ID.String(), user.Email, s.config.Issuer, s.config.Audience)
+	accessToken, err := s.tokenManager.GenerateAccessToken(user.Roles, user.ID.String(), user.Email)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "access token generation failed")
@@ -189,7 +185,7 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 		return TokenPair{}, err
 	}
 
-	refreshToken, err := generateRefreshToken()
+	refreshToken, err := s.tokenManager.GenerateRefreshToken()
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "refresh token generation failed")
@@ -234,49 +230,16 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 	}, nil
 }
 
-// TODO: change the audience when the time comes.
-func generateAccessToken(
-	secret []byte,
-	roles []string,
-	userID, email, issuer, audience string,
-) (string, error) {
-
-	claims := core.AccessClaims{
-		Email: email,
-		Roles: roles,
-		RegisteredClaims: jwt.RegisteredClaims{
-			Subject:   userID,
-			Issuer:    issuer,
-			Audience:  jwt.ClaimStrings{audience},
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(secret)
-}
-
-func generateRefreshToken() (string, error) {
-	b := make([]byte, 32)
-	_, err := rand.Read(b)
-	if err != nil {
-		return "", err
-	}
-
-	return base64.URLEncoding.EncodeToString(b), nil
-}
-
 func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenPair, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.RefreshToken")
 	defer span.End()
 
 	if !s.flags.RefreshTokensEnabled(ctx) {
-		span.SetStatus(codes.Error, "Refresh tokens disabled")
+		span.SetStatus(codes.Error, "Refresh tokenManager disabled")
 		return TokenPair{}, &apperrors.RefreshDisabledError{}
 	}
 
-	meta := observability.RequestMetaFromContext(ctx)
+	meta := core.RequestMetaFromContext(ctx)
 
 	session, err := s.repo.getSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
@@ -348,7 +311,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
-	newRefreshToken, err := generateRefreshToken()
+	newRefreshToken, err := s.tokenManager.GenerateRefreshToken()
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "refresh token generation failed")
@@ -372,7 +335,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 		return TokenPair{}, err
 	}
 
-	accessToken, err := generateAccessToken(s.config.JWTKey, user.Roles, user.ID.String(), user.Email, s.config.Issuer, s.config.Audience)
+	accessToken, err := s.tokenManager.GenerateAccessToken(user.Roles, user.ID.String(), user.Email)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "access token generation failed")
@@ -397,7 +360,7 @@ func (s *service) Logout(ctx context.Context, refreshToken string) error {
 	ctx, span := tracer.Start(ctx, "AuthService.Logout")
 	defer span.End()
 
-	meta := observability.RequestMetaFromContext(ctx)
+	meta := core.RequestMetaFromContext(ctx)
 
 	session, err := s.repo.getSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
@@ -435,7 +398,7 @@ func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 		return err
 	}
 
-	meta := observability.RequestMetaFromContext(ctx)
+	meta := core.RequestMetaFromContext(ctx)
 
 	if err = s.passwordService.Validate(newPassword); err != nil {
 		span.RecordError(err)
@@ -537,7 +500,7 @@ func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 		return err
 	}
 
-	meta := observability.RequestMetaFromContext(ctx)
+	meta := core.RequestMetaFromContext(ctx)
 
 	if err := s.repo.deleteUserAndRevokeSessions(ctx, input.UserID, input.DeletionReason, RevocationUserDeleted); err != nil {
 		if errors.Is(err, ErrUserNotFoundOrAlreadyDeleted) {

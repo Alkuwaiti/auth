@@ -33,17 +33,20 @@ type authService interface {
 }
 
 type Config struct {
-	Host   string
-	Port   int
-	JWTKey []byte
-	Name   string
+	Host string
+	Port int
 }
 
 func (c Config) String() string {
 	return fmt.Sprintf("%s: %d", c.Host, c.Port)
 }
 
-func NewServer(authService authService, cfg Config) *server {
+func NewServer(
+	authService authService,
+	cfg Config,
+	interceptors ...grpc.UnaryServerInterceptor,
+) *server {
+
 	if authService == nil {
 		panic("auth service is nil")
 	}
@@ -52,30 +55,32 @@ func NewServer(authService authService, cfg Config) *server {
 		panic(fmt.Sprintf("invalid port: %d", cfg.Port))
 	}
 
-	return &server{
+	serverOpts := []grpc.ServerOption{
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+	}
+
+	if len(interceptors) > 0 {
+		serverOpts = append(
+			serverOpts,
+			grpc.ChainUnaryInterceptor(interceptors...),
+		)
+	}
+
+	s := &server{
 		cfg:         cfg,
 		authService: authService,
+		srv:         grpc.NewServer(serverOpts...),
 	}
+
+	return s
 }
 
 func (s *server) Start(ctx context.Context) error {
-	if s.srv != nil {
-		return fmt.Errorf("server already started")
-	}
-
 	lc := net.ListenConfig{}
 	lis, err := lc.Listen(ctx, "tcp", s.cfg.String())
 	if err != nil {
 		return err
 	}
-
-	s.srv = grpc.NewServer(
-		grpc.StatsHandler(otelgrpc.NewServerHandler()),
-		grpc.ChainUnaryInterceptor(
-			RequestMetaInterceptor(),
-			AuthUnaryInterceptor(s.cfg.JWTKey, s.cfg.Name, s.cfg.Name),
-		),
-	)
 
 	authv1.RegisterAuthServiceServer(s.srv, s)
 

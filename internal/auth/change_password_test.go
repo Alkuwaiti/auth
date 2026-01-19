@@ -3,12 +3,10 @@
 package auth
 
 import (
-	"context"
 	"testing"
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
-	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -87,7 +85,7 @@ func TestChangePassword(t *testing.T) {
 				require.NoError(t, err)
 				userID = user.ID
 
-				ctx = ContextWithUserID(ctx, user.ID)
+				ctx = testutil.CtxWithUserID(ctx, user.ID)
 
 				if tt.deleteUser {
 					_, err = db.Exec(`
@@ -135,7 +133,7 @@ func TestChangePassword_CreatesAuditLog(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	ctx = ContextWithUserID(ctx, user.ID)
+	ctx = testutil.CtxWithUserID(ctx, user.ID)
 
 	err = service.ChangePassword(ctx, "OldPassword123!", "NewPassword123!")
 	require.NoError(t, err)
@@ -163,7 +161,7 @@ func TestChangePassword_RevokesSessions(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	ctx = ContextWithUserID(ctx, user.ID)
+	ctx = testutil.CtxWithUserID(ctx, user.ID)
 
 	// login generates a session
 	loginTokens, err := service.Login(ctx, "test@example.com", "OldPassword123!")
@@ -180,9 +178,4 @@ func TestChangePassword_RevokesSessions(t *testing.T) {
 	`, loginTokens.RefreshToken).Scan(&revokedAt)
 	require.NoError(t, err)
 	require.NotNil(t, revokedAt)
-}
-
-// TODO: this needs cleaning up.
-func ContextWithUserID(ctx context.Context, userID uuid.UUID) context.Context {
-	return context.WithValue(ctx, core.UserIDKey{}, userID.String())
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/alkuwaiti/auth/internal/flags"
 	"github.com/alkuwaiti/auth/internal/password"
 	"github.com/alkuwaiti/auth/internal/testutil"
+	"github.com/alkuwaiti/auth/internal/tokens"
 	"github.com/stretchr/testify/require"
 )
 
@@ -41,11 +42,13 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 
 	authRepo := NewRepo(testDB.DB)
 
-	service := NewService(authRepo, passwordService, auditService, authorizerService, flagsService, Config{
+	tokenManager := tokens.New(tokens.Config{
 		Issuer:   "auth-service",
 		Audience: "auth-service",
 		JWTKey:   []byte("any random jwt key doesn't really matter or at least i think it doesn't matter"),
 	})
+
+	service := NewService(authRepo, passwordService, auditService, authorizerService, flagsService, tokenManager)
 
 	cleanup := func() {
 		_ = testDB.DB.Close()

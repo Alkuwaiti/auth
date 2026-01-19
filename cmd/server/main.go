@@ -19,9 +19,11 @@ import (
 	"github.com/alkuwaiti/auth/internal/db"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/alkuwaiti/auth/internal/flags"
-	"github.com/alkuwaiti/auth/internal/observability"
+	"github.com/alkuwaiti/auth/internal/observability/logging"
+	"github.com/alkuwaiti/auth/internal/observability/tracing"
 	"github.com/alkuwaiti/auth/internal/password"
 	"github.com/alkuwaiti/auth/internal/server/grpc"
+	"github.com/alkuwaiti/auth/internal/tokens"
 )
 
 var (
@@ -47,12 +49,11 @@ func main() {
 		panic(err)
 	}
 
-	// TODO: fix this logger to show user ID or email as a default.
-	observability.SetDefaultLogger(level, name, cfg.Environment)
+	logging.SetDefaultLogger(level, name, cfg.Environment)
 
-	tp, err := observability.InitTracer(
+	tp, err := tracing.InitTracer(
 		ctx,
-		observability.Config{
+		tracing.Config{
 			ServiceName:  name,
 			Environment:  cfg.Environment,
 			Version:      version,
@@ -63,7 +64,7 @@ func main() {
 		log.Fatal("failed to initialize tracer:", err)
 	}
 	defer func() {
-		if err = observability.ShutdownTracer(ctx, tp); err != nil {
+		if err = tracing.ShutdownTracer(ctx, tp); err != nil {
 			slog.Error("failed to shutdown tracer", "err", err)
 		}
 	}()
@@ -86,22 +87,26 @@ func main() {
 
 	authorizerService := authz.New()
 
-	authRepo := auth.NewRepo(dbConn)
-
-	authService := auth.NewService(authRepo, passwordService, auditService, authorizerService, flagsService, auth.Config{
+	tokenManager := tokens.New(tokens.Config{
+		JWTKey:   []byte(cfg.JWTKey),
 		Issuer:   name,
 		Audience: name,
-		JWTKey:   []byte(cfg.JWTKey),
 	})
+
+	authRepo := auth.NewRepo(dbConn)
+
+	authService := auth.NewService(authRepo, passwordService, auditService, authorizerService, flagsService, tokenManager)
 
 	port := 8081
 
+	authInterceptor := grpc.NewAuthInterceptor(*tokenManager)
+
+	requestMetaInterceptor := grpc.NewRequestMetaInterceptor()
+
 	srv := grpc.NewServer(authService, grpc.Config{
-		Host:   "", // listen on all interfaces ":8081"
-		Port:   port,
-		JWTKey: []byte(cfg.JWTKey),
-		Name:   name,
-	})
+		Host: "", // listen on all interfaces ":8081"
+		Port: port,
+	}, authInterceptor.Unary(), requestMetaInterceptor.Unary())
 
 	slog.InfoContext(ctx, "starting grpc server", "port", port, "commit", commit, "ref", ref, "version", version)
 	go func(ctx context.Context) {

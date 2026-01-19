@@ -1,5 +1,5 @@
-// Package observability provides OTEL for the auth service.
-package observability
+// Package tracing provides OTEL for the auth service.
+package tracing
 
 import (
 	"context"

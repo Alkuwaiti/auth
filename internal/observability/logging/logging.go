@@ -1,9 +1,12 @@
-package observability
+package logging
 
 import (
 	"context"
 	"log/slog"
 	"os"
+
+	"github.com/alkuwaiti/auth/internal/core"
+	"github.com/alkuwaiti/auth/internal/observability"
 )
 
 type ContextHandler struct {
@@ -19,9 +22,12 @@ func (h *ContextHandler) Enabled(ctx context.Context, level slog.Level) bool {
 }
 
 func (h *ContextHandler) Handle(ctx context.Context, r slog.Record) error {
-	// Extract request metadata
-	if meta, ok := ctx.Value(RequestMetaKeyType{}).(RequestMeta); ok {
+	if meta, ok := ctx.Value(core.RequestMetaKeyType{}).(observability.RequestMeta); ok {
 		r.AddAttrs(meta.LogAttrs()...)
+	}
+
+	if userID, ok := ctx.Value(core.UserIDKey{}).(string); ok {
+		r.AddAttrs(slog.String("user_id", userID))
 	}
 
 	return h.next.Handle(ctx, r)
