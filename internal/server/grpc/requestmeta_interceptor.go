@@ -9,8 +9,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-// TODO: maybe move this to observability sub-package as well.
-
 type RequestMetaInterceptor struct{}
 
 func NewRequestMetaInterceptor() *RequestMetaInterceptor {

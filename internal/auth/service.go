@@ -146,7 +146,6 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 		attribute.String("user.email_hash", core.HashForTelemetry(email)),
 	)
 
-	// TODO: index email in the db.
 	user, err := s.repo.getUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
