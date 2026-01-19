@@ -24,7 +24,6 @@ func (h *ContextHandler) Enabled(ctx context.Context, level slog.Level) bool {
 }
 
 func (h *ContextHandler) Handle(ctx context.Context, r slog.Record) error {
-	// Extract request metadata
 	if meta, ok := ctx.Value(core.RequestMetaKeyType{}).(observability.RequestMeta); ok {
 		r.AddAttrs(meta.LogAttrs()...)
 	}

@@ -19,8 +19,8 @@ import (
 	"github.com/alkuwaiti/auth/internal/db"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/alkuwaiti/auth/internal/flags"
-	"github.com/alkuwaiti/auth/internal/observability"
 	"github.com/alkuwaiti/auth/internal/observability/logging"
+	"github.com/alkuwaiti/auth/internal/observability/tracing"
 	"github.com/alkuwaiti/auth/internal/password"
 	"github.com/alkuwaiti/auth/internal/server/grpc"
 	"github.com/alkuwaiti/auth/internal/tokens"
@@ -51,9 +51,9 @@ func main() {
 
 	logging.SetDefaultLogger(level, name, cfg.Environment)
 
-	tp, err := observability.InitTracer(
+	tp, err := tracing.InitTracer(
 		ctx,
-		observability.Config{
+		tracing.Config{
 			ServiceName:  name,
 			Environment:  cfg.Environment,
 			Version:      version,
@@ -64,7 +64,7 @@ func main() {
 		log.Fatal("failed to initialize tracer:", err)
 	}
 	defer func() {
-		if err = observability.ShutdownTracer(ctx, tp); err != nil {
+		if err = tracing.ShutdownTracer(ctx, tp); err != nil {
 			slog.Error("failed to shutdown tracer", "err", err)
 		}
 	}()
