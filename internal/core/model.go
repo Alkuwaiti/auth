@@ -9,4 +9,6 @@ type UserAgentKey struct{}
 
 type IPAddressKey struct{}
 
+type RequestMetaKeyType struct{}
+
 type RolesKey struct{}

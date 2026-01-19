@@ -11,7 +11,7 @@ import (
 func CtxWithRequestMeta() context.Context {
 	ctx := context.Background()
 
-	return context.WithValue(ctx, observability.RequestMetaKeyType{}, observability.RequestMeta{
+	return context.WithValue(ctx, core.RequestMetaKeyType{}, observability.RequestMeta{
 		IPAddress: "127.0.0.1",
 		UserAgent: "test-agent",
 	})

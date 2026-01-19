@@ -20,6 +20,7 @@ import (
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/alkuwaiti/auth/internal/flags"
 	"github.com/alkuwaiti/auth/internal/observability"
+	"github.com/alkuwaiti/auth/internal/observability/logging"
 	"github.com/alkuwaiti/auth/internal/password"
 	"github.com/alkuwaiti/auth/internal/server/grpc"
 	"github.com/alkuwaiti/auth/internal/tokens"
@@ -48,7 +49,7 @@ func main() {
 		panic(err)
 	}
 
-	observability.SetDefaultLogger(level, name, cfg.Environment)
+	logging.SetDefaultLogger(level, name, cfg.Environment)
 
 	tp, err := observability.InitTracer(
 		ctx,

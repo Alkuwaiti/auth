@@ -11,7 +11,6 @@ import (
 	"github.com/alkuwaiti/auth/internal/audit"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
 	"github.com/alkuwaiti/auth/internal/core"
-	"github.com/alkuwaiti/auth/internal/observability"
 	"github.com/alkuwaiti/auth/internal/tokens"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -68,7 +67,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 	ctx, span := tracer.Start(ctx, "AuthService.RegisterUser")
 	defer span.End()
 
-	meta := observability.RequestMetaFromContext(ctx)
+	meta := core.RequestMetaFromContext(ctx)
 
 	span.SetAttributes(
 		attribute.String("user.username", input.Username),
@@ -141,7 +140,7 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 		return TokenPair{}, &apperrors.RefreshDisabledError{}
 	}
 
-	meta := observability.RequestMetaFromContext(ctx)
+	meta := core.RequestMetaFromContext(ctx)
 
 	span.SetAttributes(
 		attribute.String("user.email_hash", core.HashForTelemetry(email)),
@@ -241,7 +240,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 		return TokenPair{}, &apperrors.RefreshDisabledError{}
 	}
 
-	meta := observability.RequestMetaFromContext(ctx)
+	meta := core.RequestMetaFromContext(ctx)
 
 	session, err := s.repo.getSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
@@ -362,7 +361,7 @@ func (s *service) Logout(ctx context.Context, refreshToken string) error {
 	ctx, span := tracer.Start(ctx, "AuthService.Logout")
 	defer span.End()
 
-	meta := observability.RequestMetaFromContext(ctx)
+	meta := core.RequestMetaFromContext(ctx)
 
 	session, err := s.repo.getSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
@@ -400,7 +399,7 @@ func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 		return err
 	}
 
-	meta := observability.RequestMetaFromContext(ctx)
+	meta := core.RequestMetaFromContext(ctx)
 
 	if err = s.passwordService.Validate(newPassword); err != nil {
 		span.RecordError(err)
@@ -502,7 +501,7 @@ func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 		return err
 	}
 
-	meta := observability.RequestMetaFromContext(ctx)
+	meta := core.RequestMetaFromContext(ctx)
 
 	if err := s.repo.deleteUserAndRevokeSessions(ctx, input.UserID, input.DeletionReason, RevocationUserDeleted); err != nil {
 		if errors.Is(err, ErrUserNotFoundOrAlreadyDeleted) {

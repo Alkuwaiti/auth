@@ -1,4 +1,4 @@
-package observability
+package logging
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/alkuwaiti/auth/internal/core"
+	"github.com/alkuwaiti/auth/internal/observability"
 )
 
 // TODO: maybe create two sub packages: logging & tracing.
@@ -24,7 +25,7 @@ func (h *ContextHandler) Enabled(ctx context.Context, level slog.Level) bool {
 
 func (h *ContextHandler) Handle(ctx context.Context, r slog.Record) error {
 	// Extract request metadata
-	if meta, ok := ctx.Value(RequestMetaKeyType{}).(RequestMeta); ok {
+	if meta, ok := ctx.Value(core.RequestMetaKeyType{}).(observability.RequestMeta); ok {
 		r.AddAttrs(meta.LogAttrs()...)
 	}
 

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
+	"github.com/alkuwaiti/auth/internal/observability"
 	"github.com/google/uuid"
 )
 
@@ -28,4 +29,13 @@ func UserRolesFromContext(ctx context.Context) ([]string, error) {
 	}
 
 	return roles, nil
+}
+
+func RequestMetaFromContext(ctx context.Context) observability.RequestMeta {
+	meta, ok := ctx.Value(RequestMetaKeyType{}).(observability.RequestMeta)
+	if !ok {
+		return observability.RequestMeta{}
+	}
+
+	return meta
 }
