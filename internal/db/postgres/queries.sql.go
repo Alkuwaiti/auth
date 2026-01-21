@@ -233,7 +233,7 @@ func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) (int64, 
 	return result.RowsAffected()
 }
 
-const getActiveChallenges = `-- name: GetActiveChallenges :many
+const getActiveChallenge = `-- name: GetActiveChallenge :one
 SELECT id, user_id, mfa_method_id, expires_at, consumed_at
 FROM mfa_challenges
 WHERE id = $1
@@ -241,7 +241,7 @@ WHERE id = $1
   AND expires_at > now()
 `
 
-type GetActiveChallengesRow struct {
+type GetActiveChallengeRow struct {
 	ID          uuid.UUID
 	UserID      uuid.UUID
 	MfaMethodID uuid.UUID
@@ -249,33 +249,17 @@ type GetActiveChallengesRow struct {
 	ConsumedAt  sql.NullTime
 }
 
-func (q *Queries) GetActiveChallenges(ctx context.Context, id uuid.UUID) ([]GetActiveChallengesRow, error) {
-	rows, err := q.db.QueryContext(ctx, getActiveChallenges, id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetActiveChallengesRow
-	for rows.Next() {
-		var i GetActiveChallengesRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.UserID,
-			&i.MfaMethodID,
-			&i.ExpiresAt,
-			&i.ConsumedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+func (q *Queries) GetActiveChallenge(ctx context.Context, id uuid.UUID) (GetActiveChallengeRow, error) {
+	row := q.db.QueryRowContext(ctx, getActiveChallenge, id)
+	var i GetActiveChallengeRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.MfaMethodID,
+		&i.ExpiresAt,
+		&i.ConsumedAt,
+	)
+	return i, err
 }
 
 const getMFAMethodsConfirmedByUser = `-- name: GetMFAMethodsConfirmedByUser :many

@@ -115,7 +115,7 @@ INSERT INTO mfa_challenges (
 )
 VALUES ($1, $2, $3, $4, $5);
 
--- name: GetActiveChallenges :many
+-- name: GetActiveChallenge :one
 SELECT id, user_id, mfa_method_id, expires_at, consumed_at
 FROM mfa_challenges
 WHERE id = $1

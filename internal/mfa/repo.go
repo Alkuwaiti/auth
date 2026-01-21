@@ -58,15 +58,35 @@ func (r *repo) GetMFAMethodsConfirmedByUser(ctx context.Context, userID uuid.UUI
 }
 
 func (r *repo) ConfirmUserMFAMethod(ctx context.Context, methodID uuid.UUID) error {
-	panic("unimplemented")
+	if err := r.queries.ConfirmUserMFAMethod(ctx, methodID); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *repo) CreateChallenge(ctx context.Context, c MFAChallenge) error {
-	panic("unimplemented")
+	if err := r.queries.CreateChallenge(ctx, postgres.CreateChallengeParams{
+		ID:            c.ID,
+		UserID:        c.UserID,
+		MfaMethodID:   c.MethodID,
+		ChallengeType: string(c.ChallengeType),
+		ExpiresAt:     c.ExpiresAt,
+	}); err != nil {
+		return err
+	}
+
+	return nil
+
 }
 
-func (r *repo) GetActiveChallenges(ctx context.Context, id uuid.UUID) (*MFAChallenge, error) {
-	panic("unimplemented")
+func (r *repo) GetActiveChallenge(ctx context.Context, id uuid.UUID) (*MFAChallenge, error) {
+	postgresChallenge, err := r.queries.GetActiveChallenge(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return toMFAChallenge(postgresChallenge), nil
 }
 
 func (r *repo) ConsumeChallenge(ctx context.Context, id uuid.UUID) error {
@@ -84,5 +104,20 @@ func toMFAMethod(row postgres.GetMFAMethodsConfirmedByUserRow) MFAMethod {
 		UserID:      row.UserID,
 		Type:        MFAMethodType(row.Type),
 		ConfirmedAt: confirmedAt,
+	}
+}
+
+func toMFAChallenge(row postgres.GetActiveChallengeRow) *MFAChallenge {
+	var consumedAt *time.Time
+	if row.ConsumedAt.Valid {
+		consumedAt = &row.ConsumedAt.Time
+	}
+
+	return &MFAChallenge{
+		ID:         row.ID,
+		UserID:     row.UserID,
+		MethodID:   row.MfaMethodID,
+		ExpiresAt:  row.ExpiresAt,
+		ConsumedAt: consumedAt,
 	}
 }
