@@ -100,7 +100,7 @@ const createUser = `-- name: CreateUser :one
 
 INSERT INTO users (id, username, email, password_hash , created_at, updated_at)
 VALUES ($1, $2, $3, $4, NOW(), NOW())
-RETURNING id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at, deleted_at, deletion_reason
+RETURNING id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at, deleted_at, deletion_reason, mfa_enabled
 `
 
 type CreateUserParams struct {
@@ -130,6 +130,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.DeletionReason,
+		&i.MfaEnabled,
 	)
 	return i, err
 }
@@ -197,7 +198,7 @@ func (q *Queries) GetSessionByRefreshToken(ctx context.Context, refreshToken str
 
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT
-  u.id, u.email, u.username, u.password_hash, u.is_email_verified, u.is_active, u.created_at, u.updated_at, u.deleted_at, u.deletion_reason,
+  u.id, u.email, u.username, u.password_hash, u.is_email_verified, u.is_active, u.created_at, u.updated_at, u.deleted_at, u.deletion_reason, u.mfa_enabled,
   ARRAY_AGG(r.name)::text[] AS roles
 FROM users u
 JOIN user_roles ur ON u.id = ur.user_id
@@ -217,6 +218,7 @@ type GetUserByEmailRow struct {
 	UpdatedAt       time.Time
 	DeletedAt       sql.NullTime
 	DeletionReason  sql.NullString
+	MfaEnabled      bool
 	Roles           []string
 }
 
@@ -234,13 +236,14 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.DeletionReason,
+		&i.MfaEnabled,
 		pq.Array(&i.Roles),
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at, deleted_at, deletion_reason FROM users WHERE id = $1
+SELECT id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at, deleted_at, deletion_reason, mfa_enabled FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
@@ -257,6 +260,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.DeletionReason,
+		&i.MfaEnabled,
 	)
 	return i, err
 }

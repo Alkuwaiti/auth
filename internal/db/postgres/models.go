@@ -33,21 +33,20 @@ type AuthToken struct {
 	CreatedAt sql.NullTime
 }
 
-type Permission struct {
-	ID          uuid.UUID
-	Name        string
-	Description sql.NullString
+type MfaChallenge struct {
+	ID            uuid.UUID
+	UserID        uuid.UUID
+	MfaMethodID   uuid.UUID
+	ChallengeType string
+	ExpiresAt     time.Time
+	ConsumedAt    sql.NullTime
+	CreatedAt     time.Time
 }
 
 type Role struct {
 	ID          uuid.UUID
 	Name        string
 	Description sql.NullString
-}
-
-type RolePermission struct {
-	RoleID       uuid.UUID
-	PermissionID uuid.UUID
 }
 
 type Session struct {
@@ -73,16 +72,6 @@ type SocialAccount struct {
 	CreatedAt      sql.NullTime
 }
 
-type TwoFactorMethod struct {
-	ID          uuid.UUID
-	UserID      uuid.NullUUID
-	Method      string
-	Secret      sql.NullString
-	PhoneNumber sql.NullString
-	IsActive    sql.NullBool
-	CreatedAt   sql.NullTime
-}
-
 type User struct {
 	ID              uuid.UUID
 	Email           string
@@ -94,6 +83,16 @@ type User struct {
 	UpdatedAt       time.Time
 	DeletedAt       sql.NullTime
 	DeletionReason  sql.NullString
+	MfaEnabled      bool
+}
+
+type UserMfaMethod struct {
+	ID               uuid.UUID
+	UserID           uuid.UUID
+	Type             string
+	SecretCiphertext []byte
+	ConfirmedAt      sql.NullTime
+	CreatedAt        time.Time
 }
 
 type UserRole struct {

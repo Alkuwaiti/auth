@@ -28,3 +28,16 @@ func (d DeletionReason) Validate() error {
 		return &apperrors.ValidationError{Field: "deletion reason", Msg: "invalid deletion reason"}
 	}
 }
+
+type MFAMethodType string
+
+const (
+	MFATOTP MFAMethodType = "totp"
+)
+
+type ChallengeType string
+
+const (
+	ChallengeLogin  ChallengeType = "login"
+	ChallengeStepUp ChallengeType = "step_up"
+)

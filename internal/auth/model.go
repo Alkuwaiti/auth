@@ -116,4 +116,21 @@ type User struct {
 	DeletedAt       *time.Time      `json:"deleted_at"`
 	DeletionReason  *DeletionReason `json:"deletion_reason"`
 	Roles           []string        `json:"roles"`
+	MFAEnabled      bool            `json:"mfa_enabled"`
+}
+
+type MFAMethod struct {
+	ID          uuid.UUID
+	UserID      uuid.UUID
+	Type        MFAMethodType
+	ConfirmedAt *time.Time
+}
+
+type MFAChallenge struct {
+	ID            uuid.UUID
+	UserID        uuid.UUID
+	MethodID      uuid.UUID
+	ChallengeType ChallengeType
+	ExpiresAt     time.Time
+	ConsumedAt    *time.Time
 }

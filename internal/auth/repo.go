@@ -354,6 +354,7 @@ func toUserModel(user postgres.User) User {
 		UpdatedAt:       user.UpdatedAt,
 		DeletedAt:       deletedAt,
 		DeletionReason:  deletionReason,
+		MFAEnabled:      user.MfaEnabled,
 	}
 }
 
@@ -381,5 +382,6 @@ func toUserModelFromRow(row postgres.GetUserByEmailRow) User {
 		DeletedAt:       deletedAt,
 		DeletionReason:  deletionReason,
 		Roles:           row.Roles,
+		MFAEnabled:      row.MfaEnabled,
 	}
 }
