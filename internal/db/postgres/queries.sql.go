@@ -278,14 +278,14 @@ func (q *Queries) GetActiveChallenges(ctx context.Context, id uuid.UUID) ([]GetA
 	return items, nil
 }
 
-const getConfirmedByUser = `-- name: GetConfirmedByUser :many
+const getMFAMethodsConfirmedByUser = `-- name: GetMFAMethodsConfirmedByUser :many
 SELECT id, user_id, type, confirmed_at, created_at
 FROM user_mfa_methods
 WHERE user_id = $1
   AND confirmed_at IS NOT NULL
 `
 
-type GetConfirmedByUserRow struct {
+type GetMFAMethodsConfirmedByUserRow struct {
 	ID          uuid.UUID
 	UserID      uuid.UUID
 	Type        string
@@ -293,15 +293,15 @@ type GetConfirmedByUserRow struct {
 	CreatedAt   time.Time
 }
 
-func (q *Queries) GetConfirmedByUser(ctx context.Context, userID uuid.UUID) ([]GetConfirmedByUserRow, error) {
-	rows, err := q.db.QueryContext(ctx, getConfirmedByUser, userID)
+func (q *Queries) GetMFAMethodsConfirmedByUser(ctx context.Context, userID uuid.UUID) ([]GetMFAMethodsConfirmedByUserRow, error) {
+	rows, err := q.db.QueryContext(ctx, getMFAMethodsConfirmedByUser, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetConfirmedByUserRow
+	var items []GetMFAMethodsConfirmedByUserRow
 	for rows.Next() {
-		var i GetConfirmedByUserRow
+		var i GetMFAMethodsConfirmedByUserRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,

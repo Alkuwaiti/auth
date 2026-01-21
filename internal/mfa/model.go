@@ -10,6 +10,7 @@ type MFAMethod struct {
 	ID          uuid.UUID
 	UserID      uuid.UUID
 	Type        MFAMethodType
+	Secret      string
 	ConfirmedAt *time.Time
 }
 

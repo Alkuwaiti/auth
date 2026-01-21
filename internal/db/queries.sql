@@ -97,7 +97,7 @@ INSERT INTO user_mfa_methods (
 )
 VALUES ($1, $2, $3, $4);
 
--- name: GetConfirmedByUser :many
+-- name: GetMFAMethodsConfirmedByUser :many
 SELECT id, user_id, type, confirmed_at, created_at
 FROM user_mfa_methods
 WHERE user_id = $1

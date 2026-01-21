@@ -2,8 +2,7 @@
 package mfa
 
 type Service struct {
-	methods    MFAMethodRepo
-	challenges MFAChallengeRepo
+	repo repo
 	// totp       totp.Verifier
 	// tokens     token.Manager
 }
