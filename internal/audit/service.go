@@ -9,19 +9,19 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-type service struct {
+type auditor struct {
 	repo *repo
 }
 
-func NewService(repo *repo) *service {
-	return &service{
+func New(repo *repo) *auditor {
+	return &auditor{
 		repo,
 	}
 }
 
 var tracer = otel.Tracer("auth-service/audit")
 
-func (s *service) CreateAuditLog(ctx context.Context, input CreateAuditLogInput) error {
+func (s *auditor) CreateAuditLog(ctx context.Context, input CreateAuditLogInput) error {
 	ctx, span := tracer.Start(ctx, "AuthService.CreateAuditLog")
 	defer span.End()
 

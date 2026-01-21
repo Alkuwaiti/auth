@@ -32,7 +32,7 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 
 	auditRepo := audit.NewRepo(postgres.New(testDB.DB))
 
-	auditService := audit.NewService(auditRepo)
+	auditService := audit.New(auditRepo)
 
 	authorizerService := authz.New()
 
