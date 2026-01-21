@@ -55,16 +55,6 @@ CREATE TABLE auth_tokens (
   created_at TIMESTAMPTZ DEFAULT NOW ()
 );
 
-CREATE TABLE two_factor_methods (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
-  user_id UUID REFERENCES users (id) ON DELETE CASCADE,
-  method VARCHAR(50) NOT NULL, -- 'totp', 'sms', 'email'
-  secret TEXT,
-  phone_number VARCHAR(20),
-  is_active BOOLEAN DEFAULT TRUE,
-  created_at TIMESTAMPTZ DEFAULT NOW ()
-);
-
 CREATE TABLE social_accounts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
   user_id UUID REFERENCES users (id) ON DELETE CASCADE,
