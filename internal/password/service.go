@@ -8,26 +8,26 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type passwordService struct {
+type passwords struct {
 	cost int
 }
 
-func NewService(cost int) *passwordService {
-	return &passwordService{
+func NewService(cost int) *passwords {
+	return &passwords{
 		cost,
 	}
 }
 
-func (p *passwordService) Hash(password string) (string, error) {
+func (p *passwords) Hash(password string) (string, error) {
 	b, err := bcrypt.GenerateFromPassword([]byte(password), p.cost)
 	return string(b), err
 }
 
-func (p *passwordService) Compare(hash, password string) error {
+func (p *passwords) Compare(hash, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 }
 
-func (p *passwordService) Validate(password string) error {
+func (p *passwords) Validate(password string) error {
 	runes := []rune(password)
 
 	if len(runes) < 8 {

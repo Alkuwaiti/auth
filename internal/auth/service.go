@@ -18,36 +18,36 @@ import (
 )
 
 type service struct {
-	repo              *repo
-	passwordService   passwordService
-	auditService      auditService
-	authorizerService authorizerService
-	flags             featureFlags
-	tokenManager      tokenManager
+	repo         *repo
+	passwords    passwords
+	auditor      auditor
+	authorizer   authorizer
+	flags        featureFlags
+	tokenManager tokenManager
 }
 
-func NewService(repo *repo, passwordService passwordService, auditService auditService, authorizerService authorizerService, flags featureFlags, tokenManager tokenManager) *service {
+func NewService(repo *repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager) *service {
 	return &service{
-		repo:              repo,
-		passwordService:   passwordService,
-		auditService:      auditService,
-		authorizerService: authorizerService,
-		flags:             flags,
-		tokenManager:      tokenManager,
+		repo:         repo,
+		passwords:    passwords,
+		auditor:      auditor,
+		authorizer:   authorizer,
+		flags:        flags,
+		tokenManager: tokenManager,
 	}
 }
 
-type auditService interface {
+type auditor interface {
 	CreateAuditLog(ctx context.Context, input audit.CreateAuditLogInput) error
 }
 
-type passwordService interface {
+type passwords interface {
 	Validate(password string) error
 	Hash(password string) (string, error)
 	Compare(hash string, password string) error
 }
 
-type authorizerService interface {
+type authorizer interface {
 	CanWithRoles(roles []string, cap authz.Capability) bool
 }
 
@@ -96,11 +96,11 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 		}
 	}
 
-	if err = s.passwordService.Validate(input.Password); err != nil {
+	if err = s.passwords.Validate(input.Password); err != nil {
 		return User{}, err
 	}
 
-	newPasswordHash, err := s.passwordService.Hash(input.Password)
+	newPasswordHash, err := s.passwords.Hash(input.Password)
 	if err != nil {
 		return User{}, err
 	}
@@ -113,7 +113,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 		}
 	}
 
-	if err = s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+	if err = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
 		UserID:    &user.ID,
 		Action:    audit.ActionCreateUser,
 		IPAddress: &meta.IPAddress,
@@ -157,7 +157,7 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 		return TokenPair{}, err
 	}
 
-	if err = s.passwordService.Compare(user.PasswordHash, password); err != nil {
+	if err = s.passwords.Compare(user.PasswordHash, password); err != nil {
 		span.SetStatus(codes.Error, "invalid credentials")
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email)
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
@@ -206,7 +206,7 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 		return TokenPair{}, err
 	}
 
-	if err = s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+	if err = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
 		UserID:    &user.ID,
 		Action:    audit.ActionLogin,
 		IPAddress: &meta.IPAddress,
@@ -282,7 +282,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 			slog.ErrorContext(ctx, "failed to mark sessions as compromised", "err", err)
 		}
 
-		if err = s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+		if err = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
 			UserID:    &session.UserID,
 			Action:    audit.ActionSessionCompromised,
 			IPAddress: &meta.IPAddress,
@@ -373,7 +373,7 @@ func (s *service) Logout(ctx context.Context, refreshToken string) error {
 		slog.ErrorContext(ctx, "failed to revoke session", "err", err)
 	}
 
-	if err = s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+	if err = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
 		UserID:    &session.UserID,
 		Action:    audit.ActionLogout,
 		IPAddress: &meta.IPAddress,
@@ -400,7 +400,7 @@ func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 
 	meta := core.RequestMetaFromContext(ctx)
 
-	if err = s.passwordService.Validate(newPassword); err != nil {
+	if err = s.passwords.Validate(newPassword); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to validate password")
 		return err
@@ -409,7 +409,7 @@ func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 	user, err := s.repo.getUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
-			_ = s.passwordService.Compare(dummyBcryptHash, oldPassword)
+			_ = s.passwords.Compare(dummyBcryptHash, oldPassword)
 			return &apperrors.InvalidCredentialsError{}
 		}
 
@@ -425,7 +425,7 @@ func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 		return &apperrors.InvalidCredentialsError{}
 	}
 
-	if err = s.passwordService.Compare(
+	if err = s.passwords.Compare(
 		user.PasswordHash,
 		oldPassword,
 	); err != nil {
@@ -434,7 +434,7 @@ func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 		return &apperrors.InvalidCredentialsError{}
 	}
 
-	if err = s.passwordService.Compare(
+	if err = s.passwords.Compare(
 		user.PasswordHash,
 		newPassword,
 	); err == nil {
@@ -443,7 +443,7 @@ func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 		return &apperrors.PasswordReuseError{}
 	}
 
-	newPasswordHash, err := s.passwordService.Hash(newPassword)
+	newPasswordHash, err := s.passwords.Hash(newPassword)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to hash new password")
@@ -461,7 +461,7 @@ func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 		return err
 	}
 
-	if err = s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+	if err = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
 		UserID:    &user.ID,
 		Action:    audit.ActionPasswordChange,
 		IPAddress: &meta.IPAddress,
@@ -487,7 +487,7 @@ func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 		return err
 	}
 
-	if !s.authorizerService.CanWithRoles(roles, authz.CanDeleteUser) {
+	if !s.authorizer.CanWithRoles(roles, authz.CanDeleteUser) {
 		userID, _ := core.UserIDFromContext(ctx)
 		slog.ErrorContext(ctx, "forbidden user attempt", "user_id", userID)
 		return &apperrors.ForbiddenError{}
@@ -513,7 +513,7 @@ func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 		return err
 	}
 
-	if err := s.auditService.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+	if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
 		UserID:    &input.UserID,
 		ActorID:   &input.ActorID,
 		Action:    audit.ActionDeleteUser,
