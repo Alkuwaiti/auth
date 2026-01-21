@@ -8,17 +8,17 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type Manager struct {
+type Tokens struct {
 	config Config
 }
 
-func New(cfg Config) *Manager {
-	return &Manager{
+func New(cfg Config) *Tokens {
+	return &Tokens{
 		config: cfg,
 	}
 }
 
-func (m *Manager) GenerateAccessToken(roles []string, userID, email string) (string, error) {
+func (m *Tokens) GenerateAccessToken(roles []string, userID, email string) (string, error) {
 
 	claims := AccessClaims{
 		Email: email,
@@ -36,7 +36,7 @@ func (m *Manager) GenerateAccessToken(roles []string, userID, email string) (str
 	return token.SignedString(m.config.JWTKey)
 }
 
-func (m *Manager) ValidateJWT(tokenStr string) (*AccessClaims, error) {
+func (m *Tokens) ValidateJWT(tokenStr string) (*AccessClaims, error) {
 
 	token, err := jwt.ParseWithClaims(
 		tokenStr,
@@ -62,7 +62,7 @@ func (m *Manager) ValidateJWT(tokenStr string) (*AccessClaims, error) {
 	return claims, nil
 }
 
-func (m *Manager) GenerateRefreshToken() (string, error) {
+func (m *Tokens) GenerateRefreshToken() (string, error) {
 	b := make([]byte, 32)
 	_, err := rand.Read(b)
 	if err != nil {

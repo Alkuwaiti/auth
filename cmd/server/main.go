@@ -75,19 +75,19 @@ func main() {
 	}
 	defer dbConn.Close()
 
-	passwordService := password.NewService(12)
+	passwords := password.NewService(12)
 
 	auditRepo := audit.NewRepo(postgres.New(dbConn))
 
-	auditService := audit.NewService(auditRepo)
+	auditor := audit.New(auditRepo)
 
-	flagsService := flags.New(flags.Config{
+	flags := flags.New(flags.Config{
 		RefreshTokensEnabled: cfg.RefreshEnabled,
 	})
 
-	authorizerService := authz.New()
+	authorizer := authz.New()
 
-	tokenManager := tokens.New(tokens.Config{
+	tokens := tokens.New(tokens.Config{
 		JWTKey:   []byte(cfg.JWTKey),
 		Issuer:   name,
 		Audience: name,
@@ -95,11 +95,11 @@ func main() {
 
 	authRepo := auth.NewRepo(dbConn)
 
-	authService := auth.NewService(authRepo, passwordService, auditService, authorizerService, flagsService, tokenManager)
+	authService := auth.NewService(authRepo, passwords, auditor, authorizer, flags, tokens)
 
 	port := 8081
 
-	authInterceptor := grpc.NewAuthInterceptor(*tokenManager)
+	authInterceptor := grpc.NewAuthInterceptor(*tokens)
 
 	requestMetaInterceptor := grpc.NewRequestMetaInterceptor()
 

@@ -21,10 +21,10 @@ var publicMethods = map[string]struct{}{
 }
 
 type AuthInterceptor struct {
-	tokenManager tokens.Manager
+	tokenManager tokens.Tokens
 }
 
-func NewAuthInterceptor(tm tokens.Manager) *AuthInterceptor {
+func NewAuthInterceptor(tm tokens.Tokens) *AuthInterceptor {
 	return &AuthInterceptor{tokenManager: tm}
 }
 
