@@ -89,3 +89,41 @@ WHERE name = $1;
 INSERT INTO user_roles (user_id, role_id, assigned_at)
 VALUES ($1, $2, NOW());
 
+-- mfa
+
+-- name: CreateUserMFAMethod :exec
+INSERT INTO user_mfa_methods (
+  id, user_id, type, secret_ciphertext
+)
+VALUES ($1, $2, $3, $4);
+
+-- name: GetConfirmedByUser :many
+SELECT id, user_id, type, confirmed_at, created_at
+FROM user_mfa_methods
+WHERE user_id = $1
+  AND confirmed_at IS NOT NULL;
+
+-- name: ConfirmUserMFAMethod :exec
+UPDATE user_mfa_methods
+SET confirmed_at = now()
+WHERE id = $1
+  AND confirmed_at IS NULL;
+
+-- name: CreateChallenge :exec
+INSERT INTO mfa_challenges (
+  id, user_id, mfa_method_id, challenge_type, expires_at
+)
+VALUES ($1, $2, $3, $4, $5);
+
+-- name: GetActiveChallenges :many
+SELECT id, user_id, mfa_method_id, expires_at, consumed_at
+FROM mfa_challenges
+WHERE id = $1
+  AND consumed_at IS NULL
+  AND expires_at > now();
+
+-- name: ConsumeChallenge :exec
+UPDATE mfa_challenges
+SET consumed_at = now()
+WHERE id = $1
+  AND consumed_at IS NULL;

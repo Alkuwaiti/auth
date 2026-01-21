@@ -30,6 +30,30 @@ func (q *Queries) AssignRoleToUser(ctx context.Context, arg AssignRoleToUserPara
 	return err
 }
 
+const confirmUserMFAMethod = `-- name: ConfirmUserMFAMethod :exec
+UPDATE user_mfa_methods
+SET confirmed_at = now()
+WHERE id = $1
+  AND confirmed_at IS NULL
+`
+
+func (q *Queries) ConfirmUserMFAMethod(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, confirmUserMFAMethod, id)
+	return err
+}
+
+const consumeChallenge = `-- name: ConsumeChallenge :exec
+UPDATE mfa_challenges
+SET consumed_at = now()
+WHERE id = $1
+  AND consumed_at IS NULL
+`
+
+func (q *Queries) ConsumeChallenge(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, consumeChallenge, id)
+	return err
+}
+
 const createAuditLog = `-- name: CreateAuditLog :exec
 
 INSERT INTO auth_audit_logs (user_id, action, ip_address, user_agent, actor_id, context)
@@ -54,6 +78,32 @@ func (q *Queries) CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) 
 		arg.UserAgent,
 		arg.ActorID,
 		arg.Context,
+	)
+	return err
+}
+
+const createChallenge = `-- name: CreateChallenge :exec
+INSERT INTO mfa_challenges (
+  id, user_id, mfa_method_id, challenge_type, expires_at
+)
+VALUES ($1, $2, $3, $4, $5)
+`
+
+type CreateChallengeParams struct {
+	ID            uuid.UUID
+	UserID        uuid.UUID
+	MfaMethodID   uuid.UUID
+	ChallengeType string
+	ExpiresAt     time.Time
+}
+
+func (q *Queries) CreateChallenge(ctx context.Context, arg CreateChallengeParams) error {
+	_, err := q.db.ExecContext(ctx, createChallenge,
+		arg.ID,
+		arg.UserID,
+		arg.MfaMethodID,
+		arg.ChallengeType,
+		arg.ExpiresAt,
 	)
 	return err
 }
@@ -135,6 +185,32 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
+const createUserMFAMethod = `-- name: CreateUserMFAMethod :exec
+
+INSERT INTO user_mfa_methods (
+  id, user_id, type, secret_ciphertext
+)
+VALUES ($1, $2, $3, $4)
+`
+
+type CreateUserMFAMethodParams struct {
+	ID               uuid.UUID
+	UserID           uuid.UUID
+	Type             string
+	SecretCiphertext []byte
+}
+
+// mfa
+func (q *Queries) CreateUserMFAMethod(ctx context.Context, arg CreateUserMFAMethodParams) error {
+	_, err := q.db.ExecContext(ctx, createUserMFAMethod,
+		arg.ID,
+		arg.UserID,
+		arg.Type,
+		arg.SecretCiphertext,
+	)
+	return err
+}
+
 const deleteUser = `-- name: DeleteUser :execrows
 UPDATE users
 SET
@@ -155,6 +231,95 @@ func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) (int64, 
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const getActiveChallenges = `-- name: GetActiveChallenges :many
+SELECT id, user_id, mfa_method_id, expires_at, consumed_at
+FROM mfa_challenges
+WHERE id = $1
+  AND consumed_at IS NULL
+  AND expires_at > now()
+`
+
+type GetActiveChallengesRow struct {
+	ID          uuid.UUID
+	UserID      uuid.UUID
+	MfaMethodID uuid.UUID
+	ExpiresAt   time.Time
+	ConsumedAt  sql.NullTime
+}
+
+func (q *Queries) GetActiveChallenges(ctx context.Context, id uuid.UUID) ([]GetActiveChallengesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getActiveChallenges, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetActiveChallengesRow
+	for rows.Next() {
+		var i GetActiveChallengesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.MfaMethodID,
+			&i.ExpiresAt,
+			&i.ConsumedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getConfirmedByUser = `-- name: GetConfirmedByUser :many
+SELECT id, user_id, type, confirmed_at, created_at
+FROM user_mfa_methods
+WHERE user_id = $1
+  AND confirmed_at IS NOT NULL
+`
+
+type GetConfirmedByUserRow struct {
+	ID          uuid.UUID
+	UserID      uuid.UUID
+	Type        string
+	ConfirmedAt sql.NullTime
+	CreatedAt   time.Time
+}
+
+func (q *Queries) GetConfirmedByUser(ctx context.Context, userID uuid.UUID) ([]GetConfirmedByUserRow, error) {
+	rows, err := q.db.QueryContext(ctx, getConfirmedByUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetConfirmedByUserRow
+	for rows.Next() {
+		var i GetConfirmedByUserRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Type,
+			&i.ConfirmedAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getRoleIDByName = `-- name: GetRoleIDByName :one
