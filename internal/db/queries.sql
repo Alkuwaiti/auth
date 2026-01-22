@@ -91,11 +91,12 @@ VALUES ($1, $2, NOW());
 
 -- mfa
 
--- name: CreateUserMFAMethod :exec
+-- name: CreateUserMFAMethod :one
 INSERT INTO user_mfa_methods (
-  id, user_id, type, secret_ciphertext
+  user_id, type, secret_ciphertext
 )
-VALUES ($1, $2, $3, $4);
+VALUES ($1, $2, $3)
+RETURNING *;
 
 -- name: GetMFAMethodsConfirmedByUser :many
 SELECT id, user_id, type, confirmed_at, created_at
@@ -127,3 +128,11 @@ UPDATE mfa_challenges
 SET consumed_at = now()
 WHERE id = $1
   AND consumed_at IS NULL;
+
+-- name: UserHasActiveMFAMethod :one
+SELECT COUNT(*) > 0 AS exists
+FROM user_mfa_methods
+WHERE user_id = $1
+  AND type = $2
+  AND confirmed_at IS NOT NULL;
+

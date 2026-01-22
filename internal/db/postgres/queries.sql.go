@@ -185,30 +185,34 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
-const createUserMFAMethod = `-- name: CreateUserMFAMethod :exec
+const createUserMFAMethod = `-- name: CreateUserMFAMethod :one
 
 INSERT INTO user_mfa_methods (
-  id, user_id, type, secret_ciphertext
+  user_id, type, secret_ciphertext
 )
-VALUES ($1, $2, $3, $4)
+VALUES ($1, $2, $3)
+RETURNING id, user_id, type, secret_ciphertext, confirmed_at, created_at
 `
 
 type CreateUserMFAMethodParams struct {
-	ID               uuid.UUID
 	UserID           uuid.UUID
 	Type             string
 	SecretCiphertext []byte
 }
 
 // mfa
-func (q *Queries) CreateUserMFAMethod(ctx context.Context, arg CreateUserMFAMethodParams) error {
-	_, err := q.db.ExecContext(ctx, createUserMFAMethod,
-		arg.ID,
-		arg.UserID,
-		arg.Type,
-		arg.SecretCiphertext,
+func (q *Queries) CreateUserMFAMethod(ctx context.Context, arg CreateUserMFAMethodParams) (UserMfaMethod, error) {
+	row := q.db.QueryRowContext(ctx, createUserMFAMethod, arg.UserID, arg.Type, arg.SecretCiphertext)
+	var i UserMfaMethod
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Type,
+		&i.SecretCiphertext,
+		&i.ConfirmedAt,
+		&i.CreatedAt,
 	)
-	return err
+	return i, err
 }
 
 const deleteUser = `-- name: DeleteUser :execrows
@@ -493,6 +497,25 @@ type UserExistsParams struct {
 
 func (q *Queries) UserExists(ctx context.Context, arg UserExistsParams) (bool, error) {
 	row := q.db.QueryRowContext(ctx, userExists, arg.Username, arg.Email)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const userHasActiveMFAMethod = `-- name: UserHasActiveMFAMethod :one
+SELECT COUNT(*) > 0 AS exists
+FROM user_mfa_methods
+WHERE user_id = $1
+  AND type = $2
+`
+
+type UserHasActiveMFAMethodParams struct {
+	UserID uuid.UUID
+	Type   string
+}
+
+func (q *Queries) UserHasActiveMFAMethod(ctx context.Context, arg UserHasActiveMFAMethodParams) (bool, error) {
+	row := q.db.QueryRowContext(ctx, userHasActiveMFAMethod, arg.UserID, arg.Type)
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
