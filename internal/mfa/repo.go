@@ -90,7 +90,11 @@ func (r *repo) GetActiveChallenge(ctx context.Context, id uuid.UUID) (*MFAChalle
 }
 
 func (r *repo) ConsumeChallenge(ctx context.Context, id uuid.UUID) error {
-	panic("unimplemented")
+	if err := r.queries.ConsumeChallenge(ctx, id); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func toMFAMethod(row postgres.GetMFAMethodsConfirmedByUserRow) MFAMethod {
