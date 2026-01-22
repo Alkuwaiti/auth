@@ -28,11 +28,11 @@ func NewMFAChallengeRepo(queries *postgres.Queries) *MFAChallengeRepo {
 	}
 }
 
-func (m *MFAMethodRepo) Create(ctx context.Context, userID uuid.UUID, methodType MFAMethodType) (MFAMethod, error) {
+func (m *MFAMethodRepo) Create(ctx context.Context, userID uuid.UUID, secret []byte, methodType MFAMethodType) (MFAMethod, error) {
 	postgresMFAMethod, err := m.queries.CreateUserMFAMethod(ctx, postgres.CreateUserMFAMethodParams{
 		UserID:           userID,
 		Type:             string(methodType),
-		SecretCiphertext: []byte("fjdhjhs"),
+		SecretCiphertext: secret,
 	})
 	if err != nil {
 		return MFAMethod{}, err

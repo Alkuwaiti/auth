@@ -3,12 +3,12 @@ package mfa
 type MFAMethodType string
 
 const (
-	MFATOTP MFAMethodType = "totp"
+	MFAMethodTOTP MFAMethodType = "totp"
 )
 
 func (t MFAMethodType) isValid() error {
 	switch t {
-	case MFATOTP:
+	case MFAMethodTOTP:
 		return nil
 	default:
 		return ErrInvalidMFAMethodType

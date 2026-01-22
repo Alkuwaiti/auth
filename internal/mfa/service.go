@@ -5,6 +5,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/pquerna/otp/totp"
 )
 
 type service struct {
@@ -26,23 +27,52 @@ type Crypto interface {
 	Decrypt(ciphertext []byte) ([]byte, error)
 }
 
-func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, methodType MFAMethodType) (MFAMethod, error) {
+type EnrollmentResult struct {
+	Method   MFAMethod
+	SetupURI string
+}
+
+func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, methodType MFAMethodType) (EnrollmentResult, error) {
 	if err := methodType.isValid(); err != nil {
-		return MFAMethod{}, err
+		return EnrollmentResult{}, err
 	}
 
 	exists, err := s.methodRepo.UserHasActiveMFAMethod(ctx, userID, methodType)
 	if err != nil {
-		return MFAMethod{}, err
+		return EnrollmentResult{}, err
 	}
 	if exists {
-		return MFAMethod{}, ErrMFAMethodAlreadyEnrolled
+		return EnrollmentResult{}, ErrMFAMethodAlreadyEnrolled
 	}
 
-	method, err := s.methodRepo.Create(ctx, userID, methodType)
+	var encryptedSecret []byte
+	var setupURI string
+
+	if methodType == MFAMethodTOTP {
+		key, err := totp.Generate(totp.GenerateOpts{
+			// TODO: change for config
+			Issuer:      "MyApp",
+			AccountName: userID.String(),
+		})
+		if err != nil {
+			return EnrollmentResult{}, err
+		}
+
+		setupURI = key.URL()
+
+		encryptedSecret, err = s.crypto.Encrypt([]byte(key.Secret()))
+		if err != nil {
+			return EnrollmentResult{}, err
+		}
+	}
+
+	method, err := s.methodRepo.Create(ctx, userID, encryptedSecret, methodType)
 	if err != nil {
-		return MFAMethod{}, err
+		return EnrollmentResult{}, err
 	}
 
-	return method, nil
+	return EnrollmentResult{
+		Method:   method,
+		SetupURI: setupURI,
+	}, nil
 }
