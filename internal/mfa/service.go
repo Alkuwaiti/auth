@@ -7,12 +7,26 @@ import (
 	"github.com/google/uuid"
 )
 
-type Service struct {
+type service struct {
 	methodRepo    MFAMethodRepo
 	challengeRepo MFAChallengeRepo
+	crypto        Crypto
 }
 
-func (s *Service) EnrollMethod(ctx context.Context, userID uuid.UUID, methodType MFAMethodType) (MFAMethod, error) {
+func NewService(methodRepo MFAMethodRepo, challengeRepo MFAChallengeRepo, crypto Crypto) *service {
+	return &service{
+		methodRepo:    methodRepo,
+		challengeRepo: challengeRepo,
+		crypto:        crypto,
+	}
+}
+
+type Crypto interface {
+	Encrypt(plaintext []byte) ([]byte, error)
+	Decrypt(ciphertext []byte) ([]byte, error)
+}
+
+func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, methodType MFAMethodType) (MFAMethod, error) {
 	if err := methodType.isValid(); err != nil {
 		return MFAMethod{}, err
 	}
