@@ -2,6 +2,7 @@ package mfa
 
 import (
 	"context"
+	"time"
 
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/google/uuid"
@@ -71,4 +72,34 @@ func (m *MFAMethodRepo) GetByID(ctx context.Context, methodID uuid.UUID) (MFAMet
 	}
 
 	return toMFAMethod(postgresMethod), nil
+}
+
+func toMFAMethod(row postgres.UserMfaMethod) MFAMethod {
+	var confirmedAt *time.Time
+	if row.ConfirmedAt.Valid {
+		confirmedAt = &row.ConfirmedAt.Time
+	}
+
+	return MFAMethod{
+		ID:          row.ID,
+		UserID:      row.UserID,
+		Type:        MFAMethodType(row.Type),
+		CreatedAt:   row.CreatedAt,
+		ConfirmedAt: confirmedAt,
+	}
+}
+
+func toMFAMethodFromRow(row postgres.GetMFAMethodsConfirmedByUserRow) MFAMethod {
+	var confirmedAt *time.Time
+	if row.ConfirmedAt.Valid {
+		confirmedAt = &row.ConfirmedAt.Time
+	}
+
+	return MFAMethod{
+		ID:          row.ID,
+		UserID:      row.UserID,
+		Type:        MFAMethodType(row.Type),
+		CreatedAt:   row.CreatedAt,
+		ConfirmedAt: confirmedAt,
+	}
 }

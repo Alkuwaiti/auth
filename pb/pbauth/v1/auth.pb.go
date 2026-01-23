@@ -476,7 +476,6 @@ type MFAMethod struct {
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Type          string                 `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
-	ConfirmedAt   *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=confirmed_at,json=confirmedAt,proto3" json:"confirmed_at,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -531,13 +530,6 @@ func (x *MFAMethod) GetType() string {
 		return x.Type
 	}
 	return ""
-}
-
-func (x *MFAMethod) GetConfirmedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.ConfirmedAt
-	}
-	return nil
 }
 
 func (x *MFAMethod) GetCreatedAt() *timestamppb.Timestamp {
@@ -633,12 +625,11 @@ const file___proto_auth_proto_rawDesc = "" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\x12\x12\n" +
 	"\x04note\x18\x03 \x01(\tR\x04note\"0\n" +
 	"\x16EnrollMFAMethodRequest\x12\x16\n" +
-	"\x06method\x18\x01 \x01(\tR\x06method\"\xc2\x01\n" +
+	"\x06method\x18\x01 \x01(\tR\x06method\"\x83\x01\n" +
 	"\tMFAMethod\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x12\n" +
-	"\x04type\x18\x03 \x01(\tR\x04type\x12=\n" +
-	"\fconfirmed_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\vconfirmedAt\x129\n" +
+	"\x04type\x18\x03 \x01(\tR\x04type\x129\n" +
 	"\n" +
 	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"b\n" +
 	"\x17EnrollMFAMethodResponse\x12*\n" +
@@ -683,30 +674,29 @@ var file___proto_auth_proto_goTypes = []any{
 	(*emptypb.Empty)(nil),           // 11: google.protobuf.Empty
 }
 var file___proto_auth_proto_depIdxs = []int32{
-	10, // 0: auth.v1.MFAMethod.confirmed_at:type_name -> google.protobuf.Timestamp
-	10, // 1: auth.v1.MFAMethod.created_at:type_name -> google.protobuf.Timestamp
-	8,  // 2: auth.v1.EnrollMFAMethodResponse.method:type_name -> auth.v1.MFAMethod
-	11, // 3: auth.v1.AuthService.Ping:input_type -> google.protobuf.Empty
-	0,  // 4: auth.v1.AuthService.Login:input_type -> auth.v1.LoginRequest
-	2,  // 5: auth.v1.AuthService.RefreshToken:input_type -> auth.v1.RefreshTokenRequest
-	2,  // 6: auth.v1.AuthService.Logout:input_type -> auth.v1.RefreshTokenRequest
-	3,  // 7: auth.v1.AuthService.ChangePassword:input_type -> auth.v1.ChangePasswordRequest
-	4,  // 8: auth.v1.AuthService.RegisterUser:input_type -> auth.v1.RegisterUserRequest
-	6,  // 9: auth.v1.AuthService.DeleteUser:input_type -> auth.v1.DeleteUserRequest
-	7,  // 10: auth.v1.AuthService.EnrollMFAMethod:input_type -> auth.v1.EnrollMFAMethodRequest
-	11, // 11: auth.v1.AuthService.Ping:output_type -> google.protobuf.Empty
-	1,  // 12: auth.v1.AuthService.Login:output_type -> auth.v1.TokenPair
-	1,  // 13: auth.v1.AuthService.RefreshToken:output_type -> auth.v1.TokenPair
-	11, // 14: auth.v1.AuthService.Logout:output_type -> google.protobuf.Empty
-	11, // 15: auth.v1.AuthService.ChangePassword:output_type -> google.protobuf.Empty
-	5,  // 16: auth.v1.AuthService.RegisterUser:output_type -> auth.v1.User
-	11, // 17: auth.v1.AuthService.DeleteUser:output_type -> google.protobuf.Empty
-	9,  // 18: auth.v1.AuthService.EnrollMFAMethod:output_type -> auth.v1.EnrollMFAMethodResponse
-	11, // [11:19] is the sub-list for method output_type
-	3,  // [3:11] is the sub-list for method input_type
-	3,  // [3:3] is the sub-list for extension type_name
-	3,  // [3:3] is the sub-list for extension extendee
-	0,  // [0:3] is the sub-list for field type_name
+	10, // 0: auth.v1.MFAMethod.created_at:type_name -> google.protobuf.Timestamp
+	8,  // 1: auth.v1.EnrollMFAMethodResponse.method:type_name -> auth.v1.MFAMethod
+	11, // 2: auth.v1.AuthService.Ping:input_type -> google.protobuf.Empty
+	0,  // 3: auth.v1.AuthService.Login:input_type -> auth.v1.LoginRequest
+	2,  // 4: auth.v1.AuthService.RefreshToken:input_type -> auth.v1.RefreshTokenRequest
+	2,  // 5: auth.v1.AuthService.Logout:input_type -> auth.v1.RefreshTokenRequest
+	3,  // 6: auth.v1.AuthService.ChangePassword:input_type -> auth.v1.ChangePasswordRequest
+	4,  // 7: auth.v1.AuthService.RegisterUser:input_type -> auth.v1.RegisterUserRequest
+	6,  // 8: auth.v1.AuthService.DeleteUser:input_type -> auth.v1.DeleteUserRequest
+	7,  // 9: auth.v1.AuthService.EnrollMFAMethod:input_type -> auth.v1.EnrollMFAMethodRequest
+	11, // 10: auth.v1.AuthService.Ping:output_type -> google.protobuf.Empty
+	1,  // 11: auth.v1.AuthService.Login:output_type -> auth.v1.TokenPair
+	1,  // 12: auth.v1.AuthService.RefreshToken:output_type -> auth.v1.TokenPair
+	11, // 13: auth.v1.AuthService.Logout:output_type -> google.protobuf.Empty
+	11, // 14: auth.v1.AuthService.ChangePassword:output_type -> google.protobuf.Empty
+	5,  // 15: auth.v1.AuthService.RegisterUser:output_type -> auth.v1.User
+	11, // 16: auth.v1.AuthService.DeleteUser:output_type -> google.protobuf.Empty
+	9,  // 17: auth.v1.AuthService.EnrollMFAMethod:output_type -> auth.v1.EnrollMFAMethodResponse
+	10, // [10:18] is the sub-list for method output_type
+	2,  // [2:10] is the sub-list for method input_type
+	2,  // [2:2] is the sub-list for extension type_name
+	2,  // [2:2] is the sub-list for extension extendee
+	0,  // [0:2] is the sub-list for field type_name
 }
 
 func init() { file___proto_auth_proto_init() }

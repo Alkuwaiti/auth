@@ -11,8 +11,9 @@ type MFAMethod struct {
 	UserID      uuid.UUID
 	Type        MFAMethodType
 	ConfirmedAt *time.Time
-	Secret      string
-	CreatedAt   time.Time
+	// TODO: this should not leak outside of mfa.
+	Secret    string
+	CreatedAt time.Time
 }
 
 type MFAChallenge struct {

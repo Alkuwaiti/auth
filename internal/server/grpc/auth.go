@@ -154,11 +154,10 @@ func (s *server) EnrollMFAMethod(
 
 	return &authv1.EnrollMFAMethodResponse{
 		Method: &authv1.MFAMethod{
-			Id:          response.Method.ID.String(),
-			UserId:      response.Method.UserID.String(),
-			Type:        string(response.Method.Type),
-			ConfirmedAt: timestamppb.New(*response.Method.ConfirmedAt),
-			CreatedAt:   timestamppb.New(response.Method.CreatedAt),
+			Id:        response.Method.ID.String(),
+			UserId:    response.Method.UserID.String(),
+			Type:      string(response.Method.Type),
+			CreatedAt: timestamppb.New(response.Method.CreatedAt),
 		},
 		SetupUri: response.SetupURI,
 	}, nil

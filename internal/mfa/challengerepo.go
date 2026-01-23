@@ -49,34 +49,6 @@ func (c *MFAChallengeRepo) Consume(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func toMFAMethod(row postgres.UserMfaMethod) MFAMethod {
-	var confirmedAt *time.Time
-	if row.ConfirmedAt.Valid {
-		confirmedAt = &row.ConfirmedAt.Time
-	}
-
-	return MFAMethod{
-		ID:          row.ID,
-		UserID:      row.UserID,
-		Type:        MFAMethodType(row.Type),
-		ConfirmedAt: confirmedAt,
-	}
-}
-
-func toMFAMethodFromRow(row postgres.GetMFAMethodsConfirmedByUserRow) MFAMethod {
-	var confirmedAt *time.Time
-	if row.ConfirmedAt.Valid {
-		confirmedAt = &row.ConfirmedAt.Time
-	}
-
-	return MFAMethod{
-		ID:          row.ID,
-		UserID:      row.UserID,
-		Type:        MFAMethodType(row.Type),
-		ConfirmedAt: confirmedAt,
-	}
-}
-
 func toMFAChallenge(row postgres.GetActiveChallengeRow) *MFAChallenge {
 	var consumedAt *time.Time
 	if row.ConsumedAt.Valid {
