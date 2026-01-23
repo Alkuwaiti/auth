@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base32"
 
+	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/google/uuid"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
@@ -36,8 +37,11 @@ type EnrollmentResult struct {
 
 func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, methodType MFAMethodType) (EnrollmentResult, error) {
 	var err error
-	if err = methodType.isValid(); err != nil {
-		return EnrollmentResult{}, err
+	if !methodType.isValid() {
+		return EnrollmentResult{}, &apperrors.ValidationError{
+			Field: "method type",
+			Msg:   "invalid MFA method type",
+		}
 	}
 
 	exists, err := s.methodRepo.UserHasActiveMFAMethod(ctx, userID, methodType)
@@ -45,7 +49,10 @@ func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, methodType
 		return EnrollmentResult{}, err
 	}
 	if exists {
-		return EnrollmentResult{}, ErrMFAMethodAlreadyEnrolled
+		return EnrollmentResult{}, &apperrors.BadRequestError{
+			Field: "MFAMethod",
+			Msg:   "MFA method already enrolled",
+		}
 	}
 
 	var (
@@ -94,7 +101,10 @@ func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code st
 	}
 
 	if method.ConfirmedAt != nil {
-		return ErrMFAMethodAlreadyConfirmed
+		return &apperrors.BadRequestError{
+			Field: "method",
+			Msg:   "already confirmed",
+		}
 	}
 
 	secretBytes, err := s.crypto.Decrypt([]byte(method.Secret))
@@ -107,7 +117,10 @@ func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code st
 		base32.StdEncoding.EncodeToString(secretBytes),
 	)
 	if !valid {
-		return ErrInvalidOTP
+		return &apperrors.BadRequestError{
+			Field: "code",
+			Msg:   "invalid code",
+		}
 	}
 
 	return s.methodRepo.Confirm(ctx, methodID)

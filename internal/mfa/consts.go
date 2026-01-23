@@ -6,12 +6,12 @@ const (
 	MFAMethodTOTP MFAMethodType = "totp"
 )
 
-func (t MFAMethodType) isValid() error {
+func (t MFAMethodType) isValid() bool {
 	switch t {
 	case MFAMethodTOTP:
-		return nil
+		return true
 	default:
-		return ErrInvalidMFAMethodType
+		return false
 	}
 }
 

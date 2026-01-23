@@ -550,27 +550,5 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodT
 		return mfa.EnrollmentResult{}, err
 	}
 
-	result, err := s.multifactor.EnrollMethod(ctx, userID, methodType)
-	if err != nil {
-		return mfa.EnrollmentResult{}, s.mapMFAError(err)
-	}
-
-	return result, nil
-}
-
-func (s *service) mapMFAError(err error) error {
-	switch {
-	case errors.Is(err, mfa.ErrMFAMethodAlreadyEnrolled):
-		return &apperrors.BadRequestError{
-			Field: "MFAMethod",
-			Msg:   "MFA method already enrolled",
-		}
-	case errors.Is(err, mfa.ErrInvalidMFAMethodType):
-		return &apperrors.ValidationError{
-			Field: "method type",
-			Msg:   "invalid MFA method type",
-		}
-	default:
-		return err
-	}
+	return s.multifactor.EnrollMethod(ctx, userID, methodType)
 }
