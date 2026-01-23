@@ -6,6 +6,7 @@ import (
 	"encoding/base32"
 
 	"github.com/google/uuid"
+	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 )
 
@@ -34,7 +35,8 @@ type EnrollmentResult struct {
 }
 
 func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, methodType MFAMethodType) (EnrollmentResult, error) {
-	if err := methodType.isValid(); err != nil {
+	var err error
+	if err = methodType.isValid(); err != nil {
 		return EnrollmentResult{}, err
 	}
 
@@ -46,11 +48,14 @@ func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, methodType
 		return EnrollmentResult{}, ErrMFAMethodAlreadyEnrolled
 	}
 
-	var encryptedSecret []byte
-	var setupURI string
+	var (
+		encryptedSecret []byte
+		setupURI        string
+		key             *otp.Key
+	)
 
 	if methodType == MFAMethodTOTP {
-		key, err := totp.Generate(totp.GenerateOpts{
+		key, err = totp.Generate(totp.GenerateOpts{
 			// TODO: change for config
 			Issuer:      "MyApp",
 			AccountName: userID.String(),
