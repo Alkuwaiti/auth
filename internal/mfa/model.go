@@ -10,8 +10,9 @@ type MFAMethod struct {
 	ID          uuid.UUID
 	UserID      uuid.UUID
 	Type        MFAMethodType
-	Secret      string
 	ConfirmedAt *time.Time
+	Secret      string
+	CreatedAt   time.Time
 }
 
 type MFAChallenge struct {

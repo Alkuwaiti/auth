@@ -3,6 +3,7 @@ syntax = "proto3";
 package auth.v1;
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/alkuwaiti/auth/pb/pbauth/v1;authv1";
 
@@ -14,6 +15,7 @@ service AuthService {
   rpc ChangePassword(ChangePasswordRequest) returns (google.protobuf.Empty) {}
   rpc RegisterUser(RegisterUserRequest) returns (User) {}
   rpc DeleteUser(DeleteUserRequest) returns (google.protobuf.Empty) {}
+  rpc EnrollMFAMethod(EnrollMFAMethodRequest) returns (EnrollMFAMethodResponse) {}
 }
 
 message LoginRequest {
@@ -54,4 +56,21 @@ message DeleteUserRequest {
   string user_id = 1;
   string reason = 2;
   string note = 3;
+}
+
+message EnrollMFAMethodRequest {
+  string method = 1;
+}
+
+message MFAMethod {
+  string id = 1;
+  string user_id = 2;
+  string type = 3;
+  google.protobuf.Timestamp confirmed_at = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message EnrollMFAMethodResponse {
+  MFAMethod method = 1;
+  string setup_uri = 2;
 }

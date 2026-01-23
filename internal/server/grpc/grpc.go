@@ -8,6 +8,7 @@ import (
 	"net"
 
 	"github.com/alkuwaiti/auth/internal/auth"
+	"github.com/alkuwaiti/auth/internal/mfa"
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
@@ -30,6 +31,7 @@ type authService interface {
 	ChangePassword(ctx context.Context, oldPassword, newPassword string) error
 	RegisterUser(context.Context, auth.RegisterUserInput) (auth.User, error)
 	DeleteUser(ctx context.Context, input auth.DeleteUserInput) error
+	EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodType) (mfa.EnrollmentResult, error)
 }
 
 type Config struct {
