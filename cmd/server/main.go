@@ -101,8 +101,8 @@ func main() {
 
 	challengeRepo := mfa.NewMFAChallengeRepo(queries)
 
-	// TODO: change to a config value
-	c := crypto.NewAESCrypto([]byte("some key"))
+	// TODO: change to config
+	c := crypto.NewAESCrypto([]byte("12345678901234567890123456789012"))
 
 	multifactor := mfa.NewService(*methodRepo, *challengeRepo, c)
 

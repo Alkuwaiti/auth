@@ -22,8 +22,8 @@ func main() {
 	}()
 
 	res, err := client.RegisterUser(ctx, &authv1.RegisterUserRequest{
-		Username: "qasim1",
-		Email:    "qasim1@gmail.com",
+		Username: "qasimm",
+		Email:    "qasimm@gmail.com",
 		Password: "Supersecretpassword1!",
 	})
 	if err != nil {
