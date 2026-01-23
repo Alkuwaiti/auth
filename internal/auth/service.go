@@ -68,6 +68,7 @@ type tokenManager interface {
 type MFAService interface {
 	EnrollMethod(ctx context.Context, userID uuid.UUID, methodType mfa.MFAMethodType) (mfa.EnrollmentResult, error)
 	ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error
+	GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.UUID) ([]mfa.MFAMethod, error)
 }
 
 var tracer = otel.Tracer("auth-service/auth")
@@ -140,13 +141,13 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 	return user, nil
 }
 
-func (s *service) Login(ctx context.Context, email, password string) (TokenPair, error) {
+func (s *service) Login(ctx context.Context, email, password string) (LoginResult, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.Login")
 	defer span.End()
 
 	if !s.flags.RefreshTokensEnabled(ctx) {
 		span.SetStatus(codes.Error, "Refresh tokenManager disabled")
-		return TokenPair{}, &apperrors.RefreshDisabledError{}
+		return LoginResult{}, &apperrors.RefreshDisabledError{}
 	}
 
 	meta := core.RequestMetaFromContext(ctx)
@@ -159,31 +160,41 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			// Return an invalid credentials here as this is a login endpoint.
-			return TokenPair{}, &apperrors.InvalidCredentialsError{}
+			return LoginResult{}, &apperrors.InvalidCredentialsError{}
 		}
 
 		slog.ErrorContext(ctx, "login failed: user lookup error", "email", user.Email, "err", err)
-		return TokenPair{}, err
+		return LoginResult{}, err
 	}
 
 	if err = s.passwords.Compare(user.PasswordHash, password); err != nil {
 		span.SetStatus(codes.Error, "invalid credentials")
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email)
-		return TokenPair{}, &apperrors.InvalidCredentialsError{}
+		return LoginResult{}, &apperrors.InvalidCredentialsError{}
 	}
 
 	if user.DeletedAt != nil {
 		span.SetStatus(codes.Error, "user deleted")
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email, "deleted_at", user.DeletedAt)
 		// Don't tell the user they're deleted.
-		return TokenPair{}, &apperrors.InvalidCredentialsError{}
+		return LoginResult{}, &apperrors.InvalidCredentialsError{}
 	}
 
 	if !user.IsActive {
 		span.SetStatus(codes.Error, "user inactive")
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email, "is_active", user.IsActive)
 		// Don't tell the user they're inactive.
-		return TokenPair{}, &apperrors.InvalidCredentialsError{}
+		return LoginResult{}, &apperrors.InvalidCredentialsError{}
+	}
+
+	methods, err := s.MFAService.GetConfirmedMFAMethodsByUser(ctx, user.ID)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to get confirmed mfa methods by user", "err", err)
+		return LoginResult{}, err
+	}
+
+	if len(methods) > 0 {
+
 	}
 
 	accessToken, err := s.tokenManager.GenerateAccessToken(user.Roles, user.ID.String(), user.Email)
@@ -191,7 +202,7 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "access token generation failed")
 		slog.ErrorContext(ctx, "access token generation failed", "err", err)
-		return TokenPair{}, err
+		return LoginResult{}, err
 	}
 
 	refreshToken, err := s.tokenManager.GenerateRefreshToken()
@@ -199,7 +210,7 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "refresh token generation failed")
 		slog.ErrorContext(ctx, "refresh token generation failed", "err", err)
-		return TokenPair{}, err
+		return LoginResult{}, err
 	}
 
 	expiresAt := time.Now().Add(7 * 24 * time.Hour)
@@ -212,7 +223,7 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 		meta.UserAgent,
 	); err != nil {
 		slog.ErrorContext(ctx, "create session failed", "err", err)
-		return TokenPair{}, err
+		return LoginResult{}, err
 	}
 
 	if err = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
@@ -222,7 +233,7 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 		UserAgent: &meta.UserAgent,
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to create audit log", "err", err)
-		return TokenPair{}, err
+		return LoginResult{}, err
 	}
 
 	span.SetAttributes(
@@ -231,11 +242,15 @@ func (s *service) Login(ctx context.Context, email, password string) (TokenPair,
 
 	span.SetStatus(codes.Ok, "login successful")
 
-	return TokenPair{
-		AccessToken:      accessToken,
-		RefreshToken:     refreshToken,
-		RefreshExpiresAt: expiresAt,
-		UserID:           user.ID,
+	return LoginResult{
+		RequiresMFA: false,
+		ChallengeID: nil,
+		Tokens: &TokenPair{
+			AccessToken:      accessToken,
+			RefreshToken:     refreshToken,
+			RefreshExpiresAt: expiresAt,
+			UserID:           user.ID,
+		},
 	}, nil
 }
 

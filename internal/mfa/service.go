@@ -130,3 +130,12 @@ func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code st
 
 	return s.methodRepo.Confirm(ctx, methodID)
 }
+
+func (s *service) GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.UUID) ([]MFAMethod, error) {
+	MFAMethods, err := s.methodRepo.GetConfirmedByUser(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return MFAMethods, nil
+}

@@ -26,7 +26,7 @@ type server struct {
 }
 
 type authService interface {
-	Login(ctx context.Context, email, password string) (auth.TokenPair, error)
+	Login(ctx context.Context, email, password string) (auth.LoginResult, error)
 	RefreshToken(ctx context.Context, refreshToken string) (auth.TokenPair, error)
 	Logout(ctx context.Context, refreshToken string) error
 	ChangePassword(ctx context.Context, oldPassword, newPassword string) error

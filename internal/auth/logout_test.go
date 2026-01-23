@@ -24,10 +24,10 @@ func TestLogout_Success(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	loginTokens, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
 	require.NoError(t, err)
 
-	err = service.Logout(ctx, loginTokens.RefreshToken)
+	err = service.Logout(ctx, res.Tokens.RefreshToken)
 	require.NoError(t, err)
 
 	var revokedAt *time.Time
@@ -35,7 +35,7 @@ func TestLogout_Success(t *testing.T) {
 		SELECT revoked_at
 		FROM sessions
 		WHERE refresh_token = $1
-	`, loginTokens.RefreshToken).Scan(&revokedAt)
+	`, res.Tokens.RefreshToken).Scan(&revokedAt)
 
 	require.NoError(t, err)
 	require.NotNil(t, revokedAt)
@@ -64,13 +64,13 @@ func TestLogout_PreventsRefreshReuse(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	loginTokens, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
 	require.NoError(t, err)
 
-	err = service.Logout(ctx, loginTokens.RefreshToken)
+	err = service.Logout(ctx, res.Tokens.RefreshToken)
 	require.NoError(t, err)
 
-	_, err = service.RefreshToken(ctx, loginTokens.RefreshToken)
+	_, err = service.RefreshToken(ctx, res.Tokens.RefreshToken)
 	require.Error(t, err)
 	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
 }
@@ -88,10 +88,10 @@ func TestLogout_CreatesAuditLog(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	loginTokens, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
 	require.NoError(t, err)
 
-	err = service.Logout(ctx, loginTokens.RefreshToken)
+	err = service.Logout(ctx, res.Tokens.RefreshToken)
 	require.NoError(t, err)
 
 	var count int
@@ -125,7 +125,7 @@ func TestLogout_MultiDeviceIsolation(t *testing.T) {
 	device2, err := service.Login(ctx2, "test@example.com", "StrongPassword123!")
 	require.NoError(t, err)
 
-	err = service.Logout(ctx1, device1.RefreshToken)
+	err = service.Logout(ctx1, device1.Tokens.RefreshToken)
 	require.NoError(t, err)
 
 	// device 1 revoked
@@ -134,7 +134,7 @@ func TestLogout_MultiDeviceIsolation(t *testing.T) {
 		SELECT COUNT(*)
 		FROM sessions
 		WHERE refresh_token = $1 AND revoked_at IS NOT NULL
-	`, device1.RefreshToken).Scan(&revokedCount)
+	`, device1.Tokens.RefreshToken).Scan(&revokedCount)
 
 	require.NoError(t, err)
 	require.Equal(t, 1, revokedCount)
@@ -145,7 +145,7 @@ func TestLogout_MultiDeviceIsolation(t *testing.T) {
 		SELECT COUNT(*)
 		FROM sessions
 		WHERE refresh_token = $1 AND revoked_at IS NULL
-	`, device2.RefreshToken).Scan(&activeCount)
+	`, device2.Tokens.RefreshToken).Scan(&activeCount)
 
 	require.NoError(t, err)
 	require.Equal(t, 1, activeCount)

@@ -27,11 +27,11 @@ func (s *server) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.T
 	}
 
 	return &authv1.TokenPair{
-		AccessToken:  res.AccessToken,
-		RefreshToken: res.RefreshToken,
-		ExpiresIn:    res.RefreshExpiresAt.Unix(),
+		AccessToken:  res.Tokens.AccessToken,
+		RefreshToken: res.Tokens.RefreshToken,
+		ExpiresIn:    res.Tokens.RefreshExpiresAt.Unix(),
 		TokenType:    "Bearer",
-		UserId:       res.UserID.String(),
+		UserId:       res.Tokens.UserID.String(),
 	}, nil
 }
 

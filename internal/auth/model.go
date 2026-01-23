@@ -118,3 +118,9 @@ type User struct {
 	Roles           []string        `json:"roles"`
 	MFAEnabled      bool            `json:"mfa_enabled"`
 }
+
+type LoginResult struct {
+	RequiresMFA bool
+	ChallengeID *uuid.UUID
+	Tokens      *TokenPair
+}
