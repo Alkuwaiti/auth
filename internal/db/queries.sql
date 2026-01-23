@@ -136,3 +136,7 @@ WHERE user_id = $1
   AND type = $2
   AND confirmed_at IS NOT NULL;
 
+-- name: GetMFAMethodByID :one
+SELECT * FROM user_mfa_methods
+WHERE id = $1;
+

@@ -3,6 +3,7 @@ package mfa
 
 import (
 	"context"
+	"encoding/base32"
 
 	"github.com/google/uuid"
 	"github.com/pquerna/otp/totp"
@@ -75,4 +76,31 @@ func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, methodType
 		Method:   method,
 		SetupURI: setupURI,
 	}, nil
+}
+
+func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error {
+	method, err := s.methodRepo.GetByID(ctx, methodID)
+	if err != nil {
+		return err
+	}
+
+	if method.ConfirmedAt != nil {
+		return ErrMFAMethodAlreadyConfirmed
+	}
+
+	secretBytes, err := s.crypto.Decrypt([]byte(method.Secret))
+	if err != nil {
+		return err
+	}
+
+	valid := totp.Validate(
+		code,
+		base32.StdEncoding.EncodeToString(secretBytes),
+	)
+	if !valid {
+		return ErrInvalidOTP
+	}
+
+	return s.methodRepo.Confirm(ctx, methodID)
+
 }

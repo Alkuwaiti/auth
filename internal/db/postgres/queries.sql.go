@@ -266,6 +266,25 @@ func (q *Queries) GetActiveChallenge(ctx context.Context, id uuid.UUID) (GetActi
 	return i, err
 }
 
+const getMFAMethodByID = `-- name: GetMFAMethodByID :one
+SELECT id, user_id, type, secret_ciphertext, confirmed_at, created_at FROM user_mfa_methods
+WHERE id = $1
+`
+
+func (q *Queries) GetMFAMethodByID(ctx context.Context, id uuid.UUID) (UserMfaMethod, error) {
+	row := q.db.QueryRowContext(ctx, getMFAMethodByID, id)
+	var i UserMfaMethod
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Type,
+		&i.SecretCiphertext,
+		&i.ConfirmedAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getMFAMethodsConfirmedByUser = `-- name: GetMFAMethodsConfirmedByUser :many
 SELECT id, user_id, type, confirmed_at, created_at
 FROM user_mfa_methods
@@ -507,6 +526,7 @@ SELECT COUNT(*) > 0 AS exists
 FROM user_mfa_methods
 WHERE user_id = $1
   AND type = $2
+  AND confirmed_at IS NOT NULL
 `
 
 type UserHasActiveMFAMethodParams struct {

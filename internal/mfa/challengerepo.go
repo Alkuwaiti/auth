@@ -8,71 +8,14 @@ import (
 	"github.com/google/uuid"
 )
 
-type MFAMethodRepo struct {
-	queries *postgres.Queries
-}
-
 type MFAChallengeRepo struct {
 	queries *postgres.Queries
-}
-
-func NewMFAMethodRepo(queries *postgres.Queries) *MFAMethodRepo {
-	return &MFAMethodRepo{
-		queries: queries,
-	}
 }
 
 func NewMFAChallengeRepo(queries *postgres.Queries) *MFAChallengeRepo {
 	return &MFAChallengeRepo{
 		queries: queries,
 	}
-}
-
-func (m *MFAMethodRepo) Create(ctx context.Context, userID uuid.UUID, secret []byte, methodType MFAMethodType) (MFAMethod, error) {
-	postgresMFAMethod, err := m.queries.CreateUserMFAMethod(ctx, postgres.CreateUserMFAMethodParams{
-		UserID:           userID,
-		Type:             string(methodType),
-		SecretCiphertext: secret,
-	})
-	if err != nil {
-		return MFAMethod{}, err
-	}
-
-	return toMFAMethod(postgresMFAMethod), nil
-}
-
-func (m *MFAMethodRepo) GetConfirmedByUser(ctx context.Context, userID uuid.UUID) ([]MFAMethod, error) {
-	rows, err := m.queries.GetMFAMethodsConfirmedByUser(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-
-	methods := make([]MFAMethod, len(rows))
-	for i, row := range rows {
-		methods[i] = toMFAMethodFromRow(row)
-	}
-
-	return methods, nil
-}
-
-func (m *MFAMethodRepo) Confirm(ctx context.Context, methodID uuid.UUID) error {
-	if err := m.queries.ConfirmUserMFAMethod(ctx, methodID); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *MFAMethodRepo) UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID, methodType MFAMethodType) (bool, error) {
-	exists, err := m.queries.UserHasActiveMFAMethod(ctx, postgres.UserHasActiveMFAMethodParams{
-		UserID: userID,
-		Type:   string(methodType),
-	})
-	if err != nil {
-		return false, err
-	}
-
-	return exists, nil
 }
 
 func (c *MFAChallengeRepo) Create(ctx context.Context, challenge MFAChallenge) error {
@@ -87,7 +30,6 @@ func (c *MFAChallengeRepo) Create(ctx context.Context, challenge MFAChallenge) e
 	}
 
 	return nil
-
 }
 
 func (c *MFAChallengeRepo) GetActive(ctx context.Context, id uuid.UUID) (*MFAChallenge, error) {
@@ -99,8 +41,8 @@ func (c *MFAChallengeRepo) GetActive(ctx context.Context, id uuid.UUID) (*MFACha
 	return toMFAChallenge(postgresChallenge), nil
 }
 
-func (r *MFAChallengeRepo) Consume(ctx context.Context, id uuid.UUID) error {
-	if err := r.queries.ConsumeChallenge(ctx, id); err != nil {
+func (c *MFAChallengeRepo) Consume(ctx context.Context, id uuid.UUID) error {
+	if err := c.queries.ConsumeChallenge(ctx, id); err != nil {
 		return err
 	}
 
