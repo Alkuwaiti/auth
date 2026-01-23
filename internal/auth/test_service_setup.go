@@ -7,8 +7,10 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/audit"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
+	"github.com/alkuwaiti/auth/internal/crypto"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/alkuwaiti/auth/internal/flags"
+	"github.com/alkuwaiti/auth/internal/mfa"
 	"github.com/alkuwaiti/auth/internal/password"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/alkuwaiti/auth/internal/tokens"
@@ -30,7 +32,9 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 
 	passwordService := password.NewService(12)
 
-	auditRepo := audit.NewRepo(postgres.New(testDB.DB))
+	queries := postgres.New(testDB.DB)
+
+	auditRepo := audit.NewRepo(queries)
 
 	auditService := audit.New(auditRepo)
 
@@ -48,7 +52,16 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 		JWTKey:   []byte("any random jwt key doesn't really matter or at least i think it doesn't matter"),
 	})
 
-	service := NewService(authRepo, passwordService, auditService, authorizerService, flagsService, tokenManager)
+	methodRepo := mfa.NewMFAMethodRepo(queries)
+
+	challengeRepo := mfa.NewMFAChallengeRepo(queries)
+
+	// TODO: change to a config value
+	c := crypto.NewAESCrypto([]byte("some key"))
+
+	multifactor := mfa.NewService(*methodRepo, *challengeRepo, c)
+
+	service := NewService(authRepo, passwordService, auditService, authorizerService, flagsService, tokenManager, multifactor)
 
 	cleanup := func() {
 		_ = testDB.DB.Close()

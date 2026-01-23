@@ -16,9 +16,11 @@ import (
 	"github.com/alkuwaiti/auth/internal/auth"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
 	"github.com/alkuwaiti/auth/internal/config"
+	"github.com/alkuwaiti/auth/internal/crypto"
 	"github.com/alkuwaiti/auth/internal/db"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/alkuwaiti/auth/internal/flags"
+	"github.com/alkuwaiti/auth/internal/mfa"
 	"github.com/alkuwaiti/auth/internal/observability/logging"
 	"github.com/alkuwaiti/auth/internal/observability/tracing"
 	"github.com/alkuwaiti/auth/internal/password"
@@ -77,7 +79,9 @@ func main() {
 
 	passwords := password.NewService(12)
 
-	auditRepo := audit.NewRepo(postgres.New(dbConn))
+	queries := postgres.New(dbConn)
+
+	auditRepo := audit.NewRepo(queries)
 
 	auditor := audit.New(auditRepo)
 
@@ -93,9 +97,18 @@ func main() {
 		Audience: name,
 	})
 
+	methodRepo := mfa.NewMFAMethodRepo(queries)
+
+	challengeRepo := mfa.NewMFAChallengeRepo(queries)
+
+	// TODO: change to a config value
+	c := crypto.NewAESCrypto([]byte("some key"))
+
+	multifactor := mfa.NewService(*methodRepo, *challengeRepo, c)
+
 	authRepo := auth.NewRepo(dbConn)
 
-	authService := auth.NewService(authRepo, passwords, auditor, authorizer, flags, tokens)
+	authService := auth.NewService(authRepo, passwords, auditor, authorizer, flags, tokens, multifactor)
 
 	port := 8081
 

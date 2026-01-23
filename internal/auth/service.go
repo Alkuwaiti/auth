@@ -11,7 +11,9 @@ import (
 	"github.com/alkuwaiti/auth/internal/audit"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
 	"github.com/alkuwaiti/auth/internal/core"
+	"github.com/alkuwaiti/auth/internal/mfa"
 	"github.com/alkuwaiti/auth/internal/tokens"
+	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -24,9 +26,10 @@ type service struct {
 	authorizer   authorizer
 	flags        featureFlags
 	tokenManager tokenManager
+	multifactor  multifactor
 }
 
-func NewService(repo *repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager) *service {
+func NewService(repo *repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, multifactor multifactor) *service {
 	return &service{
 		repo:         repo,
 		passwords:    passwords,
@@ -34,6 +37,7 @@ func NewService(repo *repo, passwords passwords, auditor auditor, authorizer aut
 		authorizer:   authorizer,
 		flags:        flags,
 		tokenManager: tokenManager,
+		multifactor:  multifactor,
 	}
 }
 
@@ -59,6 +63,11 @@ type tokenManager interface {
 	GenerateAccessToken(roles []string, userID, email string) (string, error)
 	ValidateJWT(tokenStr string) (*tokens.AccessClaims, error)
 	GenerateRefreshToken() (string, error)
+}
+
+type multifactor interface {
+	EnrollMethod(ctx context.Context, userID uuid.UUID, methodType mfa.MFAMethodType) (mfa.EnrollmentResult, error)
+	ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error
 }
 
 var tracer = otel.Tracer("auth-service/auth")
@@ -533,4 +542,13 @@ func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 	span.SetStatus(codes.Ok, "user deleted and sessions revoked")
 
 	return nil
+}
+
+func (s *service) EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodType) (mfa.EnrollmentResult, error) {
+	userID, err := core.UserIDFromContext(ctx)
+	if err != nil {
+		return mfa.EnrollmentResult{}, err
+	}
+
+	return s.multifactor.EnrollMethod(ctx, userID, methodType)
 }
