@@ -144,10 +144,7 @@ func (s *server) EnrollMFAMethod(
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	response, err := s.authService.EnrollMFAMethod(
-		ctx,
-		mfa.MFAMethodType(req.Method),
-	)
+	response, err := s.authService.EnrollMFAMethod(ctx, mfa.MFAMethodType(req.Method))
 	if err != nil {
 		return nil, MapError(err)
 	}
@@ -155,7 +152,6 @@ func (s *server) EnrollMFAMethod(
 	return &authv1.EnrollMFAMethodResponse{
 		Method: &authv1.MFAMethod{
 			Id:        response.Method.ID.String(),
-			UserId:    response.Method.UserID.String(),
 			Type:      string(response.Method.Type),
 			CreatedAt: timestamppb.New(response.Method.CreatedAt),
 		},

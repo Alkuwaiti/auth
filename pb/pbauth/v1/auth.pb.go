@@ -474,7 +474,6 @@ func (x *EnrollMFAMethodRequest) GetMethod() string {
 type MFAMethod struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Type          string                 `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -514,13 +513,6 @@ func (*MFAMethod) Descriptor() ([]byte, []int) {
 func (x *MFAMethod) GetId() string {
 	if x != nil {
 		return x.Id
-	}
-	return ""
-}
-
-func (x *MFAMethod) GetUserId() string {
-	if x != nil {
-		return x.UserId
 	}
 	return ""
 }
@@ -625,10 +617,9 @@ const file___proto_auth_proto_rawDesc = "" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\x12\x12\n" +
 	"\x04note\x18\x03 \x01(\tR\x04note\"0\n" +
 	"\x16EnrollMFAMethodRequest\x12\x16\n" +
-	"\x06method\x18\x01 \x01(\tR\x06method\"\x83\x01\n" +
+	"\x06method\x18\x01 \x01(\tR\x06method\"j\n" +
 	"\tMFAMethod\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x12\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04type\x18\x03 \x01(\tR\x04type\x129\n" +
 	"\n" +
 	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"b\n" +

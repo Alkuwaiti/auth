@@ -64,7 +64,6 @@ message EnrollMFAMethodRequest {
 
 message MFAMethod {
   string id = 1;
-  string user_id = 2;
   string type = 3;
   google.protobuf.Timestamp created_at = 5;
 }

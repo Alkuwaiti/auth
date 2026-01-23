@@ -73,7 +73,11 @@ func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, methodType
 	}
 
 	return EnrollmentResult{
-		Method:   method,
+		Method: MFAMethod{
+			ID:        method.ID,
+			Type:      method.Type,
+			CreatedAt: method.CreatedAt,
+		},
 		SetupURI: setupURI,
 	}, nil
 }
