@@ -15,7 +15,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func (s *server) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.TokenPair, error) {
+func (s *server) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.LoginResponse, error) {
 	if req == nil {
 		slog.ErrorContext(ctx, "Invalid request: request is nil")
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
@@ -26,12 +26,16 @@ func (s *server) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.T
 		return nil, MapError(err)
 	}
 
-	return &authv1.TokenPair{
-		AccessToken:  res.Tokens.AccessToken,
-		RefreshToken: res.Tokens.RefreshToken,
-		ExpiresIn:    res.Tokens.RefreshExpiresAt.Unix(),
-		TokenType:    "Bearer",
-		UserId:       res.Tokens.UserID.String(),
+	return &authv1.LoginResponse{
+		MfaRequired: res.RequiresMFA,
+		ChallengeId: res.ChallengeID.String(),
+		Tokens: &authv1.TokenPair{
+			AccessToken:  res.Tokens.AccessToken,
+			RefreshToken: res.Tokens.RefreshToken,
+			ExpiresIn:    res.Tokens.RefreshExpiresAt.Unix(),
+			TokenType:    "Bearer",
+			UserId:       res.Tokens.UserID.String(),
+		},
 	}, nil
 }
 
