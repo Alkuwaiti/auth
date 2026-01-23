@@ -26,10 +26,10 @@ type service struct {
 	authorizer   authorizer
 	flags        featureFlags
 	tokenManager tokenManager
-	multifactor  multifactor
+	MFAService   MFAService
 }
 
-func NewService(repo *repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, multifactor multifactor) *service {
+func NewService(repo *repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAService MFAService) *service {
 	return &service{
 		repo:         repo,
 		passwords:    passwords,
@@ -37,7 +37,7 @@ func NewService(repo *repo, passwords passwords, auditor auditor, authorizer aut
 		authorizer:   authorizer,
 		flags:        flags,
 		tokenManager: tokenManager,
-		multifactor:  multifactor,
+		MFAService:   MFAService,
 	}
 }
 
@@ -65,7 +65,7 @@ type tokenManager interface {
 	GenerateRefreshToken() (string, error)
 }
 
-type multifactor interface {
+type MFAService interface {
 	EnrollMethod(ctx context.Context, userID uuid.UUID, methodType mfa.MFAMethodType) (mfa.EnrollmentResult, error)
 	ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error
 }
@@ -550,9 +550,9 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodT
 		return mfa.EnrollmentResult{}, err
 	}
 
-	return s.multifactor.EnrollMethod(ctx, userID, methodType)
+	return s.MFAService.EnrollMethod(ctx, userID, methodType)
 }
 
 func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error {
-	return s.multifactor.ConfirmMethod(ctx, methodID, code)
+	return s.MFAService.ConfirmMethod(ctx, methodID, code)
 }
