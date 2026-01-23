@@ -85,6 +85,7 @@ func toMFAMethod(row postgres.UserMfaMethod) MFAMethod {
 		UserID:      row.UserID,
 		Type:        MFAMethodType(row.Type),
 		CreatedAt:   row.CreatedAt,
+		Secret:      string(row.SecretCiphertext),
 		ConfirmedAt: confirmedAt,
 	}
 }

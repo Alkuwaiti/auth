@@ -552,3 +552,7 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodT
 
 	return s.multifactor.EnrollMethod(ctx, userID, methodType)
 }
+
+func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error {
+	return s.multifactor.ConfirmMethod(ctx, methodID, code)
+}

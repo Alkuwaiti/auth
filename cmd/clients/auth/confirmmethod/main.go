@@ -32,8 +32,9 @@ func main() {
 		}
 	}()
 
-	res, err := client.EnrollMFAMethod(ctx, &authv1.EnrollMFAMethodRequest{
-		Method: "totp",
+	res, err := client.ConfirmMFAMethod(ctx, &authv1.ConfirmMFAMethodRequest{
+		MethodId: "f092cfa0-6e0a-45e1-b826-a97b4fa6c4d2",
+		Code:     "205413",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

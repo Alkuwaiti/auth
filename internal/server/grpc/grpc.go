@@ -10,6 +10,7 @@ import (
 	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/mfa"
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
+	"github.com/google/uuid"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -32,6 +33,7 @@ type authService interface {
 	RegisterUser(context.Context, auth.RegisterUserInput) (auth.User, error)
 	DeleteUser(ctx context.Context, input auth.DeleteUserInput) error
 	EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodType) (mfa.EnrollmentResult, error)
+	ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error
 }
 
 type Config struct {

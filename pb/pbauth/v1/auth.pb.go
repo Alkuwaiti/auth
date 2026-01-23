@@ -583,6 +583,58 @@ func (x *EnrollMFAMethodResponse) GetSetupUri() string {
 	return ""
 }
 
+type ConfirmMFAMethodRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	MethodId      string                 `protobuf:"bytes,1,opt,name=method_id,json=methodId,proto3" json:"method_id,omitempty"`
+	Code          string                 `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConfirmMFAMethodRequest) Reset() {
+	*x = ConfirmMFAMethodRequest{}
+	mi := &file___proto_auth_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfirmMFAMethodRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfirmMFAMethodRequest) ProtoMessage() {}
+
+func (x *ConfirmMFAMethodRequest) ProtoReflect() protoreflect.Message {
+	mi := &file___proto_auth_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfirmMFAMethodRequest.ProtoReflect.Descriptor instead.
+func (*ConfirmMFAMethodRequest) Descriptor() ([]byte, []int) {
+	return file___proto_auth_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *ConfirmMFAMethodRequest) GetMethodId() string {
+	if x != nil {
+		return x.MethodId
+	}
+	return ""
+}
+
+func (x *ConfirmMFAMethodRequest) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
 var File___proto_auth_proto protoreflect.FileDescriptor
 
 const file___proto_auth_proto_rawDesc = "" +
@@ -625,7 +677,10 @@ const file___proto_auth_proto_rawDesc = "" +
 	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"b\n" +
 	"\x17EnrollMFAMethodResponse\x12*\n" +
 	"\x06method\x18\x01 \x01(\v2\x12.auth.v1.MFAMethodR\x06method\x12\x1b\n" +
-	"\tsetup_uri\x18\x02 \x01(\tR\bsetupUri2\xaa\x04\n" +
+	"\tsetup_uri\x18\x02 \x01(\tR\bsetupUri\"J\n" +
+	"\x17ConfirmMFAMethodRequest\x12\x1b\n" +
+	"\tmethod_id\x18\x01 \x01(\tR\bmethodId\x12\x12\n" +
+	"\x04code\x18\x02 \x01(\tR\x04code2\xfa\x04\n" +
 	"\vAuthService\x128\n" +
 	"\x04Ping\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x00\x124\n" +
 	"\x05Login\x12\x15.auth.v1.LoginRequest\x1a\x12.auth.v1.TokenPair\"\x00\x12B\n" +
@@ -635,7 +690,8 @@ const file___proto_auth_proto_rawDesc = "" +
 	"\fRegisterUser\x12\x1c.auth.v1.RegisterUserRequest\x1a\r.auth.v1.User\"\x00\x12B\n" +
 	"\n" +
 	"DeleteUser\x12\x1a.auth.v1.DeleteUserRequest\x1a\x16.google.protobuf.Empty\"\x00\x12V\n" +
-	"\x0fEnrollMFAMethod\x12\x1f.auth.v1.EnrollMFAMethodRequest\x1a .auth.v1.EnrollMFAMethodResponse\"\x00B/Z-github.com/alkuwaiti/auth/pb/pbauth/v1;authv1b\x06proto3"
+	"\x0fEnrollMFAMethod\x12\x1f.auth.v1.EnrollMFAMethodRequest\x1a .auth.v1.EnrollMFAMethodResponse\"\x00\x12N\n" +
+	"\x10ConfirmMFAMethod\x12 .auth.v1.ConfirmMFAMethodRequest\x1a\x16.google.protobuf.Empty\"\x00B/Z-github.com/alkuwaiti/auth/pb/pbauth/v1;authv1b\x06proto3"
 
 var (
 	file___proto_auth_proto_rawDescOnce sync.Once
@@ -649,7 +705,7 @@ func file___proto_auth_proto_rawDescGZIP() []byte {
 	return file___proto_auth_proto_rawDescData
 }
 
-var file___proto_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file___proto_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file___proto_auth_proto_goTypes = []any{
 	(*LoginRequest)(nil),            // 0: auth.v1.LoginRequest
 	(*TokenPair)(nil),               // 1: auth.v1.TokenPair
@@ -661,13 +717,14 @@ var file___proto_auth_proto_goTypes = []any{
 	(*EnrollMFAMethodRequest)(nil),  // 7: auth.v1.EnrollMFAMethodRequest
 	(*MFAMethod)(nil),               // 8: auth.v1.MFAMethod
 	(*EnrollMFAMethodResponse)(nil), // 9: auth.v1.EnrollMFAMethodResponse
-	(*timestamppb.Timestamp)(nil),   // 10: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),           // 11: google.protobuf.Empty
+	(*ConfirmMFAMethodRequest)(nil), // 10: auth.v1.ConfirmMFAMethodRequest
+	(*timestamppb.Timestamp)(nil),   // 11: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),           // 12: google.protobuf.Empty
 }
 var file___proto_auth_proto_depIdxs = []int32{
-	10, // 0: auth.v1.MFAMethod.created_at:type_name -> google.protobuf.Timestamp
+	11, // 0: auth.v1.MFAMethod.created_at:type_name -> google.protobuf.Timestamp
 	8,  // 1: auth.v1.EnrollMFAMethodResponse.method:type_name -> auth.v1.MFAMethod
-	11, // 2: auth.v1.AuthService.Ping:input_type -> google.protobuf.Empty
+	12, // 2: auth.v1.AuthService.Ping:input_type -> google.protobuf.Empty
 	0,  // 3: auth.v1.AuthService.Login:input_type -> auth.v1.LoginRequest
 	2,  // 4: auth.v1.AuthService.RefreshToken:input_type -> auth.v1.RefreshTokenRequest
 	2,  // 5: auth.v1.AuthService.Logout:input_type -> auth.v1.RefreshTokenRequest
@@ -675,16 +732,18 @@ var file___proto_auth_proto_depIdxs = []int32{
 	4,  // 7: auth.v1.AuthService.RegisterUser:input_type -> auth.v1.RegisterUserRequest
 	6,  // 8: auth.v1.AuthService.DeleteUser:input_type -> auth.v1.DeleteUserRequest
 	7,  // 9: auth.v1.AuthService.EnrollMFAMethod:input_type -> auth.v1.EnrollMFAMethodRequest
-	11, // 10: auth.v1.AuthService.Ping:output_type -> google.protobuf.Empty
-	1,  // 11: auth.v1.AuthService.Login:output_type -> auth.v1.TokenPair
-	1,  // 12: auth.v1.AuthService.RefreshToken:output_type -> auth.v1.TokenPair
-	11, // 13: auth.v1.AuthService.Logout:output_type -> google.protobuf.Empty
-	11, // 14: auth.v1.AuthService.ChangePassword:output_type -> google.protobuf.Empty
-	5,  // 15: auth.v1.AuthService.RegisterUser:output_type -> auth.v1.User
-	11, // 16: auth.v1.AuthService.DeleteUser:output_type -> google.protobuf.Empty
-	9,  // 17: auth.v1.AuthService.EnrollMFAMethod:output_type -> auth.v1.EnrollMFAMethodResponse
-	10, // [10:18] is the sub-list for method output_type
-	2,  // [2:10] is the sub-list for method input_type
+	10, // 10: auth.v1.AuthService.ConfirmMFAMethod:input_type -> auth.v1.ConfirmMFAMethodRequest
+	12, // 11: auth.v1.AuthService.Ping:output_type -> google.protobuf.Empty
+	1,  // 12: auth.v1.AuthService.Login:output_type -> auth.v1.TokenPair
+	1,  // 13: auth.v1.AuthService.RefreshToken:output_type -> auth.v1.TokenPair
+	12, // 14: auth.v1.AuthService.Logout:output_type -> google.protobuf.Empty
+	12, // 15: auth.v1.AuthService.ChangePassword:output_type -> google.protobuf.Empty
+	5,  // 16: auth.v1.AuthService.RegisterUser:output_type -> auth.v1.User
+	12, // 17: auth.v1.AuthService.DeleteUser:output_type -> google.protobuf.Empty
+	9,  // 18: auth.v1.AuthService.EnrollMFAMethod:output_type -> auth.v1.EnrollMFAMethodResponse
+	12, // 19: auth.v1.AuthService.ConfirmMFAMethod:output_type -> google.protobuf.Empty
+	11, // [11:20] is the sub-list for method output_type
+	2,  // [2:11] is the sub-list for method input_type
 	2,  // [2:2] is the sub-list for extension type_name
 	2,  // [2:2] is the sub-list for extension extendee
 	0,  // [0:2] is the sub-list for field type_name
@@ -701,7 +760,7 @@ func file___proto_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file___proto_auth_proto_rawDesc), len(file___proto_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -3,7 +3,7 @@ package mfa
 
 import (
 	"context"
-	"encoding/base32"
+	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/google/uuid"
@@ -58,10 +58,10 @@ func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, methodType
 	var (
 		encryptedSecret []byte
 		setupURI        string
-		key             *otp.Key
 	)
 
 	if methodType == MFAMethodTOTP {
+		var key *otp.Key
 		key, err = totp.Generate(totp.GenerateOpts{
 			// TODO: change for config
 			Issuer:      "MyApp",
@@ -112,10 +112,15 @@ func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code st
 		return err
 	}
 
-	valid := totp.Validate(
-		code,
-		base32.StdEncoding.EncodeToString(secretBytes),
-	)
+	valid, err := totp.ValidateCustom(code, string(secretBytes), time.Now(), totp.ValidateOpts{
+		Period: 30,
+		Skew:   1, // ±30s
+		Digits: otp.DigitsSix,
+	})
+	if err != nil {
+		return err
+	}
+
 	if !valid {
 		return &apperrors.BadRequestError{
 			Field: "code",
@@ -124,5 +129,4 @@ func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code st
 	}
 
 	return s.methodRepo.Confirm(ctx, methodID)
-
 }

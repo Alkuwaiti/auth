@@ -135,26 +135,42 @@ func (s *server) DeleteUser(ctx context.Context, req *authv1.DeleteUserRequest) 
 	return &emptypb.Empty{}, nil
 }
 
-func (s *server) EnrollMFAMethod(
-	ctx context.Context,
-	req *authv1.EnrollMFAMethodRequest,
-) (*authv1.EnrollMFAMethodResponse, error) {
+func (s *server) EnrollMFAMethod(ctx context.Context, req *authv1.EnrollMFAMethodRequest) (*authv1.EnrollMFAMethodResponse, error) {
 	if req == nil {
 		slog.ErrorContext(ctx, "Invalid request: request is nil")
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	response, err := s.authService.EnrollMFAMethod(ctx, mfa.MFAMethodType(req.Method))
+	res, err := s.authService.EnrollMFAMethod(ctx, mfa.MFAMethodType(req.Method))
 	if err != nil {
 		return nil, MapError(err)
 	}
 
 	return &authv1.EnrollMFAMethodResponse{
 		Method: &authv1.MFAMethod{
-			Id:        response.Method.ID.String(),
-			Type:      string(response.Method.Type),
-			CreatedAt: timestamppb.New(response.Method.CreatedAt),
+			Id:        res.Method.ID.String(),
+			Type:      string(res.Method.Type),
+			CreatedAt: timestamppb.New(res.Method.CreatedAt),
 		},
-		SetupUri: response.SetupURI,
+		SetupUri: res.SetupURI,
 	}, nil
+}
+
+func (s *server) ConfirmMFAMethod(ctx context.Context, req *authv1.ConfirmMFAMethodRequest) (*emptypb.Empty, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	methodID, err := uuid.Parse(req.MethodId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "user id is not a uuid")
+	}
+
+	err = s.authService.ConfirmMethod(ctx, methodID, req.Code)
+	if err != nil {
+		return nil, MapError(err)
+	}
+
+	return &emptypb.Empty{}, nil
 }

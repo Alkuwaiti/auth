@@ -32,7 +32,7 @@ func main() {
 	}()
 
 	res, err := client.RefreshToken(ctx, &authv1.RefreshTokenRequest{
-		RefreshToken: "yJUQNY9A7sVx9EwFHOl7cLSp5GKl6laL_ndVy3MZ9yA=",
+		RefreshToken: "IqgeX2CWDxcTZZnvZg7AwIxkYJfP-JdeJNYs17DEusw=",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
