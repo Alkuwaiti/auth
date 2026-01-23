@@ -36,7 +36,6 @@ type EnrollmentResult struct {
 }
 
 func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, methodType MFAMethodType) (EnrollmentResult, error) {
-	var err error
 	if !methodType.isValid() {
 		return EnrollmentResult{}, &apperrors.ValidationError{
 			Field: "method type",
@@ -55,28 +54,20 @@ func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, methodType
 		}
 	}
 
-	var (
-		encryptedSecret []byte
-		setupURI        string
-	)
+	key, err := totp.Generate(totp.GenerateOpts{
+		// TODO: change for config
+		Issuer:      "MyApp",
+		AccountName: userID.String(),
+	})
+	if err != nil {
+		return EnrollmentResult{}, err
+	}
 
-	if methodType == MFAMethodTOTP {
-		var key *otp.Key
-		key, err = totp.Generate(totp.GenerateOpts{
-			// TODO: change for config
-			Issuer:      "MyApp",
-			AccountName: userID.String(),
-		})
-		if err != nil {
-			return EnrollmentResult{}, err
-		}
+	setupURI := key.URL()
 
-		setupURI = key.URL()
-
-		encryptedSecret, err = s.crypto.Encrypt([]byte(key.Secret()))
-		if err != nil {
-			return EnrollmentResult{}, err
-		}
+	encryptedSecret, err := s.crypto.Encrypt([]byte(key.Secret()))
+	if err != nil {
+		return EnrollmentResult{}, err
 	}
 
 	method, err := s.methodRepo.Create(ctx, userID, encryptedSecret, methodType)
@@ -138,4 +129,17 @@ func (s *service) GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.
 	}
 
 	return MFAMethods, nil
+}
+
+func (s *service) CreateChallenge(ctx context.Context, userID, methodID uuid.UUID) (uuid.UUID, error) {
+	c, err := s.challengeRepo.Create(ctx, MFAChallenge{
+		MethodID:  methodID,
+		UserID:    userID,
+		ExpiresAt: time.Now().Add(5 * time.Minute),
+	})
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+
+	return c.ID, nil
 }

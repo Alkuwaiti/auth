@@ -18,18 +18,19 @@ func NewMFAChallengeRepo(queries *postgres.Queries) *MFAChallengeRepo {
 	}
 }
 
-func (c *MFAChallengeRepo) Create(ctx context.Context, challenge MFAChallenge) error {
-	if err := c.queries.CreateChallenge(ctx, postgres.CreateChallengeParams{
+func (c *MFAChallengeRepo) Create(ctx context.Context, challenge MFAChallenge) (MFAChallenge, error) {
+	postgresChallenge, err := c.queries.CreateChallenge(ctx, postgres.CreateChallengeParams{
 		ID:            challenge.ID,
 		UserID:        challenge.UserID,
 		MfaMethodID:   challenge.MethodID,
 		ChallengeType: string(challenge.ChallengeType),
 		ExpiresAt:     challenge.ExpiresAt,
-	}); err != nil {
-		return err
+	})
+	if err != nil {
+		return MFAChallenge{}, err
 	}
 
-	return nil
+	return *toMFAChallenge(postgresChallenge), nil
 }
 
 func (c *MFAChallengeRepo) GetActive(ctx context.Context, id uuid.UUID) (*MFAChallenge, error) {
@@ -38,7 +39,7 @@ func (c *MFAChallengeRepo) GetActive(ctx context.Context, id uuid.UUID) (*MFACha
 		return nil, err
 	}
 
-	return toMFAChallenge(postgresChallenge), nil
+	return toMFAChallengeFromActive(postgresChallenge), nil
 }
 
 func (c *MFAChallengeRepo) Consume(ctx context.Context, id uuid.UUID) error {
@@ -49,7 +50,22 @@ func (c *MFAChallengeRepo) Consume(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func toMFAChallenge(row postgres.GetActiveChallengeRow) *MFAChallenge {
+func toMFAChallenge(row postgres.MfaChallenge) *MFAChallenge {
+	var consumedAt *time.Time
+	if row.ConsumedAt.Valid {
+		consumedAt = &row.ConsumedAt.Time
+	}
+
+	return &MFAChallenge{
+		ID:         row.ID,
+		UserID:     row.UserID,
+		MethodID:   row.MfaMethodID,
+		ExpiresAt:  row.ExpiresAt,
+		ConsumedAt: consumedAt,
+	}
+}
+
+func toMFAChallengeFromActive(row postgres.GetActiveChallengeRow) *MFAChallenge {
 	var consumedAt *time.Time
 	if row.ConsumedAt.Valid {
 		consumedAt = &row.ConsumedAt.Time

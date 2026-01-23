@@ -69,6 +69,7 @@ type MFAService interface {
 	EnrollMethod(ctx context.Context, userID uuid.UUID, methodType mfa.MFAMethodType) (mfa.EnrollmentResult, error)
 	ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error
 	GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.UUID) ([]mfa.MFAMethod, error)
+	CreateChallenge(ctx context.Context, userID, methodID uuid.UUID) (uuid.UUID, error)
 }
 
 var tracer = otel.Tracer("auth-service/auth")
@@ -193,8 +194,20 @@ func (s *service) Login(ctx context.Context, email, password string) (LoginResul
 		return LoginResult{}, err
 	}
 
+	var ChallengeID uuid.UUID
 	if len(methods) > 0 {
+		// TODO: change the implementation when you have multiple methods.
+		ChallengeID, err = s.MFAService.CreateChallenge(ctx, methods[0].UserID, methods[0].ID)
+		if err != nil {
+			slog.ErrorContext(ctx, "failed to get confirmed mfa methods by user", "err", err)
+			return LoginResult{}, err
+		}
 
+		return LoginResult{
+			RequiresMFA: true,
+			ChallengeID: &ChallengeID,
+			Tokens:      nil,
+		}, nil
 	}
 
 	accessToken, err := s.tokenManager.GenerateAccessToken(user.Roles, user.ID.String(), user.Email)

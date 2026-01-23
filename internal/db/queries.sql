@@ -110,11 +110,12 @@ SET confirmed_at = now()
 WHERE id = $1
   AND confirmed_at IS NULL;
 
--- name: CreateChallenge :exec
+-- name: CreateChallenge :one
 INSERT INTO mfa_challenges (
   id, user_id, mfa_method_id, challenge_type, expires_at
 )
-VALUES ($1, $2, $3, $4, $5);
+VALUES ($1, $2, $3, $4, $5)
+RETURNING *;
 
 -- name: GetActiveChallenge :one
 SELECT id, user_id, mfa_method_id, expires_at, consumed_at

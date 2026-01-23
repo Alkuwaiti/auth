@@ -82,11 +82,12 @@ func (q *Queries) CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) 
 	return err
 }
 
-const createChallenge = `-- name: CreateChallenge :exec
+const createChallenge = `-- name: CreateChallenge :one
 INSERT INTO mfa_challenges (
   id, user_id, mfa_method_id, challenge_type, expires_at
 )
 VALUES ($1, $2, $3, $4, $5)
+RETURNING id, user_id, mfa_method_id, challenge_type, expires_at, consumed_at, created_at
 `
 
 type CreateChallengeParams struct {
@@ -97,15 +98,25 @@ type CreateChallengeParams struct {
 	ExpiresAt     time.Time
 }
 
-func (q *Queries) CreateChallenge(ctx context.Context, arg CreateChallengeParams) error {
-	_, err := q.db.ExecContext(ctx, createChallenge,
+func (q *Queries) CreateChallenge(ctx context.Context, arg CreateChallengeParams) (MfaChallenge, error) {
+	row := q.db.QueryRowContext(ctx, createChallenge,
 		arg.ID,
 		arg.UserID,
 		arg.MfaMethodID,
 		arg.ChallengeType,
 		arg.ExpiresAt,
 	)
-	return err
+	var i MfaChallenge
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.MfaMethodID,
+		&i.ChallengeType,
+		&i.ExpiresAt,
+		&i.ConsumedAt,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const createSession = `-- name: CreateSession :one

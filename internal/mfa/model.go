@@ -17,9 +17,10 @@ type MFAMethod struct {
 }
 
 type MFAChallenge struct {
-	ID            uuid.UUID
-	UserID        uuid.UUID
-	MethodID      uuid.UUID
+	ID       uuid.UUID
+	UserID   uuid.UUID
+	MethodID uuid.UUID
+	// remove this, it's always a step-up
 	ChallengeType ChallengeType
 	ExpiresAt     time.Time
 	ConsumedAt    *time.Time

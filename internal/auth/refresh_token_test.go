@@ -28,16 +28,16 @@ func TestRefreshToken_Success(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	loginTokens, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
 	require.NoError(t, err)
 
-	refreshed, err := service.RefreshToken(ctx, loginTokens.Tokens.RefreshToken)
+	refreshed, err := service.RefreshToken(ctx, res.Tokens.RefreshToken)
 	require.NoError(t, err)
 
 	require.NotEmpty(t, refreshed.AccessToken)
 	require.NotEmpty(t, refreshed.RefreshToken)
-	require.NotEqual(t, loginTokens.Tokens.RefreshToken, refreshed.RefreshToken)
-	require.Equal(t, loginTokens.Tokens.UserID, refreshed.UserID)
+	require.NotEqual(t, res.Tokens.RefreshToken, refreshed.RefreshToken)
+	require.Equal(t, res.Tokens.UserID, refreshed.UserID)
 
 	// old session revoked
 	var revokedAt *time.Time
@@ -45,7 +45,7 @@ func TestRefreshToken_Success(t *testing.T) {
 		SELECT revoked_at
 		FROM sessions
 		WHERE refresh_token = $1
-	`, loginTokens.Tokens.RefreshToken).Scan(&revokedAt)
+	`, res.Tokens.RefreshToken).Scan(&revokedAt)
 	require.NoError(t, err)
 	require.NotNil(t, revokedAt)
 
@@ -84,17 +84,17 @@ func TestRefreshToken_ExpiredSession(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	loginTokens, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
 	require.NoError(t, err)
 
 	_, err = db.Exec(`
 		UPDATE sessions
 		SET expires_at = NOW() - INTERVAL '1 hour'
 		WHERE refresh_token = $1
-	`, loginTokens.Tokens.RefreshToken)
+	`, res.Tokens.RefreshToken)
 	require.NoError(t, err)
 
-	_, err = service.RefreshToken(ctx, loginTokens.Tokens.RefreshToken)
+	_, err = service.RefreshToken(ctx, res.Tokens.RefreshToken)
 	require.Error(t, err)
 	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
 }
@@ -112,7 +112,7 @@ func TestRefreshToken_RevokedTokenReuse(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	loginTokens, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
 	require.NoError(t, err)
 
 	// manually revoke
@@ -120,10 +120,10 @@ func TestRefreshToken_RevokedTokenReuse(t *testing.T) {
 		UPDATE sessions
 		SET revoked_at = NOW(), revocation_reason = 'manual'
 		WHERE refresh_token = $1
-	`, loginTokens.Tokens.RefreshToken)
+	`, res.Tokens.RefreshToken)
 	require.NoError(t, err)
 
-	_, err = service.RefreshToken(ctx, loginTokens.Tokens.RefreshToken)
+	_, err = service.RefreshToken(ctx, res.Tokens.RefreshToken)
 	require.Error(t, err)
 	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
 
@@ -151,17 +151,17 @@ func TestRefreshToken_AlreadyCompromised(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	loginTokens, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
 	require.NoError(t, err)
 
 	_, err = db.Exec(`
 		UPDATE sessions
 		SET compromised_at = NOW()
 		WHERE refresh_token = $1
-	`, loginTokens.Tokens.RefreshToken)
+	`, res.Tokens.RefreshToken)
 	require.NoError(t, err)
 
-	_, err = service.RefreshToken(ctx, loginTokens.Tokens.RefreshToken)
+	_, err = service.RefreshToken(ctx, res.Tokens.RefreshToken)
 	require.Error(t, err)
 	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
 }
@@ -179,7 +179,7 @@ func TestRefreshToken_ConcurrentRace(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	loginTokens, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
 	require.NoError(t, err)
 
 	var wg sync.WaitGroup
@@ -189,7 +189,7 @@ func TestRefreshToken_ConcurrentRace(t *testing.T) {
 
 	refresh := func() {
 		defer wg.Done()
-		_, err := service.RefreshToken(ctx, loginTokens.Tokens.RefreshToken)
+		_, err := service.RefreshToken(ctx, res.Tokens.RefreshToken)
 		errs <- err
 	}
 
@@ -226,13 +226,13 @@ func TestRefreshToken_AfterPasswordChange(t *testing.T) {
 
 	ctx = testutil.CtxWithUserID(ctx, user.ID)
 
-	loginTokens, err := service.Login(ctx, "test@example.com", "OldPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "OldPassword123!")
 	require.NoError(t, err)
 
 	err = service.ChangePassword(ctx, "OldPassword123!", "NewPassword123!")
 	require.NoError(t, err)
 
-	_, err = service.RefreshToken(ctx, loginTokens.Tokens.RefreshToken)
+	_, err = service.RefreshToken(ctx, res.Tokens.RefreshToken)
 	require.Error(t, err)
 	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
 }
@@ -250,13 +250,13 @@ func TestRefreshToken_AfterLogout(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	loginTokens, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
 	require.NoError(t, err)
 
-	err = service.Logout(ctx, loginTokens.Tokens.RefreshToken)
+	err = service.Logout(ctx, res.Tokens.RefreshToken)
 	require.NoError(t, err)
 
-	_, err = service.RefreshToken(ctx, loginTokens.Tokens.RefreshToken)
+	_, err = service.RefreshToken(ctx, res.Tokens.RefreshToken)
 	require.Error(t, err)
 	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
 }
@@ -274,10 +274,10 @@ func TestRefreshToken_LogoutThenReplay(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	loginTokens, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
 	require.NoError(t, err)
 
-	refreshed, err := service.RefreshToken(ctx, loginTokens.Tokens.RefreshToken)
+	refreshed, err := service.RefreshToken(ctx, res.Tokens.RefreshToken)
 	require.NoError(t, err)
 
 	err = service.Logout(ctx, refreshed.RefreshToken)
@@ -330,7 +330,7 @@ func TestRefreshToken_DeletedUser(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	loginTokens, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
 	require.NoError(t, err)
 
 	require.NoError(t, err)
@@ -342,7 +342,7 @@ func TestRefreshToken_DeletedUser(t *testing.T) {
 	`, user.ID)
 	require.NoError(t, err)
 
-	_, err = service.RefreshToken(ctx, loginTokens.Tokens.RefreshToken)
+	_, err = service.RefreshToken(ctx, res.Tokens.RefreshToken)
 	require.Error(t, err)
 	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
 }
