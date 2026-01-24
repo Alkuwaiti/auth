@@ -72,6 +72,8 @@ type MFAService interface {
 	CreateChallenge(ctx context.Context, userID, methodID uuid.UUID) (uuid.UUID, error)
 	GetActiveChallenge(ctx context.Context, challengeID uuid.UUID) (mfa.MFAChallenge, error)
 	GetMethodByID(ctx context.Context, methodID uuid.UUID) (mfa.MFAMethod, error)
+	VerifyTOTP(secret, code string) error
+	ConsumeChallenge(ctx context.Context, challengeID uuid.UUID) error
 }
 
 var tracer = otel.Tracer("auth-service/auth")
@@ -610,18 +612,17 @@ func (s *service) CompleteMFA(ctx context.Context, challengeID uuid.UUID, code s
 	}
 
 	// TODO: create a new method that doesn't mark as confirmed
-	if err = s.MFAService.ConfirmMethod(ctx, method.ID, code); err != nil {
+	if err = s.MFAService.VerifyTOTP(method.Secret, code); err != nil {
 		return TokenPair{}, err
 	}
 
-	email, err := core.UserEmailFromContext(ctx)
-	if err != nil {
+	if err = s.MFAService.ConsumeChallenge(ctx, challengeID); err != nil {
 		return TokenPair{}, err
 	}
 
 	meta := core.RequestMetaFromContext(ctx)
 
-	user, err := s.repo.getUserByEmail(ctx, email)
+	user, err := s.repo.getUserByID(ctx, challenge.UserID)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			// Return an invalid credentials here as this is a login endpoint.
@@ -673,5 +674,4 @@ func (s *service) CompleteMFA(ctx context.Context, challengeID uuid.UUID, code s
 		RefreshExpiresAt: expiresAt,
 		UserID:           user.ID,
 	}, nil
-
 }

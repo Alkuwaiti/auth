@@ -426,12 +426,34 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at, deleted_at, deletion_reason, mfa_enabled FROM users WHERE id = $1
+SELECT
+  u.id, u.email, u.username, u.password_hash, u.is_email_verified, u.is_active, u.created_at, u.updated_at, u.deleted_at, u.deletion_reason, u.mfa_enabled,
+  ARRAY_AGG(r.name)::text[] AS roles
+FROM users u
+JOIN user_roles ur ON u.id = ur.user_id
+JOIN roles r ON ur.role_id = r.id
+WHERE u.id = $1
+GROUP BY u.id
 `
 
-func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
+type GetUserByIDRow struct {
+	ID              uuid.UUID
+	Email           string
+	Username        string
+	PasswordHash    string
+	IsEmailVerified bool
+	IsActive        bool
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	DeletedAt       sql.NullTime
+	DeletionReason  sql.NullString
+	MfaEnabled      bool
+	Roles           []string
+}
+
+func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow, error) {
 	row := q.db.QueryRowContext(ctx, getUserByID, id)
-	var i User
+	var i GetUserByIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
@@ -444,6 +466,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.DeletedAt,
 		&i.DeletionReason,
 		&i.MfaEnabled,
+		pq.Array(&i.Roles),
 	)
 	return i, err
 }

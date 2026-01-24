@@ -98,25 +98,8 @@ func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code st
 		}
 	}
 
-	secretBytes, err := s.crypto.Decrypt([]byte(method.Secret))
-	if err != nil {
+	if err := s.VerifyTOTP(method.Secret, code); err != nil {
 		return err
-	}
-
-	valid, err := totp.ValidateCustom(code, string(secretBytes), time.Now(), totp.ValidateOpts{
-		Period: 30,
-		Skew:   1, // ±30s
-		Digits: otp.DigitsSix,
-	})
-	if err != nil {
-		return err
-	}
-
-	if !valid {
-		return &apperrors.BadRequestError{
-			Field: "code",
-			Msg:   "invalid code",
-		}
 	}
 
 	return s.methodRepo.Confirm(ctx, methodID)
@@ -160,4 +143,37 @@ func (s *service) GetMethodByID(ctx context.Context, methodID uuid.UUID) (MFAMet
 	}
 
 	return method, nil
+}
+
+func (s *service) VerifyTOTP(secret, code string) error {
+	secretBytes, err := s.crypto.Decrypt([]byte(secret))
+	if err != nil {
+		return err
+	}
+
+	valid, err := totp.ValidateCustom(code, string(secretBytes), time.Now(), totp.ValidateOpts{
+		Period: 30,
+		Skew:   1, // ±30s
+		Digits: otp.DigitsSix,
+	})
+	if err != nil {
+		return err
+	}
+
+	if !valid {
+		return &apperrors.BadRequestError{
+			Field: "code",
+			Msg:   "invalid code",
+		}
+	}
+
+	return nil
+}
+
+func (s *service) ConsumeChallenge(ctx context.Context, challengeID uuid.UUID) error {
+	if err := s.challengeRepo.Consume(ctx, challengeID); err != nil {
+		return err
+	}
+
+	return nil
 }
