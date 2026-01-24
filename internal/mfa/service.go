@@ -143,3 +143,21 @@ func (s *service) CreateChallenge(ctx context.Context, userID, methodID uuid.UUI
 
 	return c.ID, nil
 }
+
+func (s *service) GetActiveChallenge(ctx context.Context, challengeID uuid.UUID) (MFAChallenge, error) {
+	challenge, err := s.challengeRepo.GetActive(ctx, challengeID)
+	if err != nil {
+		return MFAChallenge{}, err
+	}
+
+	return challenge, nil
+}
+
+func (s *service) GetMethodByID(ctx context.Context, methodID uuid.UUID) (MFAMethod, error) {
+	method, err := s.methodRepo.GetByID(ctx, methodID)
+	if err != nil {
+		return MFAMethod{}, err
+	}
+
+	return method, nil
+}

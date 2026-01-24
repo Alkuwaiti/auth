@@ -67,3 +67,9 @@ type ForbiddenError struct{}
 func (e *ForbiddenError) Error() string {
 	return "forbidden"
 }
+
+type ChallengeExpiredError struct{}
+
+func (e *ChallengeExpiredError) Error() string {
+	return "challenge expired"
+}

@@ -70,6 +70,8 @@ type MFAService interface {
 	ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error
 	GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.UUID) ([]mfa.MFAMethod, error)
 	CreateChallenge(ctx context.Context, userID, methodID uuid.UUID) (uuid.UUID, error)
+	GetActiveChallenge(ctx context.Context, challengeID uuid.UUID) (mfa.MFAChallenge, error)
+	GetMethodByID(ctx context.Context, methodID uuid.UUID) (mfa.MFAMethod, error)
 }
 
 var tracer = otel.Tracer("auth-service/auth")
@@ -583,4 +585,93 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodT
 
 func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error {
 	return s.MFAService.ConfirmMethod(ctx, methodID, code)
+}
+
+// TODO: so much cleanup here hoy shit
+func (s *service) CompleteMFA(ctx context.Context, challengeID uuid.UUID, code string) (TokenPair, error) {
+	// TODO: just get the joins of the two tables right away.
+	challenge, err := s.MFAService.GetActiveChallenge(ctx, challengeID)
+	if err != nil {
+		return TokenPair{}, err
+	}
+
+	if challenge.ExpiresAt.Before(time.Now()) {
+		// TODO: add in mapError
+		return TokenPair{}, &apperrors.ChallengeExpiredError{}
+	}
+
+	method, err := s.MFAService.GetMethodByID(ctx, challenge.MethodID)
+	if err != nil {
+		return TokenPair{}, err
+	}
+
+	if method.UserID != challenge.UserID {
+		return TokenPair{}, &apperrors.InvalidCredentialsError{}
+	}
+
+	// TODO: create a new method that doesn't mark as confirmed
+	if err = s.MFAService.ConfirmMethod(ctx, method.ID, code); err != nil {
+		return TokenPair{}, err
+	}
+
+	email, err := core.UserEmailFromContext(ctx)
+	if err != nil {
+		return TokenPair{}, err
+	}
+
+	meta := core.RequestMetaFromContext(ctx)
+
+	user, err := s.repo.getUserByEmail(ctx, email)
+	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			// Return an invalid credentials here as this is a login endpoint.
+			return TokenPair{}, &apperrors.InvalidCredentialsError{}
+		}
+
+		slog.ErrorContext(ctx, "login failed: user lookup error", "email", user.Email, "err", err)
+		return TokenPair{}, err
+	}
+
+	accessToken, err := s.tokenManager.GenerateAccessToken(user.Roles, user.ID.String(), user.Email)
+	if err != nil {
+		slog.ErrorContext(ctx, "access token generation failed", "err", err)
+		return TokenPair{}, err
+	}
+
+	refreshToken, err := s.tokenManager.GenerateRefreshToken()
+	if err != nil {
+		slog.ErrorContext(ctx, "refresh token generation failed", "err", err)
+		return TokenPair{}, err
+	}
+
+	expiresAt := time.Now().Add(7 * 24 * time.Hour)
+	if _, err = s.repo.createSession(
+		ctx,
+		user.ID,
+		expiresAt,
+		refreshToken,
+		meta.IPAddress,
+		meta.UserAgent,
+	); err != nil {
+		slog.ErrorContext(ctx, "create session failed", "err", err)
+		return TokenPair{}, err
+	}
+
+	if err = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+		UserID:    &user.ID,
+		Action:    audit.ActionLogin,
+		IPAddress: &meta.IPAddress,
+		UserAgent: &meta.UserAgent,
+	}); err != nil {
+		slog.ErrorContext(ctx, "failed to create audit log", "err", err)
+		return TokenPair{}, err
+	}
+
+	return TokenPair{
+		AccessToken:      accessToken,
+		RefreshToken:     refreshToken,
+		RefreshExpiresAt: expiresAt,
+		UserID:           user.ID,
+	}, nil
+
 }

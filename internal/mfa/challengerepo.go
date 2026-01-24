@@ -30,13 +30,13 @@ func (c *MFAChallengeRepo) Create(ctx context.Context, challenge MFAChallenge) (
 		return MFAChallenge{}, err
 	}
 
-	return *toMFAChallenge(postgresChallenge), nil
+	return toMFAChallenge(postgresChallenge), nil
 }
 
-func (c *MFAChallengeRepo) GetActive(ctx context.Context, id uuid.UUID) (*MFAChallenge, error) {
+func (c *MFAChallengeRepo) GetActive(ctx context.Context, id uuid.UUID) (MFAChallenge, error) {
 	postgresChallenge, err := c.queries.GetActiveChallenge(ctx, id)
 	if err != nil {
-		return nil, err
+		return MFAChallenge{}, err
 	}
 
 	return toMFAChallengeFromActive(postgresChallenge), nil
@@ -50,13 +50,13 @@ func (c *MFAChallengeRepo) Consume(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func toMFAChallenge(row postgres.MfaChallenge) *MFAChallenge {
+func toMFAChallenge(row postgres.MfaChallenge) MFAChallenge {
 	var consumedAt *time.Time
 	if row.ConsumedAt.Valid {
 		consumedAt = &row.ConsumedAt.Time
 	}
 
-	return &MFAChallenge{
+	return MFAChallenge{
 		ID:         row.ID,
 		UserID:     row.UserID,
 		MethodID:   row.MfaMethodID,
@@ -65,13 +65,13 @@ func toMFAChallenge(row postgres.MfaChallenge) *MFAChallenge {
 	}
 }
 
-func toMFAChallengeFromActive(row postgres.GetActiveChallengeRow) *MFAChallenge {
+func toMFAChallengeFromActive(row postgres.GetActiveChallengeRow) MFAChallenge {
 	var consumedAt *time.Time
 	if row.ConsumedAt.Valid {
 		consumedAt = &row.ConsumedAt.Time
 	}
 
-	return &MFAChallenge{
+	return MFAChallenge{
 		ID:         row.ID,
 		UserID:     row.UserID,
 		MethodID:   row.MfaMethodID,
