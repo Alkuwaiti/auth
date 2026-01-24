@@ -84,14 +84,13 @@ func (q *Queries) CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) 
 
 const createChallenge = `-- name: CreateChallenge :one
 INSERT INTO mfa_challenges (
-  id, user_id, mfa_method_id, challenge_type, expires_at
+  user_id, mfa_method_id, challenge_type, expires_at
 )
-VALUES ($1, $2, $3, $4, $5)
+VALUES ($1, $2, $3, $4)
 RETURNING id, user_id, mfa_method_id, challenge_type, expires_at, consumed_at, created_at
 `
 
 type CreateChallengeParams struct {
-	ID            uuid.UUID
 	UserID        uuid.UUID
 	MfaMethodID   uuid.UUID
 	ChallengeType string
@@ -100,7 +99,6 @@ type CreateChallengeParams struct {
 
 func (q *Queries) CreateChallenge(ctx context.Context, arg CreateChallengeParams) (MfaChallenge, error) {
 	row := q.db.QueryRowContext(ctx, createChallenge,
-		arg.ID,
 		arg.UserID,
 		arg.MfaMethodID,
 		arg.ChallengeType,

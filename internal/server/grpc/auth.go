@@ -26,17 +26,22 @@ func (s *server) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.L
 		return nil, MapError(err)
 	}
 
-	return &authv1.LoginResponse{
+	response := &authv1.LoginResponse{
 		MfaRequired: res.RequiresMFA,
 		ChallengeId: res.ChallengeID.String(),
-		Tokens: &authv1.TokenPair{
+	}
+
+	// Only populate tokens if they exist
+	if res.Tokens != nil {
+		response.Tokens = &authv1.TokenPair{
 			AccessToken:  res.Tokens.AccessToken,
 			RefreshToken: res.Tokens.RefreshToken,
 			ExpiresIn:    res.Tokens.RefreshExpiresAt.Unix(),
 			TokenType:    "Bearer",
 			UserId:       res.Tokens.UserID.String(),
-		},
-	}, nil
+		}
+	}
+	return response, nil
 }
 
 func (s *server) RefreshToken(ctx context.Context, req *authv1.RefreshTokenRequest) (*authv1.TokenPair, error) {

@@ -20,7 +20,6 @@ func NewMFAChallengeRepo(queries *postgres.Queries) *MFAChallengeRepo {
 
 func (c *MFAChallengeRepo) Create(ctx context.Context, challenge MFAChallenge) (MFAChallenge, error) {
 	postgresChallenge, err := c.queries.CreateChallenge(ctx, postgres.CreateChallengeParams{
-		ID:            challenge.ID,
 		UserID:        challenge.UserID,
 		MfaMethodID:   challenge.MethodID,
 		ChallengeType: string(challenge.ChallengeType),

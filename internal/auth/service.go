@@ -69,7 +69,7 @@ type MFAService interface {
 	EnrollMethod(ctx context.Context, userID uuid.UUID, methodType mfa.MFAMethodType) (mfa.EnrollmentResult, error)
 	ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error
 	GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.UUID) ([]mfa.MFAMethod, error)
-	CreateChallenge(ctx context.Context, userID, methodID uuid.UUID) (uuid.UUID, error)
+	CreateChallenge(ctx context.Context, userID, methodID uuid.UUID, challengetype mfa.ChallengeType) (uuid.UUID, error)
 	GetActiveChallenge(ctx context.Context, challengeID uuid.UUID) (mfa.MFAChallenge, error)
 	GetMethodByID(ctx context.Context, methodID uuid.UUID) (mfa.MFAMethod, error)
 	VerifyTOTP(secret, code string) error
@@ -201,7 +201,7 @@ func (s *service) Login(ctx context.Context, email, password string) (LoginResul
 	var ChallengeID uuid.UUID
 	if len(methods) > 0 {
 		// TODO: change the implementation when you have multiple methods.
-		ChallengeID, err = s.MFAService.CreateChallenge(ctx, methods[0].UserID, methods[0].ID)
+		ChallengeID, err = s.MFAService.CreateChallenge(ctx, methods[0].UserID, methods[0].ID, mfa.ChallengeLogin)
 		if err != nil {
 			slog.ErrorContext(ctx, "failed to get confirmed mfa methods by user", "err", err)
 			return LoginResult{}, err

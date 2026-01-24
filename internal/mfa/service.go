@@ -114,11 +114,12 @@ func (s *service) GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.
 	return MFAMethods, nil
 }
 
-func (s *service) CreateChallenge(ctx context.Context, userID, methodID uuid.UUID) (uuid.UUID, error) {
+func (s *service) CreateChallenge(ctx context.Context, userID, methodID uuid.UUID, challengetype ChallengeType) (uuid.UUID, error) {
 	c, err := s.challengeRepo.Create(ctx, MFAChallenge{
-		MethodID:  methodID,
-		UserID:    userID,
-		ExpiresAt: time.Now().Add(5 * time.Minute),
+		MethodID:      methodID,
+		UserID:        userID,
+		ExpiresAt:     time.Now().Add(5 * time.Minute),
+		ChallengeType: challengetype,
 	})
 	if err != nil {
 		return uuid.UUID{}, err
