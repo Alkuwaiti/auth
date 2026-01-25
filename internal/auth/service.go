@@ -589,8 +589,8 @@ func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code st
 	return s.MFAService.ConfirmMethod(ctx, methodID, code)
 }
 
-// TODO: so much cleanup here hoy shit
-func (s *service) CompleteMFA(ctx context.Context, challengeID uuid.UUID, code string) (TokenPair, error) {
+// TODO: so much cleanup here holy shit
+func (s *service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, code string) (TokenPair, error) {
 	// TODO: just get the joins of the two tables right away.
 	challenge, err := s.MFAService.GetActiveChallenge(ctx, challengeID)
 	if err != nil {
