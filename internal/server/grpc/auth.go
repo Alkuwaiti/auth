@@ -183,3 +183,28 @@ func (s *server) ConfirmMFAMethod(ctx context.Context, req *authv1.ConfirmMFAMet
 
 	return &emptypb.Empty{}, nil
 }
+
+func (s *server) CompleteLoginMFA(ctx context.Context, req *authv1.CompleteLoginMFARequest) (*authv1.TokenPair, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	challengeID, err := uuid.Parse(req.ChallengeId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "challenge id is not a uuid")
+	}
+
+	res, err := s.authService.CompleteLoginMFA(ctx, challengeID, req.Code)
+	if err != nil {
+		return nil, MapError(err)
+	}
+
+	return &authv1.TokenPair{
+		AccessToken:  res.AccessToken,
+		RefreshToken: res.RefreshToken,
+		ExpiresIn:    res.RefreshExpiresAt.Unix(),
+		TokenType:    "Bearer",
+		UserId:       res.UserID.String(),
+	}, nil
+}

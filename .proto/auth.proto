@@ -17,6 +17,7 @@ service AuthService {
   rpc DeleteUser(DeleteUserRequest) returns (google.protobuf.Empty) {}
   rpc EnrollMFAMethod(EnrollMFAMethodRequest) returns (EnrollMFAMethodResponse) {}
   rpc ConfirmMFAMethod(ConfirmMFAMethodRequest) returns (google.protobuf.Empty) {}
+  rpc CompleteLoginMFA(CompleteLoginMFARequest) returns (TokenPair) {}
 }
 
 message LoginRequest {
@@ -84,3 +85,9 @@ message ConfirmMFAMethodRequest {
   string method_id = 1;
   string code = 2;
 }
+
+message CompleteLoginMFARequest {
+  string challenge_id = 1;
+  string code = 2;
+}
+

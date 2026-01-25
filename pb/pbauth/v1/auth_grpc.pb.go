@@ -29,6 +29,7 @@ const (
 	AuthService_DeleteUser_FullMethodName       = "/auth.v1.AuthService/DeleteUser"
 	AuthService_EnrollMFAMethod_FullMethodName  = "/auth.v1.AuthService/EnrollMFAMethod"
 	AuthService_ConfirmMFAMethod_FullMethodName = "/auth.v1.AuthService/ConfirmMFAMethod"
+	AuthService_CompleteLoginMFA_FullMethodName = "/auth.v1.AuthService/CompleteLoginMFA"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -44,6 +45,7 @@ type AuthServiceClient interface {
 	DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	EnrollMFAMethod(ctx context.Context, in *EnrollMFAMethodRequest, opts ...grpc.CallOption) (*EnrollMFAMethodResponse, error)
 	ConfirmMFAMethod(ctx context.Context, in *ConfirmMFAMethodRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	CompleteLoginMFA(ctx context.Context, in *CompleteLoginMFARequest, opts ...grpc.CallOption) (*TokenPair, error)
 }
 
 type authServiceClient struct {
@@ -144,6 +146,16 @@ func (c *authServiceClient) ConfirmMFAMethod(ctx context.Context, in *ConfirmMFA
 	return out, nil
 }
 
+func (c *authServiceClient) CompleteLoginMFA(ctx context.Context, in *CompleteLoginMFARequest, opts ...grpc.CallOption) (*TokenPair, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TokenPair)
+	err := c.cc.Invoke(ctx, AuthService_CompleteLoginMFA_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -157,6 +169,7 @@ type AuthServiceServer interface {
 	DeleteUser(context.Context, *DeleteUserRequest) (*emptypb.Empty, error)
 	EnrollMFAMethod(context.Context, *EnrollMFAMethodRequest) (*EnrollMFAMethodResponse, error)
 	ConfirmMFAMethod(context.Context, *ConfirmMFAMethodRequest) (*emptypb.Empty, error)
+	CompleteLoginMFA(context.Context, *CompleteLoginMFARequest) (*TokenPair, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -193,6 +206,9 @@ func (UnimplementedAuthServiceServer) EnrollMFAMethod(context.Context, *EnrollMF
 }
 func (UnimplementedAuthServiceServer) ConfirmMFAMethod(context.Context, *ConfirmMFAMethodRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method ConfirmMFAMethod not implemented")
+}
+func (UnimplementedAuthServiceServer) CompleteLoginMFA(context.Context, *CompleteLoginMFARequest) (*TokenPair, error) {
+	return nil, status.Error(codes.Unimplemented, "method CompleteLoginMFA not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -377,6 +393,24 @@ func _AuthService_ConfirmMFAMethod_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_CompleteLoginMFA_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CompleteLoginMFARequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).CompleteLoginMFA(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_CompleteLoginMFA_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).CompleteLoginMFA(ctx, req.(*CompleteLoginMFARequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -419,6 +453,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ConfirmMFAMethod",
 			Handler:    _AuthService_ConfirmMFAMethod_Handler,
+		},
+		{
+			MethodName: "CompleteLoginMFA",
+			Handler:    _AuthService_CompleteLoginMFA_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
