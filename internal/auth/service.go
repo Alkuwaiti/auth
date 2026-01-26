@@ -155,8 +155,6 @@ func (s *service) Login(ctx context.Context, email, password string) (LoginResul
 		return LoginResult{}, &apperrors.RefreshDisabledError{}
 	}
 
-	meta := core.RequestMetaFromContext(ctx)
-
 	span.SetAttributes(
 		attribute.String("user.email_hash", core.HashForTelemetry(email)),
 	)
@@ -214,60 +212,15 @@ func (s *service) Login(ctx context.Context, email, password string) (LoginResul
 		}, nil
 	}
 
-	accessToken, err := s.tokenManager.GenerateAccessToken(user.Roles, user.ID.String(), user.Email)
+	tokenPair, err := s.finalizeLogin(ctx, user, audit.ActionLogin)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "access token generation failed")
-		slog.ErrorContext(ctx, "access token generation failed", "err", err)
 		return LoginResult{}, err
 	}
-
-	refreshToken, err := s.tokenManager.GenerateRefreshToken()
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "refresh token generation failed")
-		slog.ErrorContext(ctx, "refresh token generation failed", "err", err)
-		return LoginResult{}, err
-	}
-
-	expiresAt := time.Now().Add(7 * 24 * time.Hour)
-	if _, err = s.repo.createSession(
-		ctx,
-		user.ID,
-		expiresAt,
-		refreshToken,
-		meta.IPAddress,
-		meta.UserAgent,
-	); err != nil {
-		slog.ErrorContext(ctx, "create session failed", "err", err)
-		return LoginResult{}, err
-	}
-
-	if err = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
-		UserID:    &user.ID,
-		Action:    audit.ActionLogin,
-		IPAddress: &meta.IPAddress,
-		UserAgent: &meta.UserAgent,
-	}); err != nil {
-		slog.ErrorContext(ctx, "failed to create audit log", "err", err)
-		return LoginResult{}, err
-	}
-
-	span.SetAttributes(
-		attribute.String("user.id", user.ID.String()),
-	)
-
-	span.SetStatus(codes.Ok, "login successful")
 
 	return LoginResult{
 		RequiresMFA: false,
 		ChallengeID: nil,
-		Tokens: &TokenPair{
-			AccessToken:      accessToken,
-			RefreshToken:     refreshToken,
-			RefreshExpiresAt: expiresAt,
-			UserID:           user.ID,
-		},
+		Tokens:      &tokenPair,
 	}, nil
 }
 
@@ -623,8 +576,6 @@ func (s *service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, c
 		return TokenPair{}, err
 	}
 
-	meta := core.RequestMetaFromContext(ctx)
-
 	user, err := s.repo.getUserByID(ctx, challenge.UserID)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
@@ -636,17 +587,30 @@ func (s *service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, c
 		return TokenPair{}, err
 	}
 
+	return s.finalizeLogin(ctx, user, audit.ActionLoginMFA)
+}
+
+func (s *service) finalizeLogin(ctx context.Context, user User, action audit.AuditAction) (TokenPair, error) {
+	ctx, span := tracer.Start(ctx, "AuthService.finalizeLogin")
+	defer span.End()
+
 	accessToken, err := s.tokenManager.GenerateAccessToken(user.Roles, user.ID.String(), user.Email)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "access token generation failed")
 		slog.ErrorContext(ctx, "access token generation failed", "err", err)
 		return TokenPair{}, err
 	}
 
 	refreshToken, err := s.tokenManager.GenerateRefreshToken()
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "refresh token generation failed")
 		slog.ErrorContext(ctx, "refresh token generation failed", "err", err)
 		return TokenPair{}, err
 	}
+
+	meta := core.RequestMetaFromContext(ctx)
 
 	expiresAt := time.Now().Add(7 * 24 * time.Hour)
 	if _, err = s.repo.createSession(
@@ -663,13 +627,19 @@ func (s *service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, c
 
 	if err = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
 		UserID:    &user.ID,
-		Action:    audit.ActionLogin,
+		Action:    action,
 		IPAddress: &meta.IPAddress,
 		UserAgent: &meta.UserAgent,
 	}); err != nil {
 		slog.ErrorContext(ctx, "failed to create audit log", "err", err)
 		return TokenPair{}, err
 	}
+
+	span.SetAttributes(
+		attribute.String("user.id", user.ID.String()),
+	)
+
+	span.SetStatus(codes.Ok, "login successful")
 
 	return TokenPair{
 		AccessToken:      accessToken,
