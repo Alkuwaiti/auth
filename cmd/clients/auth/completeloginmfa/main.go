@@ -32,8 +32,8 @@ func main() {
 	}()
 
 	res, err := client.CompleteLoginMFA(ctx, &authv1.CompleteLoginMFARequest{
-		ChallengeId: "f3eb57d7-8910-4c24-96e7-01f0a2b2f8eb",
-		Code:        "232758",
+		ChallengeId: "2d644f7c-a15b-4d75-b1f1-975fcf96bf69",
+		Code:        "849368",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

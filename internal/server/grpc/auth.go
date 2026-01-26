@@ -28,7 +28,10 @@ func (s *server) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.L
 
 	response := &authv1.LoginResponse{
 		MfaRequired: res.RequiresMFA,
-		ChallengeId: res.ChallengeID.String(),
+	}
+
+	if res.ChallengeID != nil {
+		response.ChallengeId = res.ChallengeID.String()
 	}
 
 	// Only populate tokens if they exist
