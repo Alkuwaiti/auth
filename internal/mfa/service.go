@@ -35,6 +35,7 @@ type EnrollmentResult struct {
 	SetupURI string
 }
 
+// TODO: enroll other methods.
 func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, methodType MFAMethodType) (EnrollmentResult, error) {
 	if !methodType.isValid() {
 		return EnrollmentResult{}, &apperrors.ValidationError{
@@ -114,6 +115,7 @@ func (s *service) GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.
 	return MFAMethods, nil
 }
 
+// TODO: add a flag for step up or login.
 func (s *service) CreateChallenge(ctx context.Context, userID, methodID uuid.UUID, challengetype ChallengeType) (uuid.UUID, error) {
 	c, err := s.challengeRepo.Create(ctx, MFAChallenge{
 		MethodID:      methodID,

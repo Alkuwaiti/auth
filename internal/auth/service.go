@@ -534,6 +534,7 @@ func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 	return nil
 }
 
+// TODO: create tests for this.
 func (s *service) EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodType) (mfa.EnrollmentResult, error) {
 	userID, err := core.UserIDFromContext(ctx)
 	if err != nil {
@@ -543,10 +544,12 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodT
 	return s.MFAService.EnrollMethod(ctx, userID, methodType)
 }
 
+// TODO: create tests for this.
 func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error {
 	return s.MFAService.ConfirmMethod(ctx, methodID, code)
 }
 
+// TODO: create tests for this.
 // TODO: so much cleanup here holy shit
 func (s *service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, code string) (TokenPair, error) {
 	// TODO: just get the joins of the two tables right away.
@@ -579,11 +582,10 @@ func (s *service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, c
 	user, err := s.repo.getUserByID(ctx, challenge.UserID)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
-			// Return an invalid credentials here as this is a login endpoint.
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
 		}
 
-		slog.ErrorContext(ctx, "login failed: user lookup error", "email", user.Email, "err", err)
+		slog.ErrorContext(ctx, "login failed: user lookup error", "user_id", challenge.UserID, "err", err)
 		return TokenPair{}, err
 	}
 
