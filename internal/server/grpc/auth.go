@@ -5,7 +5,6 @@ import (
 	"log/slog"
 
 	"github.com/alkuwaiti/auth/internal/auth"
-	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/mfa"
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
 	"github.com/google/uuid"
@@ -128,15 +127,9 @@ func (s *server) DeleteUser(ctx context.Context, req *authv1.DeleteUserRequest) 
 		return nil, status.Error(codes.InvalidArgument, "user id is not a uuid")
 	}
 
-	actorID, err := core.UserIDFromContext(ctx)
-	if err != nil {
-		return &emptypb.Empty{}, MapError(err)
-	}
-
 	// TODO: fix this so that actorID is gotten from context in the service.
 	err = s.authService.DeleteUser(ctx, auth.DeleteUserInput{
 		UserID:         userID,
-		ActorID:        actorID,
 		DeletionReason: auth.DeletionReason(req.Reason),
 		Note:           req.Note,
 	})

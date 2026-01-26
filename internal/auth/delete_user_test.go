@@ -24,6 +24,8 @@ func TestDeleteUser_Success(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	ctx = testutil.CtxWithUserID(ctx, actor.ID)
+
 	user, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "testUser",
 		Email:    "test@example.com",
@@ -34,7 +36,6 @@ func TestDeleteUser_Success(t *testing.T) {
 	err = service.DeleteUser(ctx, DeleteUserInput{
 		UserID:         user.ID,
 		DeletionReason: DeletionReason("USER_IS_BOT"),
-		ActorID:        actor.ID,
 		Note:           "Some note",
 	})
 
@@ -55,6 +56,8 @@ func TestDeleteUser_AlreadyDeleted(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	ctx = testutil.CtxWithUserID(ctx, actor.ID)
+
 	user, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "testUser",
 		Email:    "test@example.com",
@@ -65,7 +68,6 @@ func TestDeleteUser_AlreadyDeleted(t *testing.T) {
 	err = service.DeleteUser(ctx, DeleteUserInput{
 		UserID:         user.ID,
 		DeletionReason: DeletionReason("USER_REQUEST"),
-		ActorID:        actor.ID,
 	})
 	require.NoError(t, err)
 
@@ -73,7 +75,6 @@ func TestDeleteUser_AlreadyDeleted(t *testing.T) {
 	err = service.DeleteUser(ctx, DeleteUserInput{
 		UserID:         user.ID,
 		DeletionReason: DeletionReason("USER_REQUEST"),
-		ActorID:        actor.ID,
 	})
 
 	require.Error(t, err)
@@ -94,10 +95,11 @@ func TestDeleteUser_UserDoesNotExist(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	ctx = testutil.CtxWithUserID(ctx, actor.ID)
+
 	err = service.DeleteUser(ctx, DeleteUserInput{
 		UserID:         uuid.New(),
 		DeletionReason: DeletionReason("ADMIN_ACTION"),
-		ActorID:        actor.ID,
 	})
 
 	require.Error(t, err)
@@ -138,10 +140,11 @@ func TestDeleteUser_UserIsSoftDeleted(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	ctx = testutil.CtxWithUserID(ctx, actor.ID)
+
 	err = service.DeleteUser(ctx, DeleteUserInput{
 		UserID:         user.ID,
 		DeletionReason: DeletionReason("USER_REQUEST"),
-		ActorID:        actor.ID,
 	})
 	require.NoError(t, err)
 

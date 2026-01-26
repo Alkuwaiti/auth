@@ -30,6 +30,7 @@ type Config struct {
 	JWTKey           string
 	OTLPEndpoint     string
 	RefreshEnabled   bool
+	AESKey           string
 }
 
 func Load(env, jur string) Config {

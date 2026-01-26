@@ -523,6 +523,11 @@ func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 	ctx, span := tracer.Start(ctx, "AuthService.DeleteUser")
 	defer span.End()
 
+	actorID, err := core.UserIDFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
 	roles, err := core.UserRolesFromContext(ctx)
 	if err != nil {
 		return err
@@ -556,7 +561,7 @@ func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 
 	if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
 		UserID:    &input.UserID,
-		ActorID:   &input.ActorID,
+		ActorID:   &actorID,
 		Action:    audit.ActionDeleteUser,
 		IPAddress: &meta.IPAddress,
 		UserAgent: &meta.UserAgent,

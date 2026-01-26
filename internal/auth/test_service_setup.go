@@ -56,7 +56,6 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 
 	challengeRepo := mfa.NewMFAChallengeRepo(queries)
 
-	// TODO: change to a config value
 	c := crypto.NewAESCrypto([]byte("some key"))
 
 	multifactor := mfa.NewService(*methodRepo, *challengeRepo, c)
