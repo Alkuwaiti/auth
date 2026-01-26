@@ -603,7 +603,6 @@ func (s *service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, c
 	}
 
 	if challenge.ExpiresAt.Before(time.Now()) {
-		// TODO: add in mapError
 		return TokenPair{}, &apperrors.ChallengeExpiredError{}
 	}
 
@@ -616,7 +615,6 @@ func (s *service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, c
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
-	// TODO: create a new method that doesn't mark as confirmed
 	if err = s.MFAService.VerifyTOTP(method.Secret, code); err != nil {
 		return TokenPair{}, err
 	}

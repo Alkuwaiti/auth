@@ -127,7 +127,6 @@ func (s *server) DeleteUser(ctx context.Context, req *authv1.DeleteUserRequest) 
 		return nil, status.Error(codes.InvalidArgument, "user id is not a uuid")
 	}
 
-	// TODO: fix this so that actorID is gotten from context in the service.
 	err = s.authService.DeleteUser(ctx, auth.DeleteUserInput{
 		UserID:         userID,
 		DeletionReason: auth.DeletionReason(req.Reason),
