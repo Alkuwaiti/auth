@@ -21,12 +21,16 @@ var publicMethods = map[string]struct{}{
 	"/auth.v1.AuthService/CompleteLoginMFA": {},
 }
 
-type AuthInterceptor struct {
-	tokenManager tokens.Tokens
+type TokenValidator interface {
+	ValidateJWT(token string) (*tokens.AccessClaims, error)
 }
 
-func NewAuthInterceptor(tm tokens.Tokens) *AuthInterceptor {
-	return &AuthInterceptor{tokenManager: tm}
+type AuthInterceptor struct {
+	validator TokenValidator
+}
+
+func NewAuthInterceptor(tm TokenValidator) *AuthInterceptor {
+	return &AuthInterceptor{validator: tm}
 }
 
 func (i *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
@@ -48,7 +52,7 @@ func (i *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 			return nil, status.Error(codes.Unauthenticated, "missing token")
 		}
 
-		claims, err := i.tokenManager.ValidateJWT(tokenStr)
+		claims, err := i.validator.ValidateJWT(tokenStr)
 		if err != nil {
 			return nil, status.Error(codes.Unauthenticated, "invalid token")
 		}

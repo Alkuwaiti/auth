@@ -111,7 +111,7 @@ func main() {
 
 	port := 8081
 
-	authInterceptor := grpc.NewAuthInterceptor(*tokens)
+	authInterceptor := grpc.NewAuthInterceptor(tokens)
 
 	requestMetaInterceptor := grpc.NewRequestMetaInterceptor()
 
