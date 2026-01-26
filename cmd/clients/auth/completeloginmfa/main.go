@@ -16,7 +16,6 @@ func main() {
 	ctx := context.Background()
 
 	md := metadata.New(map[string]string{
-		"authorization":       "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InFhc2ltbUBnbWFpbC5jb20iLCJyb2xlcyI6WyJ1c2VyIl0sImlzcyI6ImF1dGgtc2VydmljZSIsInN1YiI6IjAxOWJlYTJiLTM0YWQtN2RlMi05MGU2LTk0YWYzMDdjZjJjYiIsImF1ZCI6WyJhdXRoLXNlcnZpY2UiXSwiZXhwIjoxNzY5NDUwOTQ5LCJpYXQiOjE3Njk0NTAwNDl9.oY-nh-tlwzBeT9i7101uU73Zp7vVajxxOveV4FgSUKw",
 		"x-forwarded-for":     "203.0.113.10",
 		"x-client-user-agent": "auth-cli/1.0",
 		"request-id":          "req-123456",
@@ -32,10 +31,9 @@ func main() {
 		}
 	}()
 
-	res, err := client.DeleteUser(ctx, &authv1.DeleteUserRequest{
-		UserId: "019bc832-3fa1-70b7-8aee-18c74109360f",
-		Reason: "USER_IS_BOT",
-		Note:   "Not one of us",
+	res, err := client.CompleteLoginMFA(ctx, &authv1.CompleteLoginMFARequest{
+		ChallengeId: "f3eb57d7-8910-4c24-96e7-01f0a2b2f8eb",
+		Code:        "232758",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
