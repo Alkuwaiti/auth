@@ -17,6 +17,8 @@ type service struct {
 	crypto        Crypto
 }
 
+// TODO: add tracer here
+
 func NewService(methodRepo MFAMethodRepo, challengeRepo MFAChallengeRepo, crypto Crypto) *service {
 	return &service{
 		methodRepo:    methodRepo,
@@ -99,7 +101,7 @@ func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code st
 		}
 	}
 
-	if err := s.VerifyTOTP(method.Secret, code); err != nil {
+	if err := s.verifyTOTP(method.Secret, code); err != nil {
 		return err
 	}
 
@@ -147,7 +149,7 @@ func (s *service) GetMethodByID(ctx context.Context, methodID uuid.UUID) (MFAMet
 	return method, nil
 }
 
-func (s *service) VerifyTOTP(secret, code string) error {
+func (s *service) verifyTOTP(secret, code string) error {
 	secretBytes, err := s.crypto.Decrypt([]byte(secret))
 	if err != nil {
 		return err
@@ -184,25 +186,8 @@ func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 		return uuid.Nil, err
 	}
 
-	secretBytes, err := s.crypto.Decrypt([]byte(locked.SecretCiphertext))
-	if err != nil {
+	if err := s.verifyTOTP(string(locked.SecretCiphertext), code); err != nil {
 		return uuid.Nil, err
-	}
-
-	valid, err := totp.ValidateCustom(code, string(secretBytes), time.Now(), totp.ValidateOpts{
-		Period: 30,
-		Skew:   1, // ±30s
-		Digits: otp.DigitsSix,
-	})
-	if err != nil {
-		return uuid.Nil, err
-	}
-
-	if !valid {
-		return uuid.Nil, &apperrors.BadRequestError{
-			Field: "code",
-			Msg:   "invalid code",
-		}
 	}
 
 	if err := s.challengeRepo.ConsumeChallenge(ctx, tx, locked.ChallengeID); err != nil {

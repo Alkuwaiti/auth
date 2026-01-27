@@ -55,6 +55,7 @@ func (c *MFAChallengeRepo) LockActiveTOTPChallenge(ctx context.Context, tx *sql.
 	row, err := q.LockActiveTOTPChallenge(ctx, challengeID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+			// TODO: map to apperror in service
 			return LockedTOTPChallenge{}, ErrInvalidMFAChallenge
 		}
 		return LockedTOTPChallenge{}, err

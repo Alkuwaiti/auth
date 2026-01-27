@@ -12,7 +12,6 @@ import (
 	authz "github.com/alkuwaiti/auth/internal/authorization"
 	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/alkuwaiti/auth/internal/mfa"
-	"github.com/alkuwaiti/auth/internal/tokens"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -61,7 +60,6 @@ type featureFlags interface {
 
 type tokenManager interface {
 	GenerateAccessToken(roles []string, userID, email string) (string, error)
-	ValidateJWT(tokenStr string) (*tokens.AccessClaims, error)
 	GenerateRefreshToken() (string, error)
 }
 
@@ -70,11 +68,10 @@ type MFAService interface {
 	ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error
 	GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.UUID) ([]mfa.MFAMethod, error)
 	CreateChallenge(ctx context.Context, userID, methodID uuid.UUID, challengetype mfa.ChallengeType) (uuid.UUID, error)
-	GetActiveChallenge(ctx context.Context, challengeID uuid.UUID) (mfa.MFAChallenge, error)
-	GetMethodByID(ctx context.Context, methodID uuid.UUID) (mfa.MFAMethod, error)
-	VerifyTOTP(secret, code string) error
 	VerifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (uuid.UUID, error)
 }
+
+// TODO: test race condition for all of these methods.
 
 var tracer = otel.Tracer("auth-service/auth")
 
