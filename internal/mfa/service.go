@@ -115,7 +115,6 @@ func (s *service) GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.
 	return MFAMethods, nil
 }
 
-// TODO: add a flag for step up or login.
 func (s *service) CreateChallenge(ctx context.Context, userID, methodID uuid.UUID, challengetype ChallengeType) (uuid.UUID, error) {
 	c, err := s.challengeRepo.Create(ctx, MFAChallenge{
 		MethodID:      methodID,
