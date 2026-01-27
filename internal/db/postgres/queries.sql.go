@@ -469,6 +469,44 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow
 	return i, err
 }
 
+const lockActiveTOTPChallenge = `-- name: LockActiveTOTPChallenge :one
+SELECT
+  c.id            AS challenge_id,
+  c.user_id,
+  m.id            AS method_id,
+  m.secret_ciphertext
+FROM mfa_challenges c
+JOIN user_mfa_methods m
+  ON m.id = c.mfa_method_id
+ AND m.user_id = c.user_id
+WHERE
+  c.id = $1
+  AND c.expires_at > NOW()
+  AND c.consumed_at IS NULL
+  AND m.type = 'totp'
+  AND m.confirmed_at IS NOT NULL
+FOR UPDATE
+`
+
+type LockActiveTOTPChallengeRow struct {
+	ChallengeID      uuid.UUID
+	UserID           uuid.UUID
+	MethodID         uuid.UUID
+	SecretCiphertext []byte
+}
+
+func (q *Queries) LockActiveTOTPChallenge(ctx context.Context, id uuid.UUID) (LockActiveTOTPChallengeRow, error) {
+	row := q.db.QueryRowContext(ctx, lockActiveTOTPChallenge, id)
+	var i LockActiveTOTPChallengeRow
+	err := row.Scan(
+		&i.ChallengeID,
+		&i.UserID,
+		&i.MethodID,
+		&i.SecretCiphertext,
+	)
+	return i, err
+}
+
 const markSessionsCompromised = `-- name: MarkSessionsCompromised :exec
 UPDATE sessions
 SET compromised_at = NOW()

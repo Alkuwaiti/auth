@@ -23,3 +23,10 @@ type MFAChallenge struct {
 	ExpiresAt     time.Time
 	ConsumedAt    *time.Time
 }
+
+type LockedTOTPChallenge struct {
+	ChallengeID      uuid.UUID
+	UserID           uuid.UUID
+	MethodID         uuid.UUID
+	SecretCiphertext []byte
+}

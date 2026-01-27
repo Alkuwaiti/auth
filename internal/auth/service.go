@@ -73,7 +73,7 @@ type MFAService interface {
 	GetActiveChallenge(ctx context.Context, challengeID uuid.UUID) (mfa.MFAChallenge, error)
 	GetMethodByID(ctx context.Context, methodID uuid.UUID) (mfa.MFAMethod, error)
 	VerifyTOTP(secret, code string) error
-	ConsumeChallenge(ctx context.Context, challengeID uuid.UUID) error
+	VerifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (uuid.UUID, error)
 }
 
 var tracer = otel.Tracer("auth-service/auth")
@@ -550,42 +550,19 @@ func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code st
 }
 
 // TODO: create tests for this.
-// TODO: so much cleanup here holy shit
 func (s *service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, code string) (TokenPair, error) {
-	// TODO: just get the joins of the two tables right away.
-	challenge, err := s.MFAService.GetActiveChallenge(ctx, challengeID)
+	userID, err := s.MFAService.VerifyAndConsumeChallenge(ctx, challengeID, code)
 	if err != nil {
 		return TokenPair{}, err
 	}
 
-	if challenge.ExpiresAt.Before(time.Now()) {
-		return TokenPair{}, &apperrors.ChallengeExpiredError{}
-	}
-
-	method, err := s.MFAService.GetMethodByID(ctx, challenge.MethodID)
-	if err != nil {
-		return TokenPair{}, err
-	}
-
-	if method.UserID != challenge.UserID {
-		return TokenPair{}, &apperrors.InvalidCredentialsError{}
-	}
-
-	if err = s.MFAService.VerifyTOTP(method.Secret, code); err != nil {
-		return TokenPair{}, err
-	}
-
-	if err = s.MFAService.ConsumeChallenge(ctx, challengeID); err != nil {
-		return TokenPair{}, err
-	}
-
-	user, err := s.repo.getUserByID(ctx, challenge.UserID)
+	user, err := s.repo.getUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
 		}
 
-		slog.ErrorContext(ctx, "login failed: user lookup error", "user_id", challenge.UserID, "err", err)
+		slog.ErrorContext(ctx, "login failed: user lookup error", "user_id", userID, "err", err)
 		return TokenPair{}, err
 	}
 

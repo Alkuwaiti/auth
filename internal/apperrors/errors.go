@@ -73,3 +73,9 @@ type ChallengeExpiredError struct{}
 func (e *ChallengeExpiredError) Error() string {
 	return "challenge expired"
 }
+
+type InvalidMFACodeError struct{}
+
+func (e *InvalidMFACodeError) Error() string {
+	return "incorrect mfa code"
+}

@@ -148,3 +148,20 @@ WHERE user_id = $1
 SELECT * FROM user_mfa_methods
 WHERE id = $1;
 
+-- name: LockActiveTOTPChallenge :one
+SELECT
+  c.id            AS challenge_id,
+  c.user_id,
+  m.id            AS method_id,
+  m.secret_ciphertext
+FROM mfa_challenges c
+JOIN user_mfa_methods m
+  ON m.id = c.mfa_method_id
+ AND m.user_id = c.user_id
+WHERE
+  c.id = $1
+  AND c.expires_at > NOW()
+  AND c.consumed_at IS NULL
+  AND m.type = 'totp'
+  AND m.confirmed_at IS NOT NULL
+FOR UPDATE;

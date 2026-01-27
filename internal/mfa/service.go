@@ -172,10 +172,46 @@ func (s *service) VerifyTOTP(secret, code string) error {
 	return nil
 }
 
-func (s *service) ConsumeChallenge(ctx context.Context, challengeID uuid.UUID) error {
-	if err := s.challengeRepo.Consume(ctx, challengeID); err != nil {
-		return err
+func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (uuid.UUID, error) {
+	tx, err := s.challengeRepo.BeginTx(ctx)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	defer tx.Rollback()
+
+	locked, err := s.challengeRepo.LockActiveTOTPChallenge(ctx, tx, challengeID)
+	if err != nil {
+		return uuid.Nil, err
 	}
 
-	return nil
+	secretBytes, err := s.crypto.Decrypt([]byte(locked.SecretCiphertext))
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	valid, err := totp.ValidateCustom(code, string(secretBytes), time.Now(), totp.ValidateOpts{
+		Period: 30,
+		Skew:   1, // ±30s
+		Digits: otp.DigitsSix,
+	})
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	if !valid {
+		return uuid.Nil, &apperrors.BadRequestError{
+			Field: "code",
+			Msg:   "invalid code",
+		}
+	}
+
+	if err := s.challengeRepo.ConsumeChallenge(ctx, tx, locked.ChallengeID); err != nil {
+		return uuid.Nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return uuid.Nil, err
+	}
+
+	return locked.UserID, nil
 }

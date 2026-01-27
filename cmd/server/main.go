@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
 	"flag"
 	"log"
 	"log/slog"
@@ -99,9 +100,14 @@ func main() {
 
 	methodRepo := mfa.NewMFAMethodRepo(queries)
 
-	challengeRepo := mfa.NewMFAChallengeRepo(queries)
+	challengeRepo := mfa.NewMFAChallengeRepo(dbConn)
 
-	c := crypto.NewAESCrypto([]byte(cfg.AESKey))
+	keyBytes, err := hex.DecodeString(cfg.AESKey)
+	if err != nil {
+		panic("error decoding the AES key")
+	}
+
+	c := crypto.NewAESCrypto(keyBytes)
 
 	multifactor := mfa.NewService(*methodRepo, *challengeRepo, c)
 
