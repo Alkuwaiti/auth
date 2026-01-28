@@ -14,15 +14,17 @@ import (
 type service struct {
 	MFARepo MFARepo
 	crypto  Crypto
+	Config  Config
 }
 
 // TODO: add tracer here
 // TODO: add logs
 
-func NewService(MFARepo MFARepo, crypto Crypto) *service {
+func NewService(MFARepo MFARepo, crypto Crypto, config Config) *service {
 	return &service{
 		MFARepo: MFARepo,
 		crypto:  crypto,
+		Config:  config,
 	}
 }
 
@@ -58,7 +60,7 @@ func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, email stri
 
 	key, err := totp.Generate(totp.GenerateOpts{
 		// TODO: change for config
-		Issuer:      "MyApp",
+		Issuer:      s.Config.AppName,
 		AccountName: email,
 	})
 	if err != nil {

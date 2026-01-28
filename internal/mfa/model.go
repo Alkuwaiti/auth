@@ -30,3 +30,7 @@ type LockedTOTPChallenge struct {
 	MethodID         uuid.UUID
 	SecretCiphertext []byte
 }
+
+type Config struct {
+	AppName string
+}

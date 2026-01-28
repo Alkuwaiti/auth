@@ -31,6 +31,7 @@ type Config struct {
 	OTLPEndpoint     string
 	RefreshEnabled   bool
 	AESKey           string
+	AppName          string
 }
 
 func Load(env, jur string) Config {
