@@ -8,20 +8,9 @@ import (
 	"github.com/google/uuid"
 )
 
-type MFAMethodRepo struct {
-	queries *postgres.Queries
-}
-
-func NewMFAMethodRepo(queries *postgres.Queries) *MFAMethodRepo {
-	return &MFAMethodRepo{
-		queries: queries,
-	}
-}
-
-// TODO: revisit the two repos model, seems unnecessary.
 // TODO: make repo methods unexported.
 
-func (m *MFAMethodRepo) Create(ctx context.Context, userID uuid.UUID, secret []byte, methodType MFAMethodType) (MFAMethod, error) {
+func (m *MFARepo) createUserMFAMethod(ctx context.Context, userID uuid.UUID, secret []byte, methodType MFAMethodType) (MFAMethod, error) {
 	postgresMFAMethod, err := m.queries.CreateUserMFAMethod(ctx, postgres.CreateUserMFAMethodParams{
 		UserID:           userID,
 		Type:             string(methodType),
@@ -34,7 +23,7 @@ func (m *MFAMethodRepo) Create(ctx context.Context, userID uuid.UUID, secret []b
 	return toMFAMethod(postgresMFAMethod), nil
 }
 
-func (m *MFAMethodRepo) GetConfirmedByUser(ctx context.Context, userID uuid.UUID) ([]MFAMethod, error) {
+func (m *MFARepo) getMFAMethodsConfirmedByUser(ctx context.Context, userID uuid.UUID) ([]MFAMethod, error) {
 	rows, err := m.queries.GetMFAMethodsConfirmedByUser(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -48,7 +37,7 @@ func (m *MFAMethodRepo) GetConfirmedByUser(ctx context.Context, userID uuid.UUID
 	return methods, nil
 }
 
-func (m *MFAMethodRepo) Confirm(ctx context.Context, methodID uuid.UUID) error {
+func (m *MFARepo) confirmUserMFAMethod(ctx context.Context, methodID uuid.UUID) error {
 	if err := m.queries.ConfirmUserMFAMethod(ctx, methodID); err != nil {
 		return err
 	}
@@ -56,7 +45,7 @@ func (m *MFAMethodRepo) Confirm(ctx context.Context, methodID uuid.UUID) error {
 	return nil
 }
 
-func (m *MFAMethodRepo) UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID, methodType MFAMethodType) (bool, error) {
+func (m *MFARepo) userHasActiveMFAMethod(ctx context.Context, userID uuid.UUID, methodType MFAMethodType) (bool, error) {
 	exists, err := m.queries.UserHasActiveMFAMethod(ctx, postgres.UserHasActiveMFAMethodParams{
 		UserID: userID,
 		Type:   string(methodType),
@@ -68,7 +57,7 @@ func (m *MFAMethodRepo) UserHasActiveMFAMethod(ctx context.Context, userID uuid.
 	return exists, nil
 }
 
-func (m *MFAMethodRepo) GetByID(ctx context.Context, methodID uuid.UUID) (MFAMethod, error) {
+func (m *MFARepo) getMFAMethodByID(ctx context.Context, methodID uuid.UUID) (MFAMethod, error) {
 	postgresMethod, err := m.queries.GetMFAMethodByID(ctx, methodID)
 	if err != nil {
 		return MFAMethod{}, err

@@ -52,13 +52,11 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 		JWTKey:   []byte("any random jwt key doesn't really matter or at least i think it doesn't matter"),
 	})
 
-	methodRepo := mfa.NewMFAMethodRepo(queries)
-
-	challengeRepo := mfa.NewMFAChallengeRepo(testDB.DB)
+	mfaRepo := mfa.NewMFARepo(testDB.DB)
 
 	c := crypto.NewAESCrypto([]byte("some key"))
 
-	multifactor := mfa.NewService(*methodRepo, *challengeRepo, c)
+	multifactor := mfa.NewService(*mfaRepo, c)
 
 	service := NewService(authRepo, passwordService, auditService, authorizerService, flagsService, tokenManager, multifactor)
 

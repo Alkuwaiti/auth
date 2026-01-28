@@ -10,24 +10,24 @@ import (
 	"github.com/google/uuid"
 )
 
-type MFAChallengeRepo struct {
+type MFARepo struct {
 	queries *postgres.Queries
 	db      *sql.DB
 }
 
-func NewMFAChallengeRepo(db *sql.DB) *MFAChallengeRepo {
-	return &MFAChallengeRepo{
+func NewMFARepo(db *sql.DB) *MFARepo {
+	return &MFARepo{
 		db:      db,
 		queries: postgres.New(db),
 	}
 }
 
-func (c *MFAChallengeRepo) BeginTx(ctx context.Context) (*sql.Tx, error) {
-	return c.db.BeginTx(ctx, nil)
+func (m *MFARepo) beginTx(ctx context.Context) (*sql.Tx, error) {
+	return m.db.BeginTx(ctx, nil)
 }
 
-func (c *MFAChallengeRepo) Create(ctx context.Context, challenge MFAChallenge) (MFAChallenge, error) {
-	postgresChallenge, err := c.queries.CreateChallenge(ctx, postgres.CreateChallengeParams{
+func (m *MFARepo) createChallenge(ctx context.Context, challenge MFAChallenge) (MFAChallenge, error) {
+	postgresChallenge, err := m.queries.CreateChallenge(ctx, postgres.CreateChallengeParams{
 		UserID:        challenge.UserID,
 		MfaMethodID:   challenge.MethodID,
 		ChallengeType: string(challenge.ChallengeType),
@@ -40,8 +40,8 @@ func (c *MFAChallengeRepo) Create(ctx context.Context, challenge MFAChallenge) (
 	return toMFAChallenge(postgresChallenge), nil
 }
 
-func (c *MFAChallengeRepo) GetActive(ctx context.Context, id uuid.UUID) (MFAChallenge, error) {
-	postgresChallenge, err := c.queries.GetActiveChallenge(ctx, id)
+func (m *MFARepo) getActiveChallenge(ctx context.Context, id uuid.UUID) (MFAChallenge, error) {
+	postgresChallenge, err := m.queries.GetActiveChallenge(ctx, id)
 	if err != nil {
 		return MFAChallenge{}, err
 	}
@@ -49,8 +49,8 @@ func (c *MFAChallengeRepo) GetActive(ctx context.Context, id uuid.UUID) (MFAChal
 	return toMFAChallengeFromActive(postgresChallenge), nil
 }
 
-func (c *MFAChallengeRepo) LockActiveTOTPChallenge(ctx context.Context, tx *sql.Tx, challengeID uuid.UUID) (LockedTOTPChallenge, error) {
-	q := c.queries.WithTx(tx)
+func (m *MFARepo) lockActiveTOTPChallenge(ctx context.Context, tx *sql.Tx, challengeID uuid.UUID) (LockedTOTPChallenge, error) {
+	q := m.queries.WithTx(tx)
 
 	row, err := q.LockActiveTOTPChallenge(ctx, challengeID)
 	if err != nil {
@@ -69,8 +69,8 @@ func (c *MFAChallengeRepo) LockActiveTOTPChallenge(ctx context.Context, tx *sql.
 	}, nil
 }
 
-func (c *MFAChallengeRepo) ConsumeChallenge(ctx context.Context, tx *sql.Tx, challengeID uuid.UUID) error {
-	return c.queries.WithTx(tx).ConsumeChallenge(ctx, challengeID)
+func (m *MFARepo) consumeChallenge(ctx context.Context, tx *sql.Tx, challengeID uuid.UUID) error {
+	return m.queries.WithTx(tx).ConsumeChallenge(ctx, challengeID)
 }
 
 func toMFAChallenge(row postgres.MfaChallenge) MFAChallenge {

@@ -531,6 +531,8 @@ func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 	return nil
 }
 
+// TODO: make sure to reference the completionist's MFA guide.
+
 // TODO: create tests for this.
 func (s *service) EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodType) (mfa.EnrollmentResult, error) {
 	userID, err := core.UserIDFromContext(ctx)

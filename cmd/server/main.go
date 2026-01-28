@@ -98,9 +98,7 @@ func main() {
 		Audience: name,
 	})
 
-	methodRepo := mfa.NewMFAMethodRepo(queries)
-
-	challengeRepo := mfa.NewMFAChallengeRepo(dbConn)
+	mfaRepo := mfa.NewMFARepo(dbConn)
 
 	keyBytes, err := hex.DecodeString(cfg.AESKey)
 	if err != nil {
@@ -109,7 +107,7 @@ func main() {
 
 	c := crypto.NewAESCrypto(keyBytes)
 
-	multifactor := mfa.NewService(*methodRepo, *challengeRepo, c)
+	multifactor := mfa.NewService(*mfaRepo, c)
 
 	authRepo := auth.NewRepo(dbConn)
 

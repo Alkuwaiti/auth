@@ -12,18 +12,16 @@ import (
 )
 
 type service struct {
-	methodRepo    MFAMethodRepo
-	challengeRepo MFAChallengeRepo
-	crypto        Crypto
+	MFARepo MFARepo
+	crypto  Crypto
 }
 
 // TODO: add tracer here
 
-func NewService(methodRepo MFAMethodRepo, challengeRepo MFAChallengeRepo, crypto Crypto) *service {
+func NewService(MFARepo MFARepo, crypto Crypto) *service {
 	return &service{
-		methodRepo:    methodRepo,
-		challengeRepo: challengeRepo,
-		crypto:        crypto,
+		MFARepo: MFARepo,
+		crypto:  crypto,
 	}
 }
 
@@ -46,7 +44,7 @@ func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, methodType
 		}
 	}
 
-	exists, err := s.methodRepo.UserHasActiveMFAMethod(ctx, userID, methodType)
+	exists, err := s.MFARepo.userHasActiveMFAMethod(ctx, userID, methodType)
 	if err != nil {
 		return EnrollmentResult{}, err
 	}
@@ -73,7 +71,7 @@ func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, methodType
 		return EnrollmentResult{}, err
 	}
 
-	method, err := s.methodRepo.Create(ctx, userID, encryptedSecret, methodType)
+	method, err := s.MFARepo.createUserMFAMethod(ctx, userID, encryptedSecret, methodType)
 	if err != nil {
 		return EnrollmentResult{}, err
 	}
@@ -89,7 +87,7 @@ func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, methodType
 }
 
 func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error {
-	method, err := s.methodRepo.GetByID(ctx, methodID)
+	method, err := s.MFARepo.getMFAMethodByID(ctx, methodID)
 	if err != nil {
 		return err
 	}
@@ -105,11 +103,11 @@ func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code st
 		return err
 	}
 
-	return s.methodRepo.Confirm(ctx, methodID)
+	return s.MFARepo.confirmUserMFAMethod(ctx, methodID)
 }
 
 func (s *service) GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.UUID) ([]MFAMethod, error) {
-	MFAMethods, err := s.methodRepo.GetConfirmedByUser(ctx, userID)
+	MFAMethods, err := s.MFARepo.getMFAMethodsConfirmedByUser(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +116,7 @@ func (s *service) GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.
 }
 
 func (s *service) CreateChallenge(ctx context.Context, userID, methodID uuid.UUID, challengetype ChallengeType) (uuid.UUID, error) {
-	c, err := s.challengeRepo.Create(ctx, MFAChallenge{
+	c, err := s.MFARepo.createChallenge(ctx, MFAChallenge{
 		MethodID:      methodID,
 		UserID:        userID,
 		ExpiresAt:     time.Now().Add(5 * time.Minute),
@@ -132,7 +130,7 @@ func (s *service) CreateChallenge(ctx context.Context, userID, methodID uuid.UUI
 }
 
 func (s *service) GetActiveChallenge(ctx context.Context, challengeID uuid.UUID) (MFAChallenge, error) {
-	challenge, err := s.challengeRepo.GetActive(ctx, challengeID)
+	challenge, err := s.MFARepo.getActiveChallenge(ctx, challengeID)
 	if err != nil {
 		return MFAChallenge{}, err
 	}
@@ -141,7 +139,7 @@ func (s *service) GetActiveChallenge(ctx context.Context, challengeID uuid.UUID)
 }
 
 func (s *service) GetMethodByID(ctx context.Context, methodID uuid.UUID) (MFAMethod, error) {
-	method, err := s.methodRepo.GetByID(ctx, methodID)
+	method, err := s.MFARepo.getMFAMethodByID(ctx, methodID)
 	if err != nil {
 		return MFAMethod{}, err
 	}
@@ -175,13 +173,13 @@ func (s *service) verifyTOTP(secret, code string) error {
 }
 
 func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (uuid.UUID, error) {
-	tx, err := s.challengeRepo.BeginTx(ctx)
+	tx, err := s.MFARepo.beginTx(ctx)
 	if err != nil {
 		return uuid.Nil, err
 	}
 	defer tx.Rollback()
 
-	locked, err := s.challengeRepo.LockActiveTOTPChallenge(ctx, tx, challengeID)
+	locked, err := s.MFARepo.lockActiveTOTPChallenge(ctx, tx, challengeID)
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -190,7 +188,7 @@ func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 		return uuid.Nil, err
 	}
 
-	if err := s.challengeRepo.ConsumeChallenge(ctx, tx, locked.ChallengeID); err != nil {
+	if err := s.MFARepo.consumeChallenge(ctx, tx, locked.ChallengeID); err != nil {
 		return uuid.Nil, err
 	}
 
