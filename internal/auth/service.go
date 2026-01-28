@@ -64,7 +64,7 @@ type tokenManager interface {
 }
 
 type MFAService interface {
-	EnrollMethod(ctx context.Context, userID uuid.UUID, methodType mfa.MFAMethodType) (mfa.EnrollmentResult, error)
+	EnrollMethod(ctx context.Context, userID uuid.UUID, email string, methodType mfa.MFAMethodType) (mfa.EnrollmentResult, error)
 	ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error
 	GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.UUID) ([]mfa.MFAMethod, error)
 	CreateChallenge(ctx context.Context, userID, methodID uuid.UUID, challengetype mfa.ChallengeType) (uuid.UUID, error)
@@ -540,7 +540,12 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodT
 		return mfa.EnrollmentResult{}, err
 	}
 
-	return s.MFAService.EnrollMethod(ctx, userID, methodType)
+	userEmail, err := core.UserEmailFromContext(ctx)
+	if err != nil {
+		return mfa.EnrollmentResult{}, err
+	}
+
+	return s.MFAService.EnrollMethod(ctx, userID, userEmail, methodType)
 }
 
 // TODO: create tests for this.

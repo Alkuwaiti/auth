@@ -8,8 +8,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// TODO: make repo methods unexported.
-
 func (m *MFARepo) createUserMFAMethod(ctx context.Context, userID uuid.UUID, secret []byte, methodType MFAMethodType) (MFAMethod, error) {
 	postgresMFAMethod, err := m.queries.CreateUserMFAMethod(ctx, postgres.CreateUserMFAMethodParams{
 		UserID:           userID,

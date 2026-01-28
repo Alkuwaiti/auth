@@ -17,6 +17,7 @@ type service struct {
 }
 
 // TODO: add tracer here
+// TODO: add logs
 
 func NewService(MFARepo MFARepo, crypto Crypto) *service {
 	return &service{
@@ -36,7 +37,7 @@ type EnrollmentResult struct {
 }
 
 // TODO: enroll other methods.
-func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, methodType MFAMethodType) (EnrollmentResult, error) {
+func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, email string, methodType MFAMethodType) (EnrollmentResult, error) {
 	if !methodType.isValid() {
 		return EnrollmentResult{}, &apperrors.ValidationError{
 			Field: "method type",
@@ -58,7 +59,7 @@ func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, methodType
 	key, err := totp.Generate(totp.GenerateOpts{
 		// TODO: change for config
 		Issuer:      "MyApp",
-		AccountName: userID.String(),
+		AccountName: email,
 	})
 	if err != nil {
 		return EnrollmentResult{}, err
