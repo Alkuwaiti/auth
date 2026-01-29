@@ -3,6 +3,8 @@ package mfa
 
 import (
 	"context"
+	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
@@ -49,6 +51,7 @@ func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, email stri
 
 	exists, err := s.MFARepo.userHasActiveMFAMethod(ctx, userID, methodType)
 	if err != nil {
+		slog.ErrorContext(ctx, "error when checking if user has an active MFA method", "user_id", userID, "method_type", methodType, "err", err)
 		return EnrollmentResult{}, err
 	}
 	if exists {
@@ -63,6 +66,7 @@ func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, email stri
 		AccountName: email,
 	})
 	if err != nil {
+		slog.ErrorContext(ctx, "error generating totp", "err", err)
 		return EnrollmentResult{}, err
 	}
 
@@ -70,11 +74,13 @@ func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, email stri
 
 	encryptedSecret, err := s.crypto.Encrypt([]byte(key.Secret()))
 	if err != nil {
+		slog.ErrorContext(ctx, "error when encrypting secret", "err", err)
 		return EnrollmentResult{}, err
 	}
 
 	method, err := s.MFARepo.createUserMFAMethod(ctx, userID, encryptedSecret, methodType)
 	if err != nil {
+		slog.ErrorContext(ctx, "error when creating a user mfa method", "err", err)
 		return EnrollmentResult{}, err
 	}
 
@@ -91,6 +97,7 @@ func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, email stri
 func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error {
 	method, err := s.MFARepo.getMFAMethodByID(ctx, methodID)
 	if err != nil {
+		slog.ErrorContext(ctx, "error when getting mfa method by id", "err", err)
 		return err
 	}
 
@@ -111,6 +118,7 @@ func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code st
 func (s *service) GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.UUID) ([]MFAMethod, error) {
 	MFAMethods, err := s.MFARepo.getMFAMethodsConfirmedByUser(ctx, userID)
 	if err != nil {
+		slog.ErrorContext(ctx, "error when getting mfa methods confirmed by user id", "err", err)
 		return nil, err
 	}
 
@@ -125,6 +133,7 @@ func (s *service) CreateChallenge(ctx context.Context, userID, methodID uuid.UUI
 		ChallengeType: challengetype,
 	})
 	if err != nil {
+		slog.ErrorContext(ctx, "error when creating challenge", "err", err)
 		return uuid.UUID{}, err
 	}
 
@@ -134,6 +143,7 @@ func (s *service) CreateChallenge(ctx context.Context, userID, methodID uuid.UUI
 func (s *service) GetActiveChallenge(ctx context.Context, challengeID uuid.UUID) (MFAChallenge, error) {
 	challenge, err := s.MFARepo.getActiveChallenge(ctx, challengeID)
 	if err != nil {
+		slog.ErrorContext(ctx, "error getting active challenge", "err", err)
 		return MFAChallenge{}, err
 	}
 
@@ -143,6 +153,7 @@ func (s *service) GetActiveChallenge(ctx context.Context, challengeID uuid.UUID)
 func (s *service) GetMethodByID(ctx context.Context, methodID uuid.UUID) (MFAMethod, error) {
 	method, err := s.MFARepo.getMFAMethodByID(ctx, methodID)
 	if err != nil {
+		slog.ErrorContext(ctx, "error getting method by id", "err", err)
 		return MFAMethod{}, err
 	}
 
@@ -152,6 +163,7 @@ func (s *service) GetMethodByID(ctx context.Context, methodID uuid.UUID) (MFAMet
 func (s *service) verifyTOTP(secret, code string) error {
 	secretBytes, err := s.crypto.Decrypt([]byte(secret))
 	if err != nil {
+		slog.Error("error decrypting", "err", err)
 		return err
 	}
 
@@ -161,6 +173,7 @@ func (s *service) verifyTOTP(secret, code string) error {
 		Digits: otp.DigitsSix,
 	})
 	if err != nil {
+		slog.Error("error validating secret", "err", err)
 		return err
 	}
 
@@ -183,6 +196,11 @@ func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 
 	locked, err := s.MFARepo.lockActiveTOTPChallenge(ctx, tx, challengeID)
 	if err != nil {
+		if errors.Is(err, ErrInvalidMFAChallenge) {
+			return uuid.Nil, &apperrors.InvalidMFACodeError{}
+		}
+
+		slog.ErrorContext(ctx, "error locking active totp challenge", "err", err)
 		return uuid.Nil, err
 	}
 
@@ -191,6 +209,7 @@ func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 	}
 
 	if err := s.MFARepo.consumeChallenge(ctx, tx, locked.ChallengeID); err != nil {
+		slog.ErrorContext(ctx, "error consuming challenge", "err", err)
 		return uuid.Nil, err
 	}
 
