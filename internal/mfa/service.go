@@ -59,7 +59,6 @@ func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, email stri
 	}
 
 	key, err := totp.Generate(totp.GenerateOpts{
-		// TODO: change for config
 		Issuer:      s.Config.AppName,
 		AccountName: email,
 	})

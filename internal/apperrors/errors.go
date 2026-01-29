@@ -79,3 +79,9 @@ type InvalidMFACodeError struct{}
 func (e *InvalidMFACodeError) Error() string {
 	return "incorrect mfa code"
 }
+
+type InvalidMFAChallengeError struct{}
+
+func (e *InvalidMFAChallengeError) Error() string {
+	return "invalid mfa challenge"
+}
