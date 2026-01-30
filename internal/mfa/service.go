@@ -11,6 +11,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 )
 
 type service struct {
@@ -20,6 +22,7 @@ type service struct {
 }
 
 // TODO: add tracer here
+var tracer = otel.Tracer("auth-service/mfa")
 
 func NewService(MFARepo MFARepo, crypto Crypto, config Config) *service {
 	return &service{
@@ -41,6 +44,9 @@ type EnrollmentResult struct {
 
 // TODO: enroll other methods.
 func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, email string, methodType MFAMethodType) (EnrollmentResult, error) {
+	ctx, span := tracer.Start(ctx, "mfaService.EnrollMethod")
+	defer span.End()
+
 	if !methodType.isValid() {
 		return EnrollmentResult{}, &apperrors.ValidationError{
 			Field: "method type",
@@ -65,6 +71,8 @@ func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, email stri
 		AccountName: email,
 	})
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "totp generation failed")
 		slog.ErrorContext(ctx, "error generating totp", "err", err)
 		return EnrollmentResult{}, err
 	}
@@ -73,6 +81,8 @@ func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, email stri
 
 	encryptedSecret, err := s.crypto.Encrypt([]byte(key.Secret()))
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "error encrypting")
 		slog.ErrorContext(ctx, "error when encrypting secret", "err", err)
 		return EnrollmentResult{}, err
 	}
@@ -94,6 +104,9 @@ func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, email stri
 }
 
 func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error {
+	ctx, span := tracer.Start(ctx, "mfaService.ConfirmMethod")
+	defer span.End()
+
 	method, err := s.MFARepo.getMFAMethodByID(ctx, methodID)
 	if err != nil {
 		slog.ErrorContext(ctx, "error when getting mfa method by id", "err", err)
@@ -101,13 +114,14 @@ func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code st
 	}
 
 	if method.ConfirmedAt != nil {
+		span.SetStatus(codes.Error, "method confirmed")
 		return &apperrors.BadRequestError{
 			Field: "method",
 			Msg:   "already confirmed",
 		}
 	}
 
-	if err := s.verifyTOTP(method.Secret, code); err != nil {
+	if err := s.verifyTOTP(ctx, method.Secret, code); err != nil {
 		return err
 	}
 
@@ -159,10 +173,15 @@ func (s *service) GetMethodByID(ctx context.Context, methodID uuid.UUID) (MFAMet
 	return method, nil
 }
 
-func (s *service) verifyTOTP(secret, code string) error {
+func (s *service) verifyTOTP(ctx context.Context, secret, code string) error {
+	ctx, span := tracer.Start(ctx, "mfaService.verifyTOTP")
+	defer span.End()
+
 	secretBytes, err := s.crypto.Decrypt([]byte(secret))
 	if err != nil {
-		slog.Error("error decrypting", "err", err)
+		slog.ErrorContext(ctx, "error decrypting", "err", err)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "error encrypting")
 		return err
 	}
 
@@ -172,7 +191,9 @@ func (s *service) verifyTOTP(secret, code string) error {
 		Digits: otp.DigitsSix,
 	})
 	if err != nil {
-		slog.Error("error validating secret", "err", err)
+		slog.ErrorContext(ctx, "error validating totp", "err", err)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "error validating totp")
 		return err
 	}
 
@@ -203,8 +224,7 @@ func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 		return uuid.Nil, err
 	}
 
-	if err := s.verifyTOTP(string(locked.SecretCiphertext), code); err != nil {
-		slog.ErrorContext(ctx, "error verifying totp", "err", err)
+	if err := s.verifyTOTP(ctx, string(locked.SecretCiphertext), code); err != nil {
 		return uuid.Nil, err
 	}
 

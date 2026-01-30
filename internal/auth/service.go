@@ -168,6 +168,7 @@ func (s *service) Login(ctx context.Context, email, password string) (LoginResul
 	}
 
 	if err = s.passwords.Compare(user.PasswordHash, password); err != nil {
+		span.RecordError(err)
 		span.SetStatus(codes.Error, "invalid credentials")
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email)
 		return LoginResult{}, &apperrors.InvalidCredentialsError{}
