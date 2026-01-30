@@ -20,7 +20,6 @@ type service struct {
 }
 
 // TODO: add tracer here
-// TODO: add logs
 
 func NewService(MFARepo MFARepo, crypto Crypto, config Config) *service {
 	return &service{
@@ -205,6 +204,7 @@ func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 	}
 
 	if err := s.verifyTOTP(string(locked.SecretCiphertext), code); err != nil {
+		slog.ErrorContext(ctx, "error verifying totp", "err", err)
 		return uuid.Nil, err
 	}
 
@@ -214,6 +214,7 @@ func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 	}
 
 	if err := tx.Commit(); err != nil {
+		slog.ErrorContext(ctx, "error committing transaction", "err", err)
 		return uuid.Nil, err
 	}
 
