@@ -68,10 +68,11 @@ func TestChangePassword(t *testing.T) {
 		},
 	}
 
+	service, db, cleanup := setupTestAuthService(t)
+	defer cleanup()
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			service, db, cleanup := setupTestAuthService(t)
-			defer cleanup()
 
 			ctx := testutil.CtxWithRequestMeta()
 

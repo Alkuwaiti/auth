@@ -21,7 +21,6 @@ type service struct {
 	Config  Config
 }
 
-// TODO: add tracer here
 var tracer = otel.Tracer("auth-service/mfa")
 
 func NewService(MFARepo MFARepo, crypto Crypto, config Config) *service {
