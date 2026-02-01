@@ -3,9 +3,12 @@
 package auth
 
 import (
+	"context"
 	"testing"
 
 	"github.com/alkuwaiti/auth/internal/mfa"
+	"github.com/alkuwaiti/auth/internal/testutil"
+	"github.com/google/uuid"
 )
 
 func TestEnrollMethod(t *testing.T) {
@@ -40,6 +43,9 @@ func TestEnrollMethod(t *testing.T) {
 
 	service, _, cleanup := setupTestAuthService(t)
 	defer cleanup()
+
+	ctx := context.Background()
+	ctx = testutil.CtxWithUserID(ctx, uuid.New())
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
