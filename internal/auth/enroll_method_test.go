@@ -57,13 +57,10 @@ func TestEnrollMFAMethod(t *testing.T) {
 		},
 	}
 
-	service, db, cleanup := setupTestAuthService(t)
-	defer cleanup()
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := db.Exec(`TRUNCATE users, user_mfa_methods CASCADE`)
-			require.NoError(t, err)
+			service, db, cleanup := setupTestAuthService(t)
+			defer cleanup()
 
 			ctx := context.Background()
 
