@@ -7,7 +7,6 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/audit"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
-	"github.com/alkuwaiti/auth/internal/crypto"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/alkuwaiti/auth/internal/flags"
 	"github.com/alkuwaiti/auth/internal/mfa"
@@ -54,9 +53,7 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 
 	mfaRepo := mfa.NewMFARepo(testDB.DB)
 
-	c := crypto.NewAESCrypto([]byte("0123456789abcdef"))
-
-	multifactor := mfa.NewService(*mfaRepo, c, mfa.Config{
+	multifactor := mfa.NewService(*mfaRepo, &noopCrypto{}, mfa.Config{
 		AppName: "MyApp",
 	})
 
@@ -68,4 +65,17 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 	}
 
 	return service, testDB.DB, cleanup
+}
+
+// TODO: write a func that returns the same crypto struct type with the same key to be used in tests and the setup.
+type noopCrypto struct{}
+
+func (c *noopCrypto) Encrypt(b []byte) ([]byte, error) {
+	// just return the bytes as-is
+	return b, nil
+}
+
+func (c *noopCrypto) Decrypt(b []byte) ([]byte, error) {
+	// just return the bytes as-is
+	return b, nil
 }
