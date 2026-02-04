@@ -240,7 +240,7 @@ func (r *repo) getUserByEmail(ctx context.Context, email string) (User, error) {
 		return User{}, err
 	}
 
-	return toUserModelFromRow(user), nil
+	return toUserModelFromEmailRow(user), nil
 }
 
 func (r *repo) getUserByID(ctx context.Context, userID uuid.UUID) (User, error) {
@@ -252,7 +252,7 @@ func (r *repo) getUserByID(ctx context.Context, userID uuid.UUID) (User, error) 
 		return User{}, err
 	}
 
-	return toUserModel(user), nil
+	return toUserModelFromIDRow(user), nil
 }
 
 func (r *repo) createUser(
@@ -354,10 +354,11 @@ func toUserModel(user postgres.User) User {
 		UpdatedAt:       user.UpdatedAt,
 		DeletedAt:       deletedAt,
 		DeletionReason:  deletionReason,
+		MFAEnabled:      user.MfaEnabled,
 	}
 }
 
-func toUserModelFromRow(row postgres.GetUserByEmailRow) User {
+func toUserModelFromEmailRow(row postgres.GetUserByEmailRow) User {
 	var deletedAt *time.Time
 	if row.DeletedAt.Valid {
 		deletedAt = &row.DeletedAt.Time
@@ -381,5 +382,34 @@ func toUserModelFromRow(row postgres.GetUserByEmailRow) User {
 		DeletedAt:       deletedAt,
 		DeletionReason:  deletionReason,
 		Roles:           row.Roles,
+		MFAEnabled:      row.MfaEnabled,
+	}
+}
+
+func toUserModelFromIDRow(row postgres.GetUserByIDRow) User {
+	var deletedAt *time.Time
+	if row.DeletedAt.Valid {
+		deletedAt = &row.DeletedAt.Time
+	}
+
+	var deletionReason *DeletionReason
+	if row.DeletionReason.Valid {
+		dr := DeletionReason(row.DeletionReason.String)
+		deletionReason = &dr
+	}
+
+	return User{
+		ID:              row.ID,
+		Email:           row.Email,
+		Username:        row.Username,
+		PasswordHash:    row.PasswordHash,
+		IsEmailVerified: row.IsEmailVerified,
+		IsActive:        row.IsActive,
+		CreatedAt:       row.CreatedAt,
+		UpdatedAt:       row.UpdatedAt,
+		DeletedAt:       deletedAt,
+		DeletionReason:  deletionReason,
+		Roles:           row.Roles,
+		MFAEnabled:      row.MfaEnabled,
 	}
 }

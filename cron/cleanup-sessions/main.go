@@ -17,14 +17,19 @@ func main() {
 		panic("DATABASE_URL is not set")
 	}
 
+	ctx := context.Background()
+
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		slog.Error("failed to connect to DB", "err", err)
 		os.Exit(1)
 	}
-	defer db.Close()
+	defer func() {
+		if err = db.Close(); err != nil {
+			slog.ErrorContext(ctx, "error closing db connection", "err", err)
+		}
+	}()
 
-	ctx := context.Background()
 	totalDeleted := 0
 
 	for {

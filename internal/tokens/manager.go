@@ -19,7 +19,6 @@ func New(cfg Config) *Tokens {
 }
 
 func (m *Tokens) GenerateAccessToken(roles []string, userID, email string) (string, error) {
-
 	claims := AccessClaims{
 		Email: email,
 		Roles: roles,
@@ -37,7 +36,6 @@ func (m *Tokens) GenerateAccessToken(roles []string, userID, email string) (stri
 }
 
 func (m *Tokens) ValidateJWT(tokenStr string) (*AccessClaims, error) {
-
 	token, err := jwt.ParseWithClaims(
 		tokenStr,
 		&AccessClaims{},

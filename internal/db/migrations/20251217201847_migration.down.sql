@@ -2,8 +2,6 @@ DROP TABLE IF EXISTS auth_audit_logs;
 
 DROP TABLE IF EXISTS social_accounts;
 
-DROP TABLE IF EXISTS two_factor_methods;
-
 DROP TABLE IF EXISTS auth_tokens;
 
 DROP TABLE IF EXISTS sessions;

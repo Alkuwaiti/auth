@@ -31,6 +31,15 @@ func UserRolesFromContext(ctx context.Context) ([]string, error) {
 	return roles, nil
 }
 
+func UserEmailFromContext(ctx context.Context) (string, error) {
+	email, ok := ctx.Value(EmailKey{}).(string)
+	if !ok {
+		return "", &apperrors.InvalidCredentialsError{}
+	}
+
+	return email, nil
+}
+
 func RequestMetaFromContext(ctx context.Context) observability.RequestMeta {
 	meta, ok := ctx.Value(RequestMetaKeyType{}).(observability.RequestMeta)
 	if !ok {

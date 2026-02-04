@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
 	"flag"
 	"log"
 	"log/slog"
@@ -16,9 +17,11 @@ import (
 	"github.com/alkuwaiti/auth/internal/auth"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
 	"github.com/alkuwaiti/auth/internal/config"
+	"github.com/alkuwaiti/auth/internal/crypto"
 	"github.com/alkuwaiti/auth/internal/db"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/alkuwaiti/auth/internal/flags"
+	"github.com/alkuwaiti/auth/internal/mfa"
 	"github.com/alkuwaiti/auth/internal/observability/logging"
 	"github.com/alkuwaiti/auth/internal/observability/tracing"
 	"github.com/alkuwaiti/auth/internal/password"
@@ -73,11 +76,17 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer dbConn.Close()
+	defer func() {
+		if err = dbConn.Close(); err != nil {
+			slog.Error("error closing db connection", "err", err)
+		}
+	}()
 
 	passwords := password.NewService(12)
 
-	auditRepo := audit.NewRepo(postgres.New(dbConn))
+	queries := postgres.New(dbConn)
+
+	auditRepo := audit.NewRepo(queries)
 
 	auditor := audit.New(auditRepo)
 
@@ -93,13 +102,26 @@ func main() {
 		Audience: name,
 	})
 
+	mfaRepo := mfa.NewMFARepo(dbConn)
+
+	keyBytes, err := hex.DecodeString(cfg.AESKey)
+	if err != nil {
+		panic("error decoding the AES key")
+	}
+
+	c := crypto.NewAESCrypto(keyBytes)
+
+	multifactor := mfa.NewService(*mfaRepo, c, mfa.Config{
+		AppName: cfg.AppName,
+	})
+
 	authRepo := auth.NewRepo(dbConn)
 
-	authService := auth.NewService(authRepo, passwords, auditor, authorizer, flags, tokens)
+	authService := auth.NewService(authRepo, passwords, auditor, authorizer, flags, tokens, multifactor)
 
 	port := 8081
 
-	authInterceptor := grpc.NewAuthInterceptor(*tokens)
+	authInterceptor := grpc.NewAuthInterceptor(tokens)
 
 	requestMetaInterceptor := grpc.NewRequestMetaInterceptor()
 

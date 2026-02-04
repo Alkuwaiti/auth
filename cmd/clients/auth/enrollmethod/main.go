@@ -16,10 +16,11 @@ func main() {
 	ctx := context.Background()
 
 	md := metadata.New(map[string]string{
+		"authorization":       "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InFhc2ltbUBnbWFpbC5jb20iLCJyb2xlcyI6WyJ1c2VyIl0sImlzcyI6ImF1dGgtc2VydmljZSIsInN1YiI6IjAxOWJmYjc2LTc3YTctNzA2ZC1hYTQyLTYxNjRmMTk5ZWYyNyIsImF1ZCI6WyJhdXRoLXNlcnZpY2UiXSwiZXhwIjoxNzY5NTQxNzc1LCJpYXQiOjE3Njk1NDA4NzV9.sWNVkWoMjYcLIqClxvQmGFi87n5ZhHmqMNaxs1wTnkk",
 		"x-forwarded-for":     "203.0.113.10",
 		"x-client-user-agent": "auth-cli/1.0",
 		"request-id":          "req-123456",
-		"x-client-ip":         "2.2.2.2",
+		"x-client-ip":         "1.1.1.1",
 	})
 
 	ctx = metadata.NewOutgoingContext(ctx, md)
@@ -31,8 +32,8 @@ func main() {
 		}
 	}()
 
-	res, err := client.RefreshToken(ctx, &authv1.RefreshTokenRequest{
-		RefreshToken: "npN21Kop1W7QvI0FEfROh68wGW0LSjIS7Ex9PE1F1Fg=",
+	res, err := client.EnrollMFAMethod(ctx, &authv1.EnrollMFAMethodRequest{
+		Method: "totp",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

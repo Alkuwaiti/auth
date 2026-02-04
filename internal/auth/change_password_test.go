@@ -164,7 +164,7 @@ func TestChangePassword_RevokesSessions(t *testing.T) {
 	ctx = testutil.CtxWithUserID(ctx, user.ID)
 
 	// login generates a session
-	loginTokens, err := service.Login(ctx, "test@example.com", "OldPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "OldPassword123!")
 	require.NoError(t, err)
 
 	err = service.ChangePassword(ctx, "OldPassword123!", "NewPassword123!")
@@ -175,7 +175,7 @@ func TestChangePassword_RevokesSessions(t *testing.T) {
 		SELECT revoked_at
 		FROM sessions
 		WHERE refresh_token = $1
-	`, loginTokens.RefreshToken).Scan(&revokedAt)
+	`, res.Tokens.RefreshToken).Scan(&revokedAt)
 	require.NoError(t, err)
 	require.NotNil(t, revokedAt)
 }

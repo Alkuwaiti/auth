@@ -21,6 +21,10 @@ func CtxWithUserID(ctx context.Context, userID uuid.UUID) context.Context {
 	return context.WithValue(ctx, core.UserIDKey{}, userID.String())
 }
 
+func CtxWithEmail(ctx context.Context, email string) context.Context {
+	return context.WithValue(ctx, core.EmailKey{}, email)
+}
+
 func CtxWithRoles(ctx context.Context, roles []string) context.Context {
 	return context.WithValue(ctx, core.RolesKey{}, roles)
 }

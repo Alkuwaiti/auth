@@ -24,13 +24,13 @@ func TestLogin_Success(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	tokens, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
 	require.NoError(t, err)
 
-	require.NotEmpty(t, tokens.AccessToken)
-	require.NotEmpty(t, tokens.RefreshToken)
-	require.NotZero(t, tokens.RefreshExpiresAt)
-	require.NotZero(t, tokens.UserID)
+	require.NotEmpty(t, res.Tokens.AccessToken)
+	require.NotEmpty(t, res.Tokens.RefreshToken)
+	require.NotZero(t, res.Tokens.RefreshExpiresAt)
+	require.NotZero(t, res.Tokens.UserID)
 }
 
 func TestLogin_InvalidEmail(t *testing.T) {

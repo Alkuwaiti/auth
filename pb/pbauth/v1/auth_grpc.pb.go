@@ -20,13 +20,16 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_Ping_FullMethodName           = "/auth.v1.AuthService/Ping"
-	AuthService_Login_FullMethodName          = "/auth.v1.AuthService/Login"
-	AuthService_RefreshToken_FullMethodName   = "/auth.v1.AuthService/RefreshToken"
-	AuthService_Logout_FullMethodName         = "/auth.v1.AuthService/Logout"
-	AuthService_ChangePassword_FullMethodName = "/auth.v1.AuthService/ChangePassword"
-	AuthService_RegisterUser_FullMethodName   = "/auth.v1.AuthService/RegisterUser"
-	AuthService_DeleteUser_FullMethodName     = "/auth.v1.AuthService/DeleteUser"
+	AuthService_Ping_FullMethodName             = "/auth.v1.AuthService/Ping"
+	AuthService_Login_FullMethodName            = "/auth.v1.AuthService/Login"
+	AuthService_RefreshToken_FullMethodName     = "/auth.v1.AuthService/RefreshToken"
+	AuthService_Logout_FullMethodName           = "/auth.v1.AuthService/Logout"
+	AuthService_ChangePassword_FullMethodName   = "/auth.v1.AuthService/ChangePassword"
+	AuthService_RegisterUser_FullMethodName     = "/auth.v1.AuthService/RegisterUser"
+	AuthService_DeleteUser_FullMethodName       = "/auth.v1.AuthService/DeleteUser"
+	AuthService_EnrollMFAMethod_FullMethodName  = "/auth.v1.AuthService/EnrollMFAMethod"
+	AuthService_ConfirmMFAMethod_FullMethodName = "/auth.v1.AuthService/ConfirmMFAMethod"
+	AuthService_CompleteLoginMFA_FullMethodName = "/auth.v1.AuthService/CompleteLoginMFA"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -34,12 +37,15 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AuthServiceClient interface {
 	Ping(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*TokenPair, error)
+	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 	RefreshToken(ctx context.Context, in *RefreshTokenRequest, opts ...grpc.CallOption) (*TokenPair, error)
 	Logout(ctx context.Context, in *RefreshTokenRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	RegisterUser(ctx context.Context, in *RegisterUserRequest, opts ...grpc.CallOption) (*User, error)
 	DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	EnrollMFAMethod(ctx context.Context, in *EnrollMFAMethodRequest, opts ...grpc.CallOption) (*EnrollMFAMethodResponse, error)
+	ConfirmMFAMethod(ctx context.Context, in *ConfirmMFAMethodRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	CompleteLoginMFA(ctx context.Context, in *CompleteLoginMFARequest, opts ...grpc.CallOption) (*TokenPair, error)
 }
 
 type authServiceClient struct {
@@ -60,9 +66,9 @@ func (c *authServiceClient) Ping(ctx context.Context, in *emptypb.Empty, opts ..
 	return out, nil
 }
 
-func (c *authServiceClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*TokenPair, error) {
+func (c *authServiceClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(TokenPair)
+	out := new(LoginResponse)
 	err := c.cc.Invoke(ctx, AuthService_Login_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -120,17 +126,50 @@ func (c *authServiceClient) DeleteUser(ctx context.Context, in *DeleteUserReques
 	return out, nil
 }
 
+func (c *authServiceClient) EnrollMFAMethod(ctx context.Context, in *EnrollMFAMethodRequest, opts ...grpc.CallOption) (*EnrollMFAMethodResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EnrollMFAMethodResponse)
+	err := c.cc.Invoke(ctx, AuthService_EnrollMFAMethod_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) ConfirmMFAMethod(ctx context.Context, in *ConfirmMFAMethodRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, AuthService_ConfirmMFAMethod_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) CompleteLoginMFA(ctx context.Context, in *CompleteLoginMFARequest, opts ...grpc.CallOption) (*TokenPair, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TokenPair)
+	err := c.cc.Invoke(ctx, AuthService_CompleteLoginMFA_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
 type AuthServiceServer interface {
 	Ping(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
-	Login(context.Context, *LoginRequest) (*TokenPair, error)
+	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	RefreshToken(context.Context, *RefreshTokenRequest) (*TokenPair, error)
 	Logout(context.Context, *RefreshTokenRequest) (*emptypb.Empty, error)
 	ChangePassword(context.Context, *ChangePasswordRequest) (*emptypb.Empty, error)
 	RegisterUser(context.Context, *RegisterUserRequest) (*User, error)
 	DeleteUser(context.Context, *DeleteUserRequest) (*emptypb.Empty, error)
+	EnrollMFAMethod(context.Context, *EnrollMFAMethodRequest) (*EnrollMFAMethodResponse, error)
+	ConfirmMFAMethod(context.Context, *ConfirmMFAMethodRequest) (*emptypb.Empty, error)
+	CompleteLoginMFA(context.Context, *CompleteLoginMFARequest) (*TokenPair, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -144,7 +183,7 @@ type UnimplementedAuthServiceServer struct{}
 func (UnimplementedAuthServiceServer) Ping(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method Ping not implemented")
 }
-func (UnimplementedAuthServiceServer) Login(context.Context, *LoginRequest) (*TokenPair, error) {
+func (UnimplementedAuthServiceServer) Login(context.Context, *LoginRequest) (*LoginResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Login not implemented")
 }
 func (UnimplementedAuthServiceServer) RefreshToken(context.Context, *RefreshTokenRequest) (*TokenPair, error) {
@@ -161,6 +200,15 @@ func (UnimplementedAuthServiceServer) RegisterUser(context.Context, *RegisterUse
 }
 func (UnimplementedAuthServiceServer) DeleteUser(context.Context, *DeleteUserRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteUser not implemented")
+}
+func (UnimplementedAuthServiceServer) EnrollMFAMethod(context.Context, *EnrollMFAMethodRequest) (*EnrollMFAMethodResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method EnrollMFAMethod not implemented")
+}
+func (UnimplementedAuthServiceServer) ConfirmMFAMethod(context.Context, *ConfirmMFAMethodRequest) (*emptypb.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method ConfirmMFAMethod not implemented")
+}
+func (UnimplementedAuthServiceServer) CompleteLoginMFA(context.Context, *CompleteLoginMFARequest) (*TokenPair, error) {
+	return nil, status.Error(codes.Unimplemented, "method CompleteLoginMFA not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -309,6 +357,60 @@ func _AuthService_DeleteUser_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_EnrollMFAMethod_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EnrollMFAMethodRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).EnrollMFAMethod(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_EnrollMFAMethod_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).EnrollMFAMethod(ctx, req.(*EnrollMFAMethodRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_ConfirmMFAMethod_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConfirmMFAMethodRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).ConfirmMFAMethod(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_ConfirmMFAMethod_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).ConfirmMFAMethod(ctx, req.(*ConfirmMFAMethodRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_CompleteLoginMFA_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CompleteLoginMFARequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).CompleteLoginMFA(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_CompleteLoginMFA_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).CompleteLoginMFA(ctx, req.(*CompleteLoginMFARequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -343,6 +445,18 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteUser",
 			Handler:    _AuthService_DeleteUser_Handler,
+		},
+		{
+			MethodName: "EnrollMFAMethod",
+			Handler:    _AuthService_EnrollMFAMethod_Handler,
+		},
+		{
+			MethodName: "ConfirmMFAMethod",
+			Handler:    _AuthService_ConfirmMFAMethod_Handler,
+		},
+		{
+			MethodName: "CompleteLoginMFA",
+			Handler:    _AuthService_CompleteLoginMFA_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

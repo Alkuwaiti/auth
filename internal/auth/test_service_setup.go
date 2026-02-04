@@ -9,9 +9,11 @@ import (
 	authz "github.com/alkuwaiti/auth/internal/authorization"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/alkuwaiti/auth/internal/flags"
+	"github.com/alkuwaiti/auth/internal/mfa"
 	"github.com/alkuwaiti/auth/internal/password"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/alkuwaiti/auth/internal/tokens"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,7 +32,9 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 
 	passwordService := password.NewService(12)
 
-	auditRepo := audit.NewRepo(postgres.New(testDB.DB))
+	queries := postgres.New(testDB.DB)
+
+	auditRepo := audit.NewRepo(queries)
 
 	auditService := audit.New(auditRepo)
 
@@ -48,7 +52,13 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 		JWTKey:   []byte("any random jwt key doesn't really matter or at least i think it doesn't matter"),
 	})
 
-	service := NewService(authRepo, passwordService, auditService, authorizerService, flagsService, tokenManager)
+	mfaRepo := mfa.NewMFARepo(testDB.DB)
+
+	multifactor := mfa.NewService(*mfaRepo, &noopCrypto{}, mfa.Config{
+		AppName: "MyApp",
+	})
+
+	service := NewService(authRepo, passwordService, auditService, authorizerService, flagsService, tokenManager, multifactor)
 
 	cleanup := func() {
 		_ = testDB.DB.Close()
@@ -56,4 +66,29 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 	}
 
 	return service, testDB.DB, cleanup
+}
+
+type noopCrypto struct{}
+
+func (c *noopCrypto) Encrypt(b []byte) ([]byte, error) {
+	// just return the bytes as-is
+	return b, nil
+}
+
+func (c *noopCrypto) Decrypt(b []byte) ([]byte, error) {
+	// just return the bytes as-is
+	return b, nil
+}
+
+func seedUser(t *testing.T, db *sql.DB, userID uuid.UUID, email string, ctx context.Context) {
+	_, err := db.ExecContext(ctx, `
+		INSERT INTO users (id, username, email, password_hash, created_at)
+		VALUES ($1, $2, $3, $4, now())
+	`,
+		userID,
+		"username",
+		email,
+		"password_hash",
+	)
+	require.NoError(t, err)
 }

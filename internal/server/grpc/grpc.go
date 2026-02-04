@@ -8,7 +8,9 @@ import (
 	"net"
 
 	"github.com/alkuwaiti/auth/internal/auth"
+	"github.com/alkuwaiti/auth/internal/mfa"
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
+	"github.com/google/uuid"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -24,12 +26,15 @@ type server struct {
 }
 
 type authService interface {
-	Login(ctx context.Context, email, password string) (auth.TokenPair, error)
+	Login(ctx context.Context, email, password string) (auth.LoginResult, error)
 	RefreshToken(ctx context.Context, refreshToken string) (auth.TokenPair, error)
 	Logout(ctx context.Context, refreshToken string) error
 	ChangePassword(ctx context.Context, oldPassword, newPassword string) error
 	RegisterUser(context.Context, auth.RegisterUserInput) (auth.User, error)
 	DeleteUser(ctx context.Context, input auth.DeleteUserInput) error
+	EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodType) (mfa.EnrollmentResult, error)
+	ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error
+	CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, code string) (auth.TokenPair, error)
 }
 
 type Config struct {

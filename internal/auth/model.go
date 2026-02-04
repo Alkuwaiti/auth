@@ -116,4 +116,11 @@ type User struct {
 	DeletedAt       *time.Time      `json:"deleted_at"`
 	DeletionReason  *DeletionReason `json:"deletion_reason"`
 	Roles           []string        `json:"roles"`
+	MFAEnabled      bool            `json:"mfa_enabled"`
+}
+
+type LoginResult struct {
+	RequiresMFA bool
+	ChallengeID *uuid.UUID
+	Tokens      *TokenPair
 }

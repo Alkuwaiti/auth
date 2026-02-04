@@ -67,3 +67,21 @@ type ForbiddenError struct{}
 func (e *ForbiddenError) Error() string {
 	return "forbidden"
 }
+
+type ChallengeExpiredError struct{}
+
+func (e *ChallengeExpiredError) Error() string {
+	return "challenge expired"
+}
+
+type InvalidMFACodeError struct{}
+
+func (e *InvalidMFACodeError) Error() string {
+	return "incorrect mfa code"
+}
+
+type InvalidMFAChallengeError struct{}
+
+func (e *InvalidMFAChallengeError) Error() string {
+	return "invalid mfa challenge"
+}
