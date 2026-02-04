@@ -76,7 +76,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer dbConn.Close()
+	defer func() {
+		if err = dbConn.Close(); err != nil {
+			slog.Error("error closing db connection", "err", err)
+		}
+	}()
 
 	passwords := password.NewService(12)
 

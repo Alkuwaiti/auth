@@ -3,6 +3,7 @@ package mfa
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"log/slog"
 	"time"
@@ -211,7 +212,12 @@ func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 	if err != nil {
 		return uuid.Nil, err
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err = tx.Rollback(); err != nil && err != sql.ErrTxDone {
+			// Handle rollback error
+			slog.ErrorContext(ctx, "rollback failed", "err", err)
+		}
+	}()
 
 	locked, err := s.MFARepo.lockActiveTOTPChallenge(ctx, tx, challengeID)
 	if err != nil {
