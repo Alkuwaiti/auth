@@ -551,7 +551,6 @@ func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code st
 	return s.MFAService.ConfirmMethod(ctx, methodID, code)
 }
 
-// TODO: create tests for this.
 func (s *service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, code string) (TokenPair, error) {
 	userID, err := s.MFAService.VerifyAndConsumeChallenge(ctx, challengeID, code)
 	if err != nil {
