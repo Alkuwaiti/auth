@@ -547,7 +547,6 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodT
 	return s.MFAService.EnrollMethod(ctx, userID, userEmail, methodType)
 }
 
-// TODO: create tests for this.
 func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error {
 	return s.MFAService.ConfirmMethod(ctx, methodID, code)
 }
