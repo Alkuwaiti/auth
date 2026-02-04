@@ -13,6 +13,7 @@ import (
 	"github.com/alkuwaiti/auth/internal/password"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/alkuwaiti/auth/internal/tokens"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -67,7 +68,6 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 	return service, testDB.DB, cleanup
 }
 
-// TODO: write a func that returns the same crypto struct type with the same key to be used in tests and the setup.
 type noopCrypto struct{}
 
 func (c *noopCrypto) Encrypt(b []byte) ([]byte, error) {
@@ -78,4 +78,17 @@ func (c *noopCrypto) Encrypt(b []byte) ([]byte, error) {
 func (c *noopCrypto) Decrypt(b []byte) ([]byte, error) {
 	// just return the bytes as-is
 	return b, nil
+}
+
+func seedUser(t *testing.T, db *sql.DB, userID uuid.UUID, email string, ctx context.Context) {
+	_, err := db.ExecContext(ctx, `
+		INSERT INTO users (id, username, email, password_hash, created_at)
+		VALUES ($1, $2, $3, $4, now())
+	`,
+		userID,
+		"username",
+		email,
+		"password_hash",
+	)
+	require.NoError(t, err)
 }
