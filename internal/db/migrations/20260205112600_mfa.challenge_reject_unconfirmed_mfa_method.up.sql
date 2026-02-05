@@ -5,7 +5,7 @@ BEGIN
   IF EXISTS (
     SELECT 1
     FROM user_mfa_methods m
-    WHERE m.id = NEW.method_id
+    WHERE m.id = NEW.mfa_method_id
       AND (
         m.confirmed_at IS NULL
         OR (m.expires_at IS NOT NULL AND m.expires_at <= now())

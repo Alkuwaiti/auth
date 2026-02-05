@@ -161,7 +161,7 @@ func (s *service) CreateChallenge(ctx context.Context, userID, methodID uuid.UUI
 		ChallengeType: challengetype,
 	})
 	if err != nil {
-		slog.ErrorContext(ctx, "error when creating challenge", "err", err)
+		slog.ErrorContext(ctx, "error creating challenge", "err", err)
 		return MFAChallenge{}, err
 	}
 

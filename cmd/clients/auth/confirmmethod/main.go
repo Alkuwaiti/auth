@@ -16,7 +16,7 @@ func main() {
 	ctx := context.Background()
 
 	md := metadata.New(map[string]string{
-		"authorization":       "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InFhc2ltbUBnbWFpbC5jb20iLCJyb2xlcyI6WyJ1c2VyIl0sImlzcyI6ImF1dGgtc2VydmljZSIsInN1YiI6IjAxOWJmYjc2LTc3YTctNzA2ZC1hYTQyLTYxNjRmMTk5ZWYyNyIsImF1ZCI6WyJhdXRoLXNlcnZpY2UiXSwiZXhwIjoxNzY5NTQxNzc1LCJpYXQiOjE3Njk1NDA4NzV9.sWNVkWoMjYcLIqClxvQmGFi87n5ZhHmqMNaxs1wTnkk",
+		"authorization":       "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InFhc2ltbUBnbWFpbC5jb20iLCJyb2xlcyI6WyJ1c2VyIl0sImlzcyI6ImF1dGgtc2VydmljZSIsInN1YiI6IjAxOWMyZTI0LTY1NTItN2E0Yy05M2Y1LWIxMTRjMGI0YzY1ZSIsImF1ZCI6WyJhdXRoLXNlcnZpY2UiXSwiZXhwIjoxNzcwMzAxNTY2LCJpYXQiOjE3NzAzMDA2NjZ9._bZ4GDcpU7Zn1oNtKoUnq3uozwpVMb_eFCELY6bdO6o",
 		"x-forwarded-for":     "203.0.113.10",
 		"x-client-user-agent": "auth-cli/1.0",
 		"request-id":          "req-123456",
@@ -33,8 +33,8 @@ func main() {
 	}()
 
 	res, err := client.ConfirmMFAMethod(ctx, &authv1.ConfirmMFAMethodRequest{
-		MethodId: "3a821672-b95d-410f-a97c-b618a413821e",
-		Code:     "546006",
+		MethodId: "e7de72a3-0e2e-4374-be12-ccab83e2bfbd",
+		Code:     "416619",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

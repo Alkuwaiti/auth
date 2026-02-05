@@ -201,7 +201,6 @@ func (s *service) Login(ctx context.Context, email, password string) (LoginResul
 		// TODO: change the implementation when you have multiple methods.
 		challenge, err = s.MFAService.CreateChallenge(ctx, methods[0].UserID, methods[0].ID, mfa.ChallengeLogin)
 		if err != nil {
-			slog.ErrorContext(ctx, "failed to get confirmed mfa methods by user", "err", err)
 			return LoginResult{}, err
 		}
 
