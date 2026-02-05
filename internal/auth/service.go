@@ -678,6 +678,20 @@ func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 		return VerifyStepUpChallengeResponse{}, &apperrors.ForbiddenError{}
 	}
 
+	if challenge.ExpiresAt.Before(time.Now()) {
+		return VerifyStepUpChallengeResponse{}, &apperrors.BadRequestError{
+			Field: "challenge",
+			Msg:   "challenge expired",
+		}
+	}
+
+	if challenge.ConsumedAt != nil {
+		return VerifyStepUpChallengeResponse{}, &apperrors.BadRequestError{
+			Field: "challenge",
+			Msg:   "challenge already consumed",
+		}
+	}
+
 	_, err = s.MFAService.VerifyAndConsumeChallenge(ctx, challengeID, code)
 	if err != nil {
 		return VerifyStepUpChallengeResponse{}, err
