@@ -25,6 +25,12 @@ type MFAChallenge struct {
 	ConsumedAt    *time.Time
 }
 
+type VerifiedChallenge struct {
+	UserID      uuid.UUID
+	MethodID    uuid.UUID
+	ChallengeID uuid.UUID
+}
+
 type LockedTOTPChallenge struct {
 	ChallengeID      uuid.UUID
 	UserID           uuid.UUID

@@ -168,16 +168,6 @@ func (s *service) CreateChallenge(ctx context.Context, userID, methodID uuid.UUI
 	return challenge, nil
 }
 
-func (s *service) GetActiveChallenge(ctx context.Context, challengeID uuid.UUID) (MFAChallenge, error) {
-	challenge, err := s.MFARepo.getActiveChallenge(ctx, challengeID)
-	if err != nil {
-		slog.ErrorContext(ctx, "error getting active challenge", "err", err)
-		return MFAChallenge{}, err
-	}
-
-	return challenge, nil
-}
-
 func (s *service) GetMethodByID(ctx context.Context, methodID uuid.UUID) (MFAMethod, error) {
 	method, err := s.MFARepo.getMFAMethodByID(ctx, methodID)
 	if err != nil {
@@ -186,6 +176,15 @@ func (s *service) GetMethodByID(ctx context.Context, methodID uuid.UUID) (MFAMet
 	}
 
 	return method, nil
+}
+
+func (s *service) GetChallengeByID(ctx context.Context, challengeID uuid.UUID) (MFAChallenge, error) {
+	challenge, err := s.MFARepo.getChallengeByID(ctx, challengeID)
+	if err != nil {
+		return MFAChallenge{}, err
+	}
+
+	return challenge, nil
 }
 
 func (s *service) GetConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType MFAMethodType) (MFAMethod, error) {
@@ -231,10 +230,10 @@ func (s *service) verifyTOTP(ctx context.Context, secret, code string) error {
 	return nil
 }
 
-func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (uuid.UUID, error) {
+func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (VerifiedChallenge, error) {
 	tx, err := s.MFARepo.beginTx(ctx)
 	if err != nil {
-		return uuid.Nil, err
+		return VerifiedChallenge{}, err
 	}
 	defer func() {
 		if err = tx.Rollback(); err != nil && err != sql.ErrTxDone {
@@ -245,26 +244,30 @@ func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 	locked, err := s.MFARepo.lockActiveTOTPChallenge(ctx, tx, challengeID)
 	if err != nil {
 		if errors.Is(err, ErrInvalidMFAChallenge) {
-			return uuid.Nil, &apperrors.InvalidMFACodeError{}
+			return VerifiedChallenge{}, &apperrors.InvalidMFACodeError{}
 		}
 
 		slog.ErrorContext(ctx, "error locking active totp challenge", "err", err)
-		return uuid.Nil, err
+		return VerifiedChallenge{}, err
 	}
 
 	if err := s.verifyTOTP(ctx, string(locked.SecretCiphertext), code); err != nil {
-		return uuid.Nil, err
+		return VerifiedChallenge{}, err
 	}
 
 	if err := s.MFARepo.consumeChallenge(ctx, tx, locked.ChallengeID); err != nil {
 		slog.ErrorContext(ctx, "error consuming challenge", "err", err)
-		return uuid.Nil, err
+		return VerifiedChallenge{}, err
 	}
 
 	if err := tx.Commit(); err != nil {
 		slog.ErrorContext(ctx, "error committing transaction", "err", err)
-		return uuid.Nil, err
+		return VerifiedChallenge{}, err
 	}
 
-	return locked.UserID, nil
+	return VerifiedChallenge{
+		ChallengeID: locked.ChallengeID,
+		UserID:      locked.UserID,
+		MethodID:    locked.MethodID,
+	}, nil
 }

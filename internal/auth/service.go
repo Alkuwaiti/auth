@@ -61,6 +61,7 @@ type featureFlags interface {
 type tokenManager interface {
 	GenerateAccessToken(roles []string, userID, email string) (string, error)
 	GenerateRefreshToken() (string, error)
+	GenerateStepUpToken(userID, email string) (string, time.Time, error)
 }
 
 type MFAService interface {
@@ -68,9 +69,10 @@ type MFAService interface {
 	ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error
 	GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.UUID) ([]mfa.MFAMethod, error)
 	CreateChallenge(ctx context.Context, userID, methodID uuid.UUID, challengetype mfa.ChallengeType) (mfa.MFAChallenge, error)
-	VerifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (uuid.UUID, error)
+	VerifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (mfa.VerifiedChallenge, error)
 	GetMethodByID(ctx context.Context, methodID uuid.UUID) (mfa.MFAMethod, error)
 	GetConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType mfa.MFAMethodType) (mfa.MFAMethod, error)
+	GetChallengeByID(ctx context.Context, challengeID uuid.UUID) (mfa.MFAChallenge, error)
 }
 
 // TODO: test race condition for all of these methods.
@@ -553,18 +555,18 @@ func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code st
 }
 
 func (s *service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, code string) (TokenPair, error) {
-	userID, err := s.MFAService.VerifyAndConsumeChallenge(ctx, challengeID, code)
+	verifiedChallenge, err := s.MFAService.VerifyAndConsumeChallenge(ctx, challengeID, code)
 	if err != nil {
 		return TokenPair{}, err
 	}
 
-	user, err := s.repo.getUserByID(ctx, userID)
+	user, err := s.repo.getUserByID(ctx, verifiedChallenge.UserID)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
 		}
 
-		slog.ErrorContext(ctx, "login failed: user lookup error", "user_id", userID, "err", err)
+		slog.ErrorContext(ctx, "login failed: user lookup error", "user_id", verifiedChallenge.UserID, "err", err)
 		return TokenPair{}, err
 	}
 
@@ -630,6 +632,8 @@ func (s *service) finalizeLogin(ctx context.Context, user User, action audit.Aud
 	}, nil
 }
 
+// TODO: add logs
+// TODO: add tracer
 // TODO: maybe add reason to challenge.
 func (s *service) CreateStepUpChallenge(ctx context.Context, methodType mfa.MFAMethodType) (CreateStepUpChallengeResponse, error) {
 	userID, err := core.UserIDFromContext(ctx)
@@ -651,5 +655,41 @@ func (s *service) CreateStepUpChallenge(ctx context.Context, methodType mfa.MFAM
 		ChallengeID:   challenge.ID,
 		MFAMethodType: methodType,
 		ExpiresAt:     challenge.ExpiresAt,
+	}, nil
+}
+
+func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UUID, code string) (VerifyStepUpChallengeResponse, error) {
+	userID, err := core.UserIDFromContext(ctx)
+	if err != nil {
+		return VerifyStepUpChallengeResponse{}, err
+	}
+
+	email, err := core.UserEmailFromContext(ctx)
+	if err != nil {
+		return VerifyStepUpChallengeResponse{}, err
+	}
+
+	challenge, err := s.MFAService.GetChallengeByID(ctx, challengeID)
+	if err != nil {
+		return VerifyStepUpChallengeResponse{}, err
+	}
+
+	if challenge.UserID != userID {
+		return VerifyStepUpChallengeResponse{}, &apperrors.ForbiddenError{}
+	}
+
+	_, err = s.MFAService.VerifyAndConsumeChallenge(ctx, challengeID, code)
+	if err != nil {
+		return VerifyStepUpChallengeResponse{}, err
+	}
+
+	token, expiresIn, err := s.tokenManager.GenerateStepUpToken(userID.String(), email)
+	if err != nil {
+		return VerifyStepUpChallengeResponse{}, err
+	}
+
+	return VerifyStepUpChallengeResponse{
+		StepUpToken: token,
+		ExpiresIn:   expiresIn,
 	}, nil
 }

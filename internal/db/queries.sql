@@ -134,12 +134,10 @@ INSERT INTO mfa_challenges (
 VALUES ($1, $2, $3, $4)
 RETURNING *;
 
--- name: GetActiveChallenge :one
-SELECT id, user_id, mfa_method_id, expires_at, consumed_at
+-- name: GetChallengeByID :one
+SELECT *
 FROM mfa_challenges
-WHERE id = $1
-  AND consumed_at IS NULL
-  AND expires_at > now();
+WHERE id = $1;
 
 -- name: ConsumeChallenge :exec
 UPDATE mfa_challenges

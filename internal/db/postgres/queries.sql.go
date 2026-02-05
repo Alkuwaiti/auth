@@ -268,31 +268,23 @@ func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) (int64, 
 	return result.RowsAffected()
 }
 
-const getActiveChallenge = `-- name: GetActiveChallenge :one
-SELECT id, user_id, mfa_method_id, expires_at, consumed_at
+const getChallengeByID = `-- name: GetChallengeByID :one
+SELECT id, user_id, mfa_method_id, challenge_type, expires_at, consumed_at, created_at
 FROM mfa_challenges
 WHERE id = $1
-  AND consumed_at IS NULL
-  AND expires_at > now()
 `
 
-type GetActiveChallengeRow struct {
-	ID          uuid.UUID
-	UserID      uuid.UUID
-	MfaMethodID uuid.UUID
-	ExpiresAt   time.Time
-	ConsumedAt  sql.NullTime
-}
-
-func (q *Queries) GetActiveChallenge(ctx context.Context, id uuid.UUID) (GetActiveChallengeRow, error) {
-	row := q.db.QueryRowContext(ctx, getActiveChallenge, id)
-	var i GetActiveChallengeRow
+func (q *Queries) GetChallengeByID(ctx context.Context, id uuid.UUID) (MfaChallenge, error) {
+	row := q.db.QueryRowContext(ctx, getChallengeByID, id)
+	var i MfaChallenge
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.MfaMethodID,
+		&i.ChallengeType,
 		&i.ExpiresAt,
 		&i.ConsumedAt,
+		&i.CreatedAt,
 	)
 	return i, err
 }

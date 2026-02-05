@@ -131,3 +131,8 @@ type CreateStepUpChallengeResponse struct {
 	MFAMethodType mfa.MFAMethodType
 	ExpiresAt     time.Time
 }
+
+type VerifyStepUpChallengeResponse struct {
+	StepUpToken string
+	ExpiresIn   time.Time
+}
