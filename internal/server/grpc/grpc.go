@@ -35,6 +35,7 @@ type authService interface {
 	EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodType) (mfa.EnrollmentResult, error)
 	ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error
 	CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, code string) (auth.TokenPair, error)
+	CreateStepUpChallenge(ctx context.Context, methodType mfa.MFAMethodType) (auth.CreateStepUpChallengeResponse, error)
 }
 
 type Config struct {

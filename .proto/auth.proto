@@ -18,6 +18,7 @@ service AuthService {
   rpc EnrollMFAMethod(EnrollMFAMethodRequest) returns (EnrollMFAMethodResponse) {}
   rpc ConfirmMFAMethod(ConfirmMFAMethodRequest) returns (google.protobuf.Empty) {}
   rpc CompleteLoginMFA(CompleteLoginMFARequest) returns (TokenPair) {}
+  rpc CreateStepUpChallenge(CreateStepUpChallengeRequest) returns (CreateStepUpChallengeResponse) {}
 }
 
 message LoginRequest {
@@ -91,3 +92,12 @@ message CompleteLoginMFARequest {
   string code = 2;
 }
 
+message CreateStepUpChallengeRequest {
+  string method_type = 1;
+}
+
+message CreateStepUpChallengeResponse {
+  string challenge_id = 1;
+  string method_type = 2;
+  google.protobuf.Timestamp expires_at = 3;
+}

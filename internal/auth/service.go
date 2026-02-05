@@ -631,7 +631,8 @@ func (s *service) finalizeLogin(ctx context.Context, user User, action audit.Aud
 	}, nil
 }
 
-func (s *service) CreateStepUpChallenge(ctx context.Context, reason string, methodType mfa.MFAMethodType) (CreateStepUpChallengeResponse, error) {
+// TODO: maybe add reason to challenge.
+func (s *service) CreateStepUpChallenge(ctx context.Context, methodType mfa.MFAMethodType) (CreateStepUpChallengeResponse, error) {
 	userID, err := core.UserIDFromContext(ctx)
 	if err != nil {
 		return CreateStepUpChallengeResponse{}, err
