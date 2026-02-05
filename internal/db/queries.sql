@@ -158,6 +158,12 @@ WHERE user_id = $1
 SELECT * FROM user_mfa_methods
 WHERE id = $1;
 
+-- name: GetConfirmedMFAMethodByType :one
+SELECT * FROM user_mfa_methods
+WHERE user_id = $1 
+  AND type = $2 
+  AND confirmed_at IS NOT NULL;
+
 -- name: LockActiveTOTPChallenge :one
 SELECT
   c.id            AS challenge_id,

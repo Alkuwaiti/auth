@@ -297,6 +297,33 @@ func (q *Queries) GetActiveChallenge(ctx context.Context, id uuid.UUID) (GetActi
 	return i, err
 }
 
+const getConfirmedMFAMethodByType = `-- name: GetConfirmedMFAMethodByType :one
+SELECT id, user_id, type, secret_ciphertext, confirmed_at, created_at, expires_at FROM user_mfa_methods
+WHERE user_id = $1 
+  AND type = $2 
+  AND confirmed_at IS NOT NULL
+`
+
+type GetConfirmedMFAMethodByTypeParams struct {
+	UserID uuid.UUID
+	Type   string
+}
+
+func (q *Queries) GetConfirmedMFAMethodByType(ctx context.Context, arg GetConfirmedMFAMethodByTypeParams) (UserMfaMethod, error) {
+	row := q.db.QueryRowContext(ctx, getConfirmedMFAMethodByType, arg.UserID, arg.Type)
+	var i UserMfaMethod
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Type,
+		&i.SecretCiphertext,
+		&i.ConfirmedAt,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
+
 const getMFAMethodByID = `-- name: GetMFAMethodByID :one
 SELECT id, user_id, type, secret_ciphertext, confirmed_at, created_at, expires_at FROM user_mfa_methods
 WHERE id = $1

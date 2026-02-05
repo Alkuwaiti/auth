@@ -42,7 +42,7 @@ type EnrollmentResult struct {
 	SetupURI string
 }
 
-// TODO: periodically delete expired unconfirmed methods.
+// TODO: add auditing
 // TODO: enroll other methods.
 func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, email string, methodType MFAMethodType) (EnrollmentResult, error) {
 	ctx, span := tracer.Start(ctx, "mfaService.EnrollMethod")
@@ -151,8 +151,10 @@ func (s *service) GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.
 	return MFAMethods, nil
 }
 
-func (s *service) CreateChallenge(ctx context.Context, userID, methodID uuid.UUID, challengetype ChallengeType) (uuid.UUID, error) {
-	c, err := s.MFARepo.createChallenge(ctx, MFAChallenge{
+// TODO: figure out how to target which method type when creating a challenge.
+// TODO: add rate limiting
+func (s *service) CreateChallenge(ctx context.Context, userID, methodID uuid.UUID, challengetype ChallengeType) (MFAChallenge, error) {
+	challenge, err := s.MFARepo.createChallenge(ctx, MFAChallenge{
 		MethodID:      methodID,
 		UserID:        userID,
 		ExpiresAt:     time.Now().Add(5 * time.Minute),
@@ -160,10 +162,10 @@ func (s *service) CreateChallenge(ctx context.Context, userID, methodID uuid.UUI
 	})
 	if err != nil {
 		slog.ErrorContext(ctx, "error when creating challenge", "err", err)
-		return uuid.UUID{}, err
+		return MFAChallenge{}, err
 	}
 
-	return c.ID, nil
+	return challenge, nil
 }
 
 func (s *service) GetActiveChallenge(ctx context.Context, challengeID uuid.UUID) (MFAChallenge, error) {
@@ -180,6 +182,15 @@ func (s *service) GetMethodByID(ctx context.Context, methodID uuid.UUID) (MFAMet
 	method, err := s.MFARepo.getMFAMethodByID(ctx, methodID)
 	if err != nil {
 		slog.ErrorContext(ctx, "error getting method by id", "err", err)
+		return MFAMethod{}, err
+	}
+
+	return method, nil
+}
+
+func (s *service) GetConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType MFAMethodType) (MFAMethod, error) {
+	method, err := s.MFARepo.GetConfirmedMFAMethodByType(ctx, userID, methodType)
+	if err != nil {
 		return MFAMethod{}, err
 	}
 
@@ -227,7 +238,6 @@ func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 	}
 	defer func() {
 		if err = tx.Rollback(); err != nil && err != sql.ErrTxDone {
-			// Handle rollback error
 			slog.ErrorContext(ctx, "rollback failed", "err", err)
 		}
 	}()

@@ -75,6 +75,18 @@ func (m *MFARepo) DeleteExpiredUnconfirmedMethods(ctx context.Context, userID uu
 	return nil
 }
 
+func (m *MFARepo) GetConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType MFAMethodType) (MFAMethod, error) {
+	method, err := m.queries.GetConfirmedMFAMethodByType(ctx, postgres.GetConfirmedMFAMethodByTypeParams{
+		UserID: userID,
+		Type:   string(methodType),
+	})
+	if err != nil {
+		return MFAMethod{}, err
+	}
+
+	return toMFAMethod(method), nil
+}
+
 func toMFAMethod(row postgres.UserMfaMethod) MFAMethod {
 	var confirmedAt *time.Time
 	if row.ConfirmedAt.Valid {

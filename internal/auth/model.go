@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
+	"github.com/alkuwaiti/auth/internal/mfa"
 	"github.com/google/uuid"
 )
 
@@ -123,4 +124,10 @@ type LoginResult struct {
 	RequiresMFA bool
 	ChallengeID *uuid.UUID
 	Tokens      *TokenPair
+}
+
+type CreateStepUpChallengeResponse struct {
+	ChallengeID   uuid.UUID
+	MFAMethodType mfa.MFAMethodType
+	ExpiresAt     time.Time
 }

@@ -67,8 +67,10 @@ type MFAService interface {
 	EnrollMethod(ctx context.Context, userID uuid.UUID, email string, methodType mfa.MFAMethodType) (mfa.EnrollmentResult, error)
 	ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error
 	GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.UUID) ([]mfa.MFAMethod, error)
-	CreateChallenge(ctx context.Context, userID, methodID uuid.UUID, challengetype mfa.ChallengeType) (uuid.UUID, error)
+	CreateChallenge(ctx context.Context, userID, methodID uuid.UUID, challengetype mfa.ChallengeType) (mfa.MFAChallenge, error)
 	VerifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (uuid.UUID, error)
+	GetMethodByID(ctx context.Context, methodID uuid.UUID) (mfa.MFAMethod, error)
+	GetConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType mfa.MFAMethodType) (mfa.MFAMethod, error)
 }
 
 // TODO: test race condition for all of these methods.
@@ -194,10 +196,10 @@ func (s *service) Login(ctx context.Context, email, password string) (LoginResul
 		return LoginResult{}, err
 	}
 
-	var ChallengeID uuid.UUID
+	var challenge mfa.MFAChallenge
 	if len(methods) > 0 {
 		// TODO: change the implementation when you have multiple methods.
-		ChallengeID, err = s.MFAService.CreateChallenge(ctx, methods[0].UserID, methods[0].ID, mfa.ChallengeLogin)
+		challenge, err = s.MFAService.CreateChallenge(ctx, methods[0].UserID, methods[0].ID, mfa.ChallengeLogin)
 		if err != nil {
 			slog.ErrorContext(ctx, "failed to get confirmed mfa methods by user", "err", err)
 			return LoginResult{}, err
@@ -205,7 +207,7 @@ func (s *service) Login(ctx context.Context, email, password string) (LoginResul
 
 		return LoginResult{
 			RequiresMFA: true,
-			ChallengeID: &ChallengeID,
+			ChallengeID: &challenge.ID,
 			Tokens:      nil,
 		}, nil
 	}
@@ -626,5 +628,28 @@ func (s *service) finalizeLogin(ctx context.Context, user User, action audit.Aud
 		RefreshToken:     refreshToken,
 		RefreshExpiresAt: expiresAt,
 		UserID:           user.ID,
+	}, nil
+}
+
+func (s *service) CreateStepUpChallenge(ctx context.Context, reason string, methodType mfa.MFAMethodType) (CreateStepUpChallengeResponse, error) {
+	userID, err := core.UserIDFromContext(ctx)
+	if err != nil {
+		return CreateStepUpChallengeResponse{}, err
+	}
+
+	method, err := s.MFAService.GetConfirmedMFAMethodByType(ctx, userID, methodType)
+	if err != nil {
+		return CreateStepUpChallengeResponse{}, err
+	}
+
+	challenge, err := s.MFAService.CreateChallenge(ctx, userID, method.ID, mfa.ChallengeStepUp)
+	if err != nil {
+		return CreateStepUpChallengeResponse{}, err
+	}
+
+	return CreateStepUpChallengeResponse{
+		ChallengeID:   challenge.ID,
+		MFAMethodType: methodType,
+		ExpiresAt:     challenge.ExpiresAt,
 	}, nil
 }
