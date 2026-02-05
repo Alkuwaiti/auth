@@ -100,9 +100,9 @@ VALUES ($1, $2, NOW());
 
 -- name: CreateUserMFAMethod :one
 INSERT INTO user_mfa_methods (
-  user_id, type, secret_ciphertext
+  user_id, type, secret_ciphertext, expires_at
 )
-VALUES ($1, $2, $3)
+VALUES ($1, $2, $3, now() + interval '10 minutes')
 RETURNING *;
 
 -- name: GetMFAMethodsConfirmedByUser :many
@@ -113,7 +113,9 @@ WHERE user_id = $1
 
 -- name: ConfirmUserMFAMethod :exec
 UPDATE user_mfa_methods
-SET confirmed_at = now()
+SET
+  confirmed_at = now(),
+  expires_at = NULL
 WHERE id = $1
   AND confirmed_at IS NULL;
 

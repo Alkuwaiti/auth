@@ -93,6 +93,7 @@ type UserMfaMethod struct {
 	SecretCiphertext []byte
 	ConfirmedAt      sql.NullTime
 	CreatedAt        time.Time
+	ExpiresAt        sql.NullTime
 }
 
 type UserRole struct {

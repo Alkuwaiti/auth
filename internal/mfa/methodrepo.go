@@ -70,6 +70,11 @@ func toMFAMethod(row postgres.UserMfaMethod) MFAMethod {
 		confirmedAt = &row.ConfirmedAt.Time
 	}
 
+	var expiresAt *time.Time
+	if row.ExpiresAt.Valid {
+		expiresAt = &row.ExpiresAt.Time
+	}
+
 	return MFAMethod{
 		ID:          row.ID,
 		UserID:      row.UserID,
@@ -77,6 +82,7 @@ func toMFAMethod(row postgres.UserMfaMethod) MFAMethod {
 		CreatedAt:   row.CreatedAt,
 		Secret:      string(row.SecretCiphertext),
 		ConfirmedAt: confirmedAt,
+		ExpiresAt:   expiresAt,
 	}
 }
 

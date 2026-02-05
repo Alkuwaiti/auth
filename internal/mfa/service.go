@@ -42,6 +42,7 @@ type EnrollmentResult struct {
 	SetupURI string
 }
 
+// TODO: periodically delete expired unconfirmed methods.
 // TODO: enroll other methods.
 func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, email string, methodType MFAMethodType) (EnrollmentResult, error) {
 	ctx, span := tracer.Start(ctx, "mfaService.EnrollMethod")
@@ -111,6 +112,14 @@ func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code st
 	if err != nil {
 		slog.ErrorContext(ctx, "error when getting mfa method by id", "err", err)
 		return err
+	}
+
+	if method.ExpiresAt != nil && method.ExpiresAt.Before(time.Now()) {
+		span.SetStatus(codes.Error, "method expired")
+		return &apperrors.BadRequestError{
+			Field: "method",
+			Msg:   "enrollment window expired",
+		}
 	}
 
 	if method.ConfirmedAt != nil {

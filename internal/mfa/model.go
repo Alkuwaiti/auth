@@ -13,6 +13,7 @@ type MFAMethod struct {
 	ConfirmedAt *time.Time
 	Secret      string
 	CreatedAt   time.Time
+	ExpiresAt   *time.Time
 }
 
 type MFAChallenge struct {

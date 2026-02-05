@@ -32,7 +32,9 @@ func (q *Queries) AssignRoleToUser(ctx context.Context, arg AssignRoleToUserPara
 
 const confirmUserMFAMethod = `-- name: ConfirmUserMFAMethod :exec
 UPDATE user_mfa_methods
-SET confirmed_at = now()
+SET
+  confirmed_at = now(),
+  expires_at = NULL
 WHERE id = $1
   AND confirmed_at IS NULL
 `
@@ -197,10 +199,10 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 const createUserMFAMethod = `-- name: CreateUserMFAMethod :one
 
 INSERT INTO user_mfa_methods (
-  user_id, type, secret_ciphertext
+  user_id, type, secret_ciphertext, expires_at
 )
-VALUES ($1, $2, $3)
-RETURNING id, user_id, type, secret_ciphertext, confirmed_at, created_at
+VALUES ($1, $2, $3, now() + interval '10 minutes')
+RETURNING id, user_id, type, secret_ciphertext, confirmed_at, created_at, expires_at
 `
 
 type CreateUserMFAMethodParams struct {
@@ -220,6 +222,7 @@ func (q *Queries) CreateUserMFAMethod(ctx context.Context, arg CreateUserMFAMeth
 		&i.SecretCiphertext,
 		&i.ConfirmedAt,
 		&i.CreatedAt,
+		&i.ExpiresAt,
 	)
 	return i, err
 }
@@ -276,7 +279,7 @@ func (q *Queries) GetActiveChallenge(ctx context.Context, id uuid.UUID) (GetActi
 }
 
 const getMFAMethodByID = `-- name: GetMFAMethodByID :one
-SELECT id, user_id, type, secret_ciphertext, confirmed_at, created_at FROM user_mfa_methods
+SELECT id, user_id, type, secret_ciphertext, confirmed_at, created_at, expires_at FROM user_mfa_methods
 WHERE id = $1
 `
 
@@ -290,6 +293,7 @@ func (q *Queries) GetMFAMethodByID(ctx context.Context, id uuid.UUID) (UserMfaMe
 		&i.SecretCiphertext,
 		&i.ConfirmedAt,
 		&i.CreatedAt,
+		&i.ExpiresAt,
 	)
 	return i, err
 }
