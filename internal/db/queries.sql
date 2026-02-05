@@ -105,6 +105,14 @@ INSERT INTO user_mfa_methods (
 VALUES ($1, $2, $3, now() + interval '10 minutes')
 RETURNING *;
 
+-- name: DeleteExpiredUnconfirmedMethods :exec
+DELETE FROM user_mfa_methods
+WHERE
+  user_id = $1
+  AND type = $2
+  AND confirmed_at IS NULL
+  AND expires_at < now();
+
 -- name: GetMFAMethodsConfirmedByUser :many
 SELECT id, user_id, type, confirmed_at, created_at
 FROM user_mfa_methods

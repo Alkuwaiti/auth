@@ -67,6 +67,10 @@ func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, email stri
 		}
 	}
 
+	if err = s.MFARepo.DeleteExpiredUnconfirmedMethods(ctx, userID, methodType); err != nil {
+		return EnrollmentResult{}, err
+	}
+
 	key, err := totp.Generate(totp.GenerateOpts{
 		Issuer:      s.Config.AppName,
 		AccountName: email,
