@@ -16,6 +16,7 @@ func main() {
 	ctx := context.Background()
 
 	md := metadata.New(map[string]string{
+		"authorization":       "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InFhc2ltbUBnbWFpbC5jb20iLCJyb2xlcyI6WyJ1c2VyIl0sInR5cGUiOiJhY2Nlc3MiLCJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiIwMTljMmUyNC02NTUyLTdhNGMtOTNmNS1iMTE0YzBiNGM2NWUiLCJhdWQiOlsiYXV0aC1zZXJ2aWNlIl0sImV4cCI6MTc3MDM3NTQwMywiaWF0IjoxNzcwMzc0NTAzfQ.UsEpq1LMg7rDpjj5Ahm4F7VyJ9xmRGQsF6bbMfOjMno",
 		"x-forwarded-for":     "203.0.113.10",
 		"x-client-user-agent": "auth-cli/1.0",
 		"request-id":          "req-123456",
@@ -31,9 +32,9 @@ func main() {
 		}
 	}()
 
-	res, err := client.CompleteLoginMFA(ctx, &authv1.CompleteLoginMFARequest{
-		ChallengeId: "2fbfb488-de18-4cb2-a653-ef3f53418f2d",
-		Code:        "990943",
+	res, err := client.VerifyStepUpChallenge(ctx, &authv1.VerifyStepUpChallengeRequest{
+		ChallengeId: "c3a52471-d3b1-41ad-8ac1-faeddc0e5fff",
+		Code:        "341917",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

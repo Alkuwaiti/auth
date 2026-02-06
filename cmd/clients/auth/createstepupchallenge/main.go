@@ -16,7 +16,7 @@ func main() {
 	ctx := context.Background()
 
 	md := metadata.New(map[string]string{
-		"authorization":       "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InFhc2ltbUBnbWFpbC5jb20iLCJyb2xlcyI6WyJ1c2VyIl0sImlzcyI6ImF1dGgtc2VydmljZSIsInN1YiI6IjAxOWMyZTI0LTY1NTItN2E0Yy05M2Y1LWIxMTRjMGI0YzY1ZSIsImF1ZCI6WyJhdXRoLXNlcnZpY2UiXSwiZXhwIjoxNzcwMzAxNzY1LCJpYXQiOjE3NzAzMDA4NjV9.O-TgVZJBqEJYa0_wahgrL_-JYd3_KKWaewSUB6uhA5Y",
+		"authorization":       "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InFhc2ltbUBnbWFpbC5jb20iLCJyb2xlcyI6WyJ1c2VyIl0sInR5cGUiOiJhY2Nlc3MiLCJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiIwMTljMmUyNC02NTUyLTdhNGMtOTNmNS1iMTE0YzBiNGM2NWUiLCJhdWQiOlsiYXV0aC1zZXJ2aWNlIl0sImV4cCI6MTc3MDM3NTQwMywiaWF0IjoxNzcwMzc0NTAzfQ.UsEpq1LMg7rDpjj5Ahm4F7VyJ9xmRGQsF6bbMfOjMno",
 		"x-forwarded-for":     "203.0.113.10",
 		"x-client-user-agent": "auth-cli/1.0",
 		"request-id":          "req-123456",
