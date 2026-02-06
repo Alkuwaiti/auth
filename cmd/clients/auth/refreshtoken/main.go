@@ -24,7 +24,7 @@ func main() {
 
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	client := auth.Must(ctx, "localhost:8081")
+	client := auth.Must(ctx, "127.0.0.1:8081")
 	defer func() {
 		if err := client.Close(); err != nil {
 			log.Printf("failed to close client: %v", err)
