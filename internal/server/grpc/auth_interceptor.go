@@ -21,15 +21,15 @@ var publicMethods = map[string]struct{}{
 	"/auth.v1.AuthService/CompleteLoginMFA": {},
 }
 
-type TokenValidator interface {
+type JWTValidator interface {
 	ValidateJWT(token string) (*tokens.AccessClaims, error)
 }
 
 type AuthInterceptor struct {
-	validator TokenValidator
+	validator JWTValidator
 }
 
-func NewAuthInterceptor(tm TokenValidator) *AuthInterceptor {
+func NewAuthInterceptor(tm JWTValidator) *AuthInterceptor {
 	return &AuthInterceptor{validator: tm}
 }
 

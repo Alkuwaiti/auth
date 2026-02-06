@@ -12,3 +12,5 @@ type IPAddressKey struct{}
 type RequestMetaKeyType struct{}
 
 type RolesKey struct{}
+
+type StepUpClaimsKey struct{}

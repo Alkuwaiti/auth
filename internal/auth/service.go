@@ -61,7 +61,7 @@ type featureFlags interface {
 type tokenManager interface {
 	GenerateAccessToken(roles []string, userID, email string) (string, error)
 	GenerateRefreshToken() (string, error)
-	GenerateStepUpToken(userID, email string) (string, time.Time, error)
+	GenerateStepUpToken(userID, email, scope string) (string, time.Time, error)
 }
 
 type MFAService interface {
@@ -632,7 +632,6 @@ func (s *service) finalizeLogin(ctx context.Context, user User, action audit.Aud
 	}, nil
 }
 
-// TODO: add audit
 // TODO: maybe add reason to challenge.
 func (s *service) CreateStepUpChallenge(ctx context.Context, methodType mfa.MFAMethodType) (CreateStepUpChallengeResponse, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.CreateStepUpChallenge")
@@ -666,6 +665,7 @@ func (s *service) CreateStepUpChallenge(ctx context.Context, methodType mfa.MFAM
 	}, nil
 }
 
+// TODO: add tests
 func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UUID, code string) (VerifyStepUpChallengeResponse, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.VerifyStepUpChallenge")
 	defer span.End()
@@ -709,7 +709,8 @@ func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 		return VerifyStepUpChallengeResponse{}, err
 	}
 
-	token, expiresIn, err := s.tokenManager.GenerateStepUpToken(userID.String(), email)
+	// TODO: add scope to the challenge.
+	token, expiresIn, err := s.tokenManager.GenerateStepUpToken(userID.String(), email, challenge.Scope)
 	if err != nil {
 		slog.ErrorContext(ctx, "error generating step up token", "err", err)
 		return VerifyStepUpChallengeResponse{}, err

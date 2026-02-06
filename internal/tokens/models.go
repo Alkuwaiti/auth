@@ -10,6 +10,13 @@ type AccessClaims struct {
 	jwt.RegisteredClaims
 }
 
+type StepUpClaims struct {
+	Email string `json:"email"`
+	Scope string `json:"scope"`
+	Type  string `json:"type"`
+	jwt.RegisteredClaims
+}
+
 type Config struct {
 	JWTKey   []byte
 	Issuer   string
