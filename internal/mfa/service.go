@@ -31,11 +31,12 @@ type auditor interface {
 
 var tracer = otel.Tracer("auth-service/mfa")
 
-func NewService(MFARepo MFARepo, crypto Crypto, config Config) *service {
+func NewService(MFARepo MFARepo, crypto Crypto, auditor auditor, config Config) *service {
 	return &service{
 		MFARepo: MFARepo,
 		crypto:  crypto,
 		Config:  config,
+		auditor: auditor,
 	}
 }
 
@@ -149,6 +150,14 @@ func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code st
 	}
 
 	meta := core.RequestMetaFromContext(ctx)
+	var ipAddr, userAgent *string
+	if meta.IPAddress != "" {
+		ipAddr = &meta.IPAddress
+	}
+	if meta.UserAgent != "" {
+		userAgent = &meta.UserAgent
+	}
+
 	if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
 		UserID: &method.UserID,
 		Action: audit.ActionConfirmMFAMethod,
@@ -156,8 +165,8 @@ func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code st
 			"method_type": "totp",
 			"method_id":   methodID.String(),
 		},
-		IPAddress: &meta.IPAddress,
-		UserAgent: &meta.UserAgent,
+		IPAddress: ipAddr,
+		UserAgent: userAgent,
 	}); err != nil {
 		return err
 	}
@@ -256,7 +265,6 @@ func (s *service) verifyTOTP(ctx context.Context, secret, code string) error {
 	return nil
 }
 
-// TODO: this method has "And", looks like a smell.
 func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (VerifiedChallenge, error) {
 	tx, err := s.MFARepo.beginTx(ctx)
 	if err != nil {
@@ -293,14 +301,23 @@ func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 	}
 
 	meta := core.RequestMetaFromContext(ctx)
+	var ipAddr, userAgent *string
+	if meta.IPAddress != "" {
+		ipAddr = &meta.IPAddress
+	}
+	if meta.UserAgent != "" {
+		userAgent = &meta.UserAgent
+	}
+
 	if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
 		UserID: &locked.UserID,
 		Action: audit.ActionConfirmMFAMethod,
 		Context: audit.AuditContext{
-			"challenge_id": challengeID.String(),
+			"method_type": "totp",
+			"method_id":   challengeID.String(),
 		},
-		IPAddress: &meta.IPAddress,
-		UserAgent: &meta.UserAgent,
+		IPAddress: ipAddr,
+		UserAgent: userAgent,
 	}); err != nil {
 		return VerifiedChallenge{}, err
 	}
