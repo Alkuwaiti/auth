@@ -851,6 +851,110 @@ func (x *CreateStepUpChallengeResponse) GetExpiresAt() *timestamppb.Timestamp {
 	return nil
 }
 
+type VerifyStepUpChallengeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ChallengeId   string                 `protobuf:"bytes,1,opt,name=challenge_id,json=challengeId,proto3" json:"challenge_id,omitempty"`
+	Code          string                 `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *VerifyStepUpChallengeRequest) Reset() {
+	*x = VerifyStepUpChallengeRequest{}
+	mi := &file___proto_auth_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *VerifyStepUpChallengeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VerifyStepUpChallengeRequest) ProtoMessage() {}
+
+func (x *VerifyStepUpChallengeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file___proto_auth_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VerifyStepUpChallengeRequest.ProtoReflect.Descriptor instead.
+func (*VerifyStepUpChallengeRequest) Descriptor() ([]byte, []int) {
+	return file___proto_auth_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *VerifyStepUpChallengeRequest) GetChallengeId() string {
+	if x != nil {
+		return x.ChallengeId
+	}
+	return ""
+}
+
+func (x *VerifyStepUpChallengeRequest) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+type VerifyStepUpChallengeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	StepUpToken   string                 `protobuf:"bytes,1,opt,name=step_up_token,json=stepUpToken,proto3" json:"step_up_token,omitempty"`
+	ExpiresIn     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=expires_in,json=expiresIn,proto3" json:"expires_in,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *VerifyStepUpChallengeResponse) Reset() {
+	*x = VerifyStepUpChallengeResponse{}
+	mi := &file___proto_auth_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *VerifyStepUpChallengeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VerifyStepUpChallengeResponse) ProtoMessage() {}
+
+func (x *VerifyStepUpChallengeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file___proto_auth_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VerifyStepUpChallengeResponse.ProtoReflect.Descriptor instead.
+func (*VerifyStepUpChallengeResponse) Descriptor() ([]byte, []int) {
+	return file___proto_auth_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *VerifyStepUpChallengeResponse) GetStepUpToken() string {
+	if x != nil {
+		return x.StepUpToken
+	}
+	return ""
+}
+
+func (x *VerifyStepUpChallengeResponse) GetExpiresIn() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresIn
+	}
+	return nil
+}
+
 var File___proto_auth_proto protoreflect.FileDescriptor
 
 const file___proto_auth_proto_rawDesc = "" +
@@ -912,7 +1016,14 @@ const file___proto_auth_proto_rawDesc = "" +
 	"\vmethod_type\x18\x02 \x01(\tR\n" +
 	"methodType\x129\n" +
 	"\n" +
-	"expires_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt2\xb4\x06\n" +
+	"expires_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\"U\n" +
+	"\x1cVerifyStepUpChallengeRequest\x12!\n" +
+	"\fchallenge_id\x18\x01 \x01(\tR\vchallengeId\x12\x12\n" +
+	"\x04code\x18\x02 \x01(\tR\x04code\"~\n" +
+	"\x1dVerifyStepUpChallengeResponse\x12\"\n" +
+	"\rstep_up_token\x18\x01 \x01(\tR\vstepUpToken\x129\n" +
+	"\n" +
+	"expires_in\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresIn2\x9e\a\n" +
 	"\vAuthService\x128\n" +
 	"\x04Ping\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x00\x128\n" +
 	"\x05Login\x12\x15.auth.v1.LoginRequest\x1a\x16.auth.v1.LoginResponse\"\x00\x12B\n" +
@@ -925,7 +1036,8 @@ const file___proto_auth_proto_rawDesc = "" +
 	"\x0fEnrollMFAMethod\x12\x1f.auth.v1.EnrollMFAMethodRequest\x1a .auth.v1.EnrollMFAMethodResponse\"\x00\x12N\n" +
 	"\x10ConfirmMFAMethod\x12 .auth.v1.ConfirmMFAMethodRequest\x1a\x16.google.protobuf.Empty\"\x00\x12J\n" +
 	"\x10CompleteLoginMFA\x12 .auth.v1.CompleteLoginMFARequest\x1a\x12.auth.v1.TokenPair\"\x00\x12h\n" +
-	"\x15CreateStepUpChallenge\x12%.auth.v1.CreateStepUpChallengeRequest\x1a&.auth.v1.CreateStepUpChallengeResponse\"\x00B/Z-github.com/alkuwaiti/auth/pb/pbauth/v1;authv1b\x06proto3"
+	"\x15CreateStepUpChallenge\x12%.auth.v1.CreateStepUpChallengeRequest\x1a&.auth.v1.CreateStepUpChallengeResponse\"\x00\x12h\n" +
+	"\x15VerifyStepUpChallenge\x12%.auth.v1.VerifyStepUpChallengeRequest\x1a&.auth.v1.VerifyStepUpChallengeResponse\"\x00B/Z-github.com/alkuwaiti/auth/pb/pbauth/v1;authv1b\x06proto3"
 
 var (
 	file___proto_auth_proto_rawDescOnce sync.Once
@@ -939,7 +1051,7 @@ func file___proto_auth_proto_rawDescGZIP() []byte {
 	return file___proto_auth_proto_rawDescData
 }
 
-var file___proto_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file___proto_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file___proto_auth_proto_goTypes = []any{
 	(*LoginRequest)(nil),                  // 0: auth.v1.LoginRequest
 	(*LoginResponse)(nil),                 // 1: auth.v1.LoginResponse
@@ -956,41 +1068,46 @@ var file___proto_auth_proto_goTypes = []any{
 	(*CompleteLoginMFARequest)(nil),       // 12: auth.v1.CompleteLoginMFARequest
 	(*CreateStepUpChallengeRequest)(nil),  // 13: auth.v1.CreateStepUpChallengeRequest
 	(*CreateStepUpChallengeResponse)(nil), // 14: auth.v1.CreateStepUpChallengeResponse
-	(*timestamppb.Timestamp)(nil),         // 15: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),                 // 16: google.protobuf.Empty
+	(*VerifyStepUpChallengeRequest)(nil),  // 15: auth.v1.VerifyStepUpChallengeRequest
+	(*VerifyStepUpChallengeResponse)(nil), // 16: auth.v1.VerifyStepUpChallengeResponse
+	(*timestamppb.Timestamp)(nil),         // 17: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),                 // 18: google.protobuf.Empty
 }
 var file___proto_auth_proto_depIdxs = []int32{
 	2,  // 0: auth.v1.LoginResponse.tokens:type_name -> auth.v1.TokenPair
-	15, // 1: auth.v1.MFAMethod.created_at:type_name -> google.protobuf.Timestamp
+	17, // 1: auth.v1.MFAMethod.created_at:type_name -> google.protobuf.Timestamp
 	9,  // 2: auth.v1.EnrollMFAMethodResponse.method:type_name -> auth.v1.MFAMethod
-	15, // 3: auth.v1.CreateStepUpChallengeResponse.expires_at:type_name -> google.protobuf.Timestamp
-	16, // 4: auth.v1.AuthService.Ping:input_type -> google.protobuf.Empty
-	0,  // 5: auth.v1.AuthService.Login:input_type -> auth.v1.LoginRequest
-	3,  // 6: auth.v1.AuthService.RefreshToken:input_type -> auth.v1.RefreshTokenRequest
-	3,  // 7: auth.v1.AuthService.Logout:input_type -> auth.v1.RefreshTokenRequest
-	4,  // 8: auth.v1.AuthService.ChangePassword:input_type -> auth.v1.ChangePasswordRequest
-	5,  // 9: auth.v1.AuthService.RegisterUser:input_type -> auth.v1.RegisterUserRequest
-	7,  // 10: auth.v1.AuthService.DeleteUser:input_type -> auth.v1.DeleteUserRequest
-	8,  // 11: auth.v1.AuthService.EnrollMFAMethod:input_type -> auth.v1.EnrollMFAMethodRequest
-	11, // 12: auth.v1.AuthService.ConfirmMFAMethod:input_type -> auth.v1.ConfirmMFAMethodRequest
-	12, // 13: auth.v1.AuthService.CompleteLoginMFA:input_type -> auth.v1.CompleteLoginMFARequest
-	13, // 14: auth.v1.AuthService.CreateStepUpChallenge:input_type -> auth.v1.CreateStepUpChallengeRequest
-	16, // 15: auth.v1.AuthService.Ping:output_type -> google.protobuf.Empty
-	1,  // 16: auth.v1.AuthService.Login:output_type -> auth.v1.LoginResponse
-	2,  // 17: auth.v1.AuthService.RefreshToken:output_type -> auth.v1.TokenPair
-	16, // 18: auth.v1.AuthService.Logout:output_type -> google.protobuf.Empty
-	16, // 19: auth.v1.AuthService.ChangePassword:output_type -> google.protobuf.Empty
-	6,  // 20: auth.v1.AuthService.RegisterUser:output_type -> auth.v1.User
-	16, // 21: auth.v1.AuthService.DeleteUser:output_type -> google.protobuf.Empty
-	10, // 22: auth.v1.AuthService.EnrollMFAMethod:output_type -> auth.v1.EnrollMFAMethodResponse
-	16, // 23: auth.v1.AuthService.ConfirmMFAMethod:output_type -> google.protobuf.Empty
-	2,  // 24: auth.v1.AuthService.CompleteLoginMFA:output_type -> auth.v1.TokenPair
-	14, // 25: auth.v1.AuthService.CreateStepUpChallenge:output_type -> auth.v1.CreateStepUpChallengeResponse
-	15, // [15:26] is the sub-list for method output_type
-	4,  // [4:15] is the sub-list for method input_type
-	4,  // [4:4] is the sub-list for extension type_name
-	4,  // [4:4] is the sub-list for extension extendee
-	0,  // [0:4] is the sub-list for field type_name
+	17, // 3: auth.v1.CreateStepUpChallengeResponse.expires_at:type_name -> google.protobuf.Timestamp
+	17, // 4: auth.v1.VerifyStepUpChallengeResponse.expires_in:type_name -> google.protobuf.Timestamp
+	18, // 5: auth.v1.AuthService.Ping:input_type -> google.protobuf.Empty
+	0,  // 6: auth.v1.AuthService.Login:input_type -> auth.v1.LoginRequest
+	3,  // 7: auth.v1.AuthService.RefreshToken:input_type -> auth.v1.RefreshTokenRequest
+	3,  // 8: auth.v1.AuthService.Logout:input_type -> auth.v1.RefreshTokenRequest
+	4,  // 9: auth.v1.AuthService.ChangePassword:input_type -> auth.v1.ChangePasswordRequest
+	5,  // 10: auth.v1.AuthService.RegisterUser:input_type -> auth.v1.RegisterUserRequest
+	7,  // 11: auth.v1.AuthService.DeleteUser:input_type -> auth.v1.DeleteUserRequest
+	8,  // 12: auth.v1.AuthService.EnrollMFAMethod:input_type -> auth.v1.EnrollMFAMethodRequest
+	11, // 13: auth.v1.AuthService.ConfirmMFAMethod:input_type -> auth.v1.ConfirmMFAMethodRequest
+	12, // 14: auth.v1.AuthService.CompleteLoginMFA:input_type -> auth.v1.CompleteLoginMFARequest
+	13, // 15: auth.v1.AuthService.CreateStepUpChallenge:input_type -> auth.v1.CreateStepUpChallengeRequest
+	15, // 16: auth.v1.AuthService.VerifyStepUpChallenge:input_type -> auth.v1.VerifyStepUpChallengeRequest
+	18, // 17: auth.v1.AuthService.Ping:output_type -> google.protobuf.Empty
+	1,  // 18: auth.v1.AuthService.Login:output_type -> auth.v1.LoginResponse
+	2,  // 19: auth.v1.AuthService.RefreshToken:output_type -> auth.v1.TokenPair
+	18, // 20: auth.v1.AuthService.Logout:output_type -> google.protobuf.Empty
+	18, // 21: auth.v1.AuthService.ChangePassword:output_type -> google.protobuf.Empty
+	6,  // 22: auth.v1.AuthService.RegisterUser:output_type -> auth.v1.User
+	18, // 23: auth.v1.AuthService.DeleteUser:output_type -> google.protobuf.Empty
+	10, // 24: auth.v1.AuthService.EnrollMFAMethod:output_type -> auth.v1.EnrollMFAMethodResponse
+	18, // 25: auth.v1.AuthService.ConfirmMFAMethod:output_type -> google.protobuf.Empty
+	2,  // 26: auth.v1.AuthService.CompleteLoginMFA:output_type -> auth.v1.TokenPair
+	14, // 27: auth.v1.AuthService.CreateStepUpChallenge:output_type -> auth.v1.CreateStepUpChallengeResponse
+	16, // 28: auth.v1.AuthService.VerifyStepUpChallenge:output_type -> auth.v1.VerifyStepUpChallengeResponse
+	17, // [17:29] is the sub-list for method output_type
+	5,  // [5:17] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file___proto_auth_proto_init() }
@@ -1004,7 +1121,7 @@ func file___proto_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file___proto_auth_proto_rawDesc), len(file___proto_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -31,6 +31,7 @@ const (
 	AuthService_ConfirmMFAMethod_FullMethodName      = "/auth.v1.AuthService/ConfirmMFAMethod"
 	AuthService_CompleteLoginMFA_FullMethodName      = "/auth.v1.AuthService/CompleteLoginMFA"
 	AuthService_CreateStepUpChallenge_FullMethodName = "/auth.v1.AuthService/CreateStepUpChallenge"
+	AuthService_VerifyStepUpChallenge_FullMethodName = "/auth.v1.AuthService/VerifyStepUpChallenge"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -48,6 +49,7 @@ type AuthServiceClient interface {
 	ConfirmMFAMethod(ctx context.Context, in *ConfirmMFAMethodRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	CompleteLoginMFA(ctx context.Context, in *CompleteLoginMFARequest, opts ...grpc.CallOption) (*TokenPair, error)
 	CreateStepUpChallenge(ctx context.Context, in *CreateStepUpChallengeRequest, opts ...grpc.CallOption) (*CreateStepUpChallengeResponse, error)
+	VerifyStepUpChallenge(ctx context.Context, in *VerifyStepUpChallengeRequest, opts ...grpc.CallOption) (*VerifyStepUpChallengeResponse, error)
 }
 
 type authServiceClient struct {
@@ -168,6 +170,16 @@ func (c *authServiceClient) CreateStepUpChallenge(ctx context.Context, in *Creat
 	return out, nil
 }
 
+func (c *authServiceClient) VerifyStepUpChallenge(ctx context.Context, in *VerifyStepUpChallengeRequest, opts ...grpc.CallOption) (*VerifyStepUpChallengeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(VerifyStepUpChallengeResponse)
+	err := c.cc.Invoke(ctx, AuthService_VerifyStepUpChallenge_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -183,6 +195,7 @@ type AuthServiceServer interface {
 	ConfirmMFAMethod(context.Context, *ConfirmMFAMethodRequest) (*emptypb.Empty, error)
 	CompleteLoginMFA(context.Context, *CompleteLoginMFARequest) (*TokenPair, error)
 	CreateStepUpChallenge(context.Context, *CreateStepUpChallengeRequest) (*CreateStepUpChallengeResponse, error)
+	VerifyStepUpChallenge(context.Context, *VerifyStepUpChallengeRequest) (*VerifyStepUpChallengeResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -225,6 +238,9 @@ func (UnimplementedAuthServiceServer) CompleteLoginMFA(context.Context, *Complet
 }
 func (UnimplementedAuthServiceServer) CreateStepUpChallenge(context.Context, *CreateStepUpChallengeRequest) (*CreateStepUpChallengeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateStepUpChallenge not implemented")
+}
+func (UnimplementedAuthServiceServer) VerifyStepUpChallenge(context.Context, *VerifyStepUpChallengeRequest) (*VerifyStepUpChallengeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method VerifyStepUpChallenge not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -445,6 +461,24 @@ func _AuthService_CreateStepUpChallenge_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_VerifyStepUpChallenge_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VerifyStepUpChallengeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).VerifyStepUpChallenge(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_VerifyStepUpChallenge_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).VerifyStepUpChallenge(ctx, req.(*VerifyStepUpChallengeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -495,6 +529,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateStepUpChallenge",
 			Handler:    _AuthService_CreateStepUpChallenge_Handler,
+		},
+		{
+			MethodName: "VerifyStepUpChallenge",
+			Handler:    _AuthService_VerifyStepUpChallenge_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
