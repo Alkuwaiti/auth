@@ -632,10 +632,12 @@ func (s *service) finalizeLogin(ctx context.Context, user User, action audit.Aud
 	}, nil
 }
 
-// TODO: add logs
-// TODO: add tracer
+// TODO: add audit
 // TODO: maybe add reason to challenge.
 func (s *service) CreateStepUpChallenge(ctx context.Context, methodType mfa.MFAMethodType) (CreateStepUpChallengeResponse, error) {
+	ctx, span := tracer.Start(ctx, "AuthService.CreateStepUpChallenge")
+	defer span.End()
+
 	userID, err := core.UserIDFromContext(ctx)
 	if err != nil {
 		return CreateStepUpChallengeResponse{}, err
@@ -651,6 +653,12 @@ func (s *service) CreateStepUpChallenge(ctx context.Context, methodType mfa.MFAM
 		return CreateStepUpChallengeResponse{}, err
 	}
 
+	span.SetAttributes(
+		attribute.String("user.id", userID.String()),
+	)
+
+	span.SetStatus(codes.Ok, "created step up challenge")
+
 	return CreateStepUpChallengeResponse{
 		ChallengeID:   challenge.ID,
 		MFAMethodType: methodType,
@@ -659,6 +667,9 @@ func (s *service) CreateStepUpChallenge(ctx context.Context, methodType mfa.MFAM
 }
 
 func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UUID, code string) (VerifyStepUpChallengeResponse, error) {
+	ctx, span := tracer.Start(ctx, "AuthService.VerifyStepUpChallenge")
+	defer span.End()
+
 	userID, err := core.UserIDFromContext(ctx)
 	if err != nil {
 		return VerifyStepUpChallengeResponse{}, err
@@ -675,6 +686,7 @@ func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 	}
 
 	if challenge.UserID != userID {
+		slog.WarnContext(ctx, "challenge does not belong to user", "user_id", userID, "err", err)
 		return VerifyStepUpChallengeResponse{}, &apperrors.ForbiddenError{}
 	}
 
@@ -699,8 +711,15 @@ func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 
 	token, expiresIn, err := s.tokenManager.GenerateStepUpToken(userID.String(), email)
 	if err != nil {
+		slog.ErrorContext(ctx, "error generating step up token", "err", err)
 		return VerifyStepUpChallengeResponse{}, err
 	}
+
+	span.SetAttributes(
+		attribute.String("user.id", userID.String()),
+	)
+
+	span.SetStatus(codes.Ok, "verified step up challenge")
 
 	return VerifyStepUpChallengeResponse{
 		StepUpToken: token,

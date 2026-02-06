@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
+	"github.com/alkuwaiti/auth/internal/audit"
+	"github.com/alkuwaiti/auth/internal/core"
 	"github.com/google/uuid"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
@@ -20,6 +22,11 @@ type service struct {
 	MFARepo MFARepo
 	crypto  Crypto
 	Config  Config
+	auditor auditor
+}
+
+type auditor interface {
+	CreateAuditLog(ctx context.Context, input audit.CreateAuditLogInput) error
 }
 
 var tracer = otel.Tracer("auth-service/mfa")
@@ -42,7 +49,6 @@ type EnrollmentResult struct {
 	SetupURI string
 }
 
-// TODO: add auditing
 // TODO: enroll other methods.
 func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, email string, methodType MFAMethodType) (EnrollmentResult, error) {
 	ctx, span := tracer.Start(ctx, "mfaService.EnrollMethod")
@@ -138,7 +144,25 @@ func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code st
 		return err
 	}
 
-	return s.MFARepo.confirmUserMFAMethod(ctx, methodID)
+	if err := s.MFARepo.confirmUserMFAMethod(ctx, methodID); err != nil {
+		return err
+	}
+
+	meta := core.RequestMetaFromContext(ctx)
+	if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+		UserID: &method.UserID,
+		Action: audit.ActionConfirmMFAMethod,
+		Context: audit.AuditContext{
+			"method_type": "totp",
+			"method_id":   methodID.String(),
+		},
+		IPAddress: &meta.IPAddress,
+		UserAgent: &meta.UserAgent,
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *service) GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.UUID) ([]MFAMethod, error) {
@@ -181,6 +205,7 @@ func (s *service) GetMethodByID(ctx context.Context, methodID uuid.UUID) (MFAMet
 func (s *service) GetChallengeByID(ctx context.Context, challengeID uuid.UUID) (MFAChallenge, error) {
 	challenge, err := s.MFARepo.getChallengeByID(ctx, challengeID)
 	if err != nil {
+		slog.ErrorContext(ctx, "error getting challenge by id", "err", err)
 		return MFAChallenge{}, err
 	}
 
@@ -190,6 +215,7 @@ func (s *service) GetChallengeByID(ctx context.Context, challengeID uuid.UUID) (
 func (s *service) GetConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType MFAMethodType) (MFAMethod, error) {
 	method, err := s.MFARepo.GetConfirmedMFAMethodByType(ctx, userID, methodType)
 	if err != nil {
+		slog.ErrorContext(ctx, "error getting confirmed mfa methods by type", "err", err)
 		return MFAMethod{}, err
 	}
 
@@ -230,6 +256,7 @@ func (s *service) verifyTOTP(ctx context.Context, secret, code string) error {
 	return nil
 }
 
+// TODO: this method has "And", looks like a smell.
 func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (VerifiedChallenge, error) {
 	tx, err := s.MFARepo.beginTx(ctx)
 	if err != nil {
@@ -262,6 +289,19 @@ func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 
 	if err := tx.Commit(); err != nil {
 		slog.ErrorContext(ctx, "error committing transaction", "err", err)
+		return VerifiedChallenge{}, err
+	}
+
+	meta := core.RequestMetaFromContext(ctx)
+	if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+		UserID: &locked.UserID,
+		Action: audit.ActionConfirmMFAMethod,
+		Context: audit.AuditContext{
+			"challenge_id": challengeID.String(),
+		},
+		IPAddress: &meta.IPAddress,
+		UserAgent: &meta.UserAgent,
+	}); err != nil {
 		return VerifiedChallenge{}, err
 	}
 
