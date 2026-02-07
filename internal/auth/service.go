@@ -10,7 +10,7 @@ import (
 	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/audit"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
-	"github.com/alkuwaiti/auth/internal/core"
+	"github.com/alkuwaiti/auth/internal/contextkeys"
 	"github.com/alkuwaiti/auth/internal/mfa"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
@@ -83,11 +83,11 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 	ctx, span := tracer.Start(ctx, "AuthService.RegisterUser")
 	defer span.End()
 
-	meta := core.RequestMetaFromContext(ctx)
+	meta := contextkeys.RequestMetaFromContext(ctx)
 
 	span.SetAttributes(
 		attribute.String("user.username", input.Username),
-		attribute.String("user.email_hash", core.HashForTelemetry(input.Email)),
+		attribute.String("user.email", input.Email),
 	)
 
 	if err := input.validate(); err != nil {
@@ -157,7 +157,7 @@ func (s *service) Login(ctx context.Context, email, password string) (LoginResul
 	}
 
 	span.SetAttributes(
-		attribute.String("user.email_hash", core.HashForTelemetry(email)),
+		attribute.String("user.email", email),
 	)
 
 	user, err := s.repo.getUserByEmail(ctx, email)
@@ -234,7 +234,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 		return TokenPair{}, &apperrors.RefreshDisabledError{}
 	}
 
-	meta := core.RequestMetaFromContext(ctx)
+	meta := contextkeys.RequestMetaFromContext(ctx)
 
 	session, err := s.repo.getSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
@@ -355,7 +355,7 @@ func (s *service) Logout(ctx context.Context, refreshToken string) error {
 	ctx, span := tracer.Start(ctx, "AuthService.Logout")
 	defer span.End()
 
-	meta := core.RequestMetaFromContext(ctx)
+	meta := contextkeys.RequestMetaFromContext(ctx)
 
 	session, err := s.repo.getSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
@@ -388,12 +388,12 @@ func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 	ctx, span := tracer.Start(ctx, "AuthService.ChangePassword")
 	defer span.End()
 
-	userID, err := core.UserIDFromContext(ctx)
+	userID, err := contextkeys.UserIDFromContext(ctx)
 	if err != nil {
 		return err
 	}
 
-	meta := core.RequestMetaFromContext(ctx)
+	meta := contextkeys.RequestMetaFromContext(ctx)
 
 	if err = s.passwords.Validate(newPassword); err != nil {
 		span.RecordError(err)
@@ -466,7 +466,7 @@ func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 	}
 
 	span.SetAttributes(
-		attribute.String("user.email_hash", core.HashForTelemetry(user.Email)),
+		attribute.String("user.email", user.Email),
 	)
 	span.SetStatus(codes.Ok, "password changed")
 
@@ -477,18 +477,18 @@ func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 	ctx, span := tracer.Start(ctx, "AuthService.DeleteUser")
 	defer span.End()
 
-	actorID, err := core.UserIDFromContext(ctx)
+	actorID, err := contextkeys.UserIDFromContext(ctx)
 	if err != nil {
 		return err
 	}
 
-	roles, err := core.UserRolesFromContext(ctx)
+	roles, err := contextkeys.UserRolesFromContext(ctx)
 	if err != nil {
 		return err
 	}
 
 	if !s.authorizer.CanWithRoles(roles, authz.CanDeleteUser) {
-		userID, _ := core.UserIDFromContext(ctx)
+		userID, _ := contextkeys.UserIDFromContext(ctx)
 		slog.ErrorContext(ctx, "forbidden user attempt", "user_id", userID)
 		return &apperrors.ForbiddenError{}
 	}
@@ -500,7 +500,7 @@ func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 		return err
 	}
 
-	meta := core.RequestMetaFromContext(ctx)
+	meta := contextkeys.RequestMetaFromContext(ctx)
 
 	if err := s.repo.deleteUserAndRevokeSessions(ctx, input.UserID, input.DeletionReason, RevocationUserDeleted); err != nil {
 		if errors.Is(err, ErrUserNotFoundOrAlreadyDeleted) {
@@ -537,12 +537,12 @@ func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 
 // TODO: make sure to reference the completionist's MFA guide.
 func (s *service) EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodType) (mfa.EnrollmentResult, error) {
-	userID, err := core.UserIDFromContext(ctx)
+	userID, err := contextkeys.UserIDFromContext(ctx)
 	if err != nil {
 		return mfa.EnrollmentResult{}, err
 	}
 
-	userEmail, err := core.UserEmailFromContext(ctx)
+	userEmail, err := contextkeys.UserEmailFromContext(ctx)
 	if err != nil {
 		return mfa.EnrollmentResult{}, err
 	}
@@ -593,7 +593,7 @@ func (s *service) finalizeLogin(ctx context.Context, user User, action audit.Aud
 		return TokenPair{}, err
 	}
 
-	meta := core.RequestMetaFromContext(ctx)
+	meta := contextkeys.RequestMetaFromContext(ctx)
 
 	expiresAt := time.Now().Add(7 * 24 * time.Hour)
 	if _, err = s.repo.createSession(
@@ -637,7 +637,7 @@ func (s *service) CreateStepUpChallenge(ctx context.Context, methodType mfa.MFAM
 	ctx, span := tracer.Start(ctx, "AuthService.CreateStepUpChallenge")
 	defer span.End()
 
-	userID, err := core.UserIDFromContext(ctx)
+	userID, err := contextkeys.UserIDFromContext(ctx)
 	if err != nil {
 		return CreateStepUpChallengeResponse{}, err
 	}
@@ -670,12 +670,12 @@ func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 	ctx, span := tracer.Start(ctx, "AuthService.VerifyStepUpChallenge")
 	defer span.End()
 
-	userID, err := core.UserIDFromContext(ctx)
+	userID, err := contextkeys.UserIDFromContext(ctx)
 	if err != nil {
 		return VerifyStepUpChallengeResponse{}, err
 	}
 
-	email, err := core.UserEmailFromContext(ctx)
+	email, err := contextkeys.UserEmailFromContext(ctx)
 	if err != nil {
 		return VerifyStepUpChallengeResponse{}, err
 	}
@@ -709,7 +709,6 @@ func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 		return VerifyStepUpChallengeResponse{}, err
 	}
 
-	// TODO: add scope to the challenge.
 	token, expiresIn, err := s.tokenManager.GenerateStepUpToken(userID.String(), email, challenge.Scope)
 	if err != nil {
 		slog.ErrorContext(ctx, "error generating step up token", "err", err)

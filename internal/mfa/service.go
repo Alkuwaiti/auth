@@ -10,7 +10,7 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/audit"
-	"github.com/alkuwaiti/auth/internal/core"
+	"github.com/alkuwaiti/auth/internal/contextkeys"
 	"github.com/google/uuid"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
@@ -149,7 +149,7 @@ func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code st
 		return err
 	}
 
-	meta := core.RequestMetaFromContext(ctx)
+	meta := contextkeys.RequestMetaFromContext(ctx)
 	var ipAddr, userAgent *string
 	if meta.IPAddress != "" {
 		ipAddr = &meta.IPAddress
@@ -309,7 +309,7 @@ func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 		return VerifiedChallenge{}, err
 	}
 
-	meta := core.RequestMetaFromContext(ctx)
+	meta := contextkeys.RequestMetaFromContext(ctx)
 	var ipAddr, userAgent *string
 	if meta.IPAddress != "" {
 		ipAddr = &meta.IPAddress

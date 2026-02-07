@@ -3,7 +3,7 @@ package grpc
 import (
 	"context"
 
-	"github.com/alkuwaiti/auth/internal/core"
+	"github.com/alkuwaiti/auth/internal/contextkeys"
 	"github.com/alkuwaiti/auth/internal/observability"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
@@ -32,5 +32,5 @@ func withRequestMeta(ctx context.Context, methodName string) context.Context {
 		meta.RequestMethod = methodName
 	}
 
-	return context.WithValue(ctx, core.RequestMetaKeyType{}, meta)
+	return context.WithValue(ctx, contextkeys.RequestMetaKeyType{}, meta)
 }

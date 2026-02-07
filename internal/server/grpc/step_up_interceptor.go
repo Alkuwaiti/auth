@@ -6,7 +6,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/alkuwaiti/auth/internal/core"
+	"github.com/alkuwaiti/auth/internal/contextkeys"
 	"github.com/alkuwaiti/auth/internal/tokens"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -15,9 +15,8 @@ import (
 )
 
 var StepUpMethods = map[string]string{
-	"/auth.v1.AuthService/DeleteAccount":   "delete_account",
-	"/auth.v1.AuthService/ChangePassword":  "change_password",
-	"/payments.v1.PaymentService/Transfer": "payment",
+	"/auth.v1.AuthService/DeleteAccount":  "delete_account",
+	"/auth.v1.AuthService/ChangePassword": "change_password",
 }
 
 type StepUpInterceptor struct {
@@ -66,7 +65,7 @@ func (i *StepUpInterceptor) Unary() grpc.UnaryServerInterceptor {
 			)
 		}
 
-		ctx = context.WithValue(ctx, core.StepUpClaimsKey{}, claims)
+		ctx = context.WithValue(ctx, contextkeys.StepUpClaimsKey{}, claims)
 
 		return handler(ctx, req)
 	}

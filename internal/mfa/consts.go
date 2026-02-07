@@ -34,12 +34,14 @@ func (t ChallengeType) isValid() bool {
 type ChallengeScope string
 
 const (
-	ScopeLogin ChallengeScope = "login"
+	ScopeLogin          ChallengeScope = "login"
+	ScopeDeleteAccount  ChallengeScope = "delete_account"
+	ScopeChangePassword ChallengeScope = "change_password"
 )
 
 func (s ChallengeScope) isValid() bool {
 	switch s {
-	case ScopeLogin:
+	case ScopeLogin, ScopeDeleteAccount, ScopeChangePassword:
 		return true
 	default:
 		return false
