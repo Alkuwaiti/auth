@@ -46,7 +46,7 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 
 	authRepo := NewRepo(testDB.DB)
 
-	tokenManager := tokens.New(tokens.Config{
+	tokenManager := tokens.New(passwordService, tokens.Config{
 		Issuer:   "auth-service",
 		Audience: "auth-service",
 		JWTKey:   []byte("any random jwt key doesn't really matter or at least i think it doesn't matter"),
