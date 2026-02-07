@@ -3,6 +3,7 @@ package tokens
 import "errors"
 
 var (
-	ErrSigningMethod error = errors.New("unexpected signing method")
-	ErrInvalidToken  error = errors.New("invalid token")
+	ErrSigningMethod    error = errors.New("unexpected signing method")
+	ErrInvalidToken     error = errors.New("invalid token")
+	ErrInvalidTokenType error = errors.New("invalid token type")
 )

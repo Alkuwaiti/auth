@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/alkuwaiti/auth/internal/core"
+	"github.com/alkuwaiti/auth/internal/contextkeys"
 	"github.com/alkuwaiti/auth/internal/tokens"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -21,15 +21,15 @@ var publicMethods = map[string]struct{}{
 	"/auth.v1.AuthService/CompleteLoginMFA": {},
 }
 
-type TokenValidator interface {
+type JWTValidator interface {
 	ValidateJWT(token string) (*tokens.AccessClaims, error)
 }
 
 type AuthInterceptor struct {
-	validator TokenValidator
+	validator JWTValidator
 }
 
-func NewAuthInterceptor(tm TokenValidator) *AuthInterceptor {
+func NewAuthInterceptor(tm JWTValidator) *AuthInterceptor {
 	return &AuthInterceptor{validator: tm}
 }
 
@@ -57,9 +57,9 @@ func (i *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 			return nil, status.Error(codes.Unauthenticated, "invalid token")
 		}
 
-		ctx = context.WithValue(ctx, core.EmailKey{}, claims.Email)
-		ctx = context.WithValue(ctx, core.UserIDKey{}, claims.Subject)
-		ctx = context.WithValue(ctx, core.RolesKey{}, claims.Roles)
+		ctx = context.WithValue(ctx, contextkeys.EmailKey{}, claims.Email)
+		ctx = context.WithValue(ctx, contextkeys.UserIDKey{}, claims.Subject)
+		ctx = context.WithValue(ctx, contextkeys.RolesKey{}, claims.Roles)
 
 		return handler(ctx, req)
 	}

@@ -100,10 +100,18 @@ VALUES ($1, $2, NOW());
 
 -- name: CreateUserMFAMethod :one
 INSERT INTO user_mfa_methods (
-  user_id, type, secret_ciphertext
+  user_id, type, secret_ciphertext, expires_at
 )
-VALUES ($1, $2, $3)
+VALUES ($1, $2, $3, now() + interval '10 minutes')
 RETURNING *;
+
+-- name: DeleteExpiredUnconfirmedMethods :exec
+DELETE FROM user_mfa_methods
+WHERE
+  user_id = $1
+  AND type = $2
+  AND confirmed_at IS NULL
+  AND expires_at < now();
 
 -- name: GetMFAMethodsConfirmedByUser :many
 SELECT id, user_id, type, confirmed_at, created_at
@@ -113,23 +121,23 @@ WHERE user_id = $1
 
 -- name: ConfirmUserMFAMethod :exec
 UPDATE user_mfa_methods
-SET confirmed_at = now()
+SET
+  confirmed_at = now(),
+  expires_at = NULL
 WHERE id = $1
   AND confirmed_at IS NULL;
 
 -- name: CreateChallenge :one
 INSERT INTO mfa_challenges (
-  user_id, mfa_method_id, challenge_type, expires_at
+  user_id, mfa_method_id, challenge_type, expires_at, scope
 )
-VALUES ($1, $2, $3, $4)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
--- name: GetActiveChallenge :one
-SELECT id, user_id, mfa_method_id, expires_at, consumed_at
+-- name: GetChallengeByID :one
+SELECT *
 FROM mfa_challenges
-WHERE id = $1
-  AND consumed_at IS NULL
-  AND expires_at > now();
+WHERE id = $1;
 
 -- name: ConsumeChallenge :exec
 UPDATE mfa_challenges
@@ -137,21 +145,39 @@ SET consumed_at = now()
 WHERE id = $1
   AND consumed_at IS NULL;
 
--- name: UserHasActiveMFAMethod :one
+-- name: UserHasActiveMFAMethodByType :one
 SELECT COUNT(*) > 0 AS exists
 FROM user_mfa_methods
 WHERE user_id = $1
   AND type = $2
   AND confirmed_at IS NOT NULL;
 
+-- name: UserHasActiveMFAMethod :one
+SELECT COUNT(*) > 0 AS exists
+FROM user_mfa_methods
+WHERE user_id = $1
+  AND confirmed_at IS NOT NULL;
+
 -- name: GetMFAMethodByID :one
 SELECT * FROM user_mfa_methods
+WHERE id = $1;
+
+-- name: GetConfirmedMFAMethodByType :one
+SELECT * FROM user_mfa_methods
+WHERE user_id = $1 
+  AND type = $2 
+  AND confirmed_at IS NOT NULL;
+
+-- name: IncrementChallengeAttempts :exec
+UPDATE mfa_challenges
+SET attempts = attempts + 1
 WHERE id = $1;
 
 -- name: LockActiveTOTPChallenge :one
 SELECT
   c.id            AS challenge_id,
   c.user_id,
+  c.attempts,
   m.id            AS method_id,
   m.secret_ciphertext
 FROM mfa_challenges c
@@ -165,3 +191,4 @@ WHERE
   AND m.type = 'totp'
   AND m.confirmed_at IS NOT NULL
 FOR UPDATE;
+

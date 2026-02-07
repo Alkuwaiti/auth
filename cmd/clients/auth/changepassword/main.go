@@ -16,16 +16,17 @@ func main() {
 	ctx := context.Background()
 
 	md := metadata.New(map[string]string{
-		"authorization":       "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InFhc2ltMUBnbWFpbC5jb20iLCJyb2xlcyI6WyJ1c2VyIl0sImlzcyI6ImF1dGgtc2VydmljZSIsInN1YiI6IjAxOWJjYzE1LTRlMWYtN2U5YS1hY2MyLTljOWRiOWNjN2M0OSIsImF1ZCI6WyJhdXRoLXNlcnZpY2UiXSwiZXhwIjoxNzY4ODQ2ODAwLCJpYXQiOjE3Njg4NDU5MDB9.tFKwByBJYKN_63iBY1yjQkj0ZFxoBzeK80tJPFyo",
+		"authorization":       "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InFhc2ltbUBnbWFpbC5jb20iLCJyb2xlcyI6WyJ1c2VyIl0sInR5cGUiOiJhY2Nlc3MiLCJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiIwMTljMzdmZC04MTA5LTc0YjctYWU3My03ZWYxYTZiNWRhNmYiLCJhdWQiOlsiYXV0aC1zZXJ2aWNlIl0sImV4cCI6MTc3MDQ3MDcyMSwiaWF0IjoxNzcwNDY5ODIxfQ.LxpVzTx1hy0m8QznsKobu7wdIZXDiMLsqdBhS4hOqKs",
 		"x-forwarded-for":     "203.0.113.10",
 		"x-client-user-agent": "auth-cli/1.0",
 		"request-id":          "req-123456",
 		"x-client-ip":         "2.2.2.2",
+		"X-Step-Up-Token":     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InFhc2ltbUBnbWFpbC5jb20iLCJzY29wZSI6ImNoYW5nZV9wYXNzd29yZCIsInR5cGUiOiJzdGVwX3VwIiwiaXNzIjoiYXV0aC1zZXJ2aWNlIiwic3ViIjoiMDE5YzM3ZmQtODEwOS03NGI3LWFlNzMtN2VmMWE2YjVkYTZmIiwiYXVkIjpbImF1dGgtc2VydmljZSJdLCJleHAiOjE3NzA0NzA0MTUsImlhdCI6MTc3MDQ3MDExNX0.OLW6rqIa7uPt_jcLz1P0_a15ryiJPDzYOo-OiYFfuzE",
 	})
 
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	client := auth.Must(ctx, "localhost:8081")
+	client := auth.Must(ctx, "127.0.0.1:8081")
 	defer func() {
 		if err := client.Close(); err != nil {
 			log.Printf("failed to close client: %v", err)
@@ -33,8 +34,8 @@ func main() {
 	}()
 
 	res, err := client.ChangePassword(ctx, &authv1.ChangePasswordRequest{
-		OldPassword: "Supersecretpassword1!!",
-		NewPassword: "Supersecretpassword1!",
+		OldPassword: "Supersecretpassword1!",
+		NewPassword: "Supersecretpassword1!!",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

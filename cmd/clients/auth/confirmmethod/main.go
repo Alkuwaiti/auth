@@ -16,7 +16,7 @@ func main() {
 	ctx := context.Background()
 
 	md := metadata.New(map[string]string{
-		"authorization":       "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InFhc2ltbUBnbWFpbC5jb20iLCJyb2xlcyI6WyJ1c2VyIl0sImlzcyI6ImF1dGgtc2VydmljZSIsInN1YiI6IjAxOWJmYjc2LTc3YTctNzA2ZC1hYTQyLTYxNjRmMTk5ZWYyNyIsImF1ZCI6WyJhdXRoLXNlcnZpY2UiXSwiZXhwIjoxNzY5NTQxNzc1LCJpYXQiOjE3Njk1NDA4NzV9.sWNVkWoMjYcLIqClxvQmGFi87n5ZhHmqMNaxs1wTnkk",
+		"authorization":       "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InFhc2ltbUBnbWFpbC5jb20iLCJyb2xlcyI6WyJ1c2VyIl0sInR5cGUiOiJhY2Nlc3MiLCJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiIwMTljMzdmZC04MTA5LTc0YjctYWU3My03ZWYxYTZiNWRhNmYiLCJhdWQiOlsiYXV0aC1zZXJ2aWNlIl0sImV4cCI6MTc3MDQ2OTg5NywiaWF0IjoxNzcwNDY4OTk3fQ.L8F8mMC10GRS6i2Cj_6qqaa4pffzt3vR1QoONcqUJNo",
 		"x-forwarded-for":     "203.0.113.10",
 		"x-client-user-agent": "auth-cli/1.0",
 		"request-id":          "req-123456",
@@ -25,7 +25,7 @@ func main() {
 
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	client := auth.Must(ctx, "localhost:8081")
+	client := auth.Must(ctx, "127.0.0.1:8081")
 	defer func() {
 		if err := client.Close(); err != nil {
 			log.Printf("failed to close client: %v", err)
@@ -33,8 +33,8 @@ func main() {
 	}()
 
 	res, err := client.ConfirmMFAMethod(ctx, &authv1.ConfirmMFAMethodRequest{
-		MethodId: "3a821672-b95d-410f-a97c-b618a413821e",
-		Code:     "546006",
+		MethodId: "15639f80-84cc-41db-a6d2-675c7f0a39a7",
+		Code:     "045602",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

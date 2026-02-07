@@ -8,20 +8,21 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type Tokens struct {
+type tokens struct {
 	config Config
 }
 
-func New(cfg Config) *Tokens {
-	return &Tokens{
+func New(cfg Config) *tokens {
+	return &tokens{
 		config: cfg,
 	}
 }
 
-func (m *Tokens) GenerateAccessToken(roles []string, userID, email string) (string, error) {
+func (m *tokens) GenerateAccessToken(roles []string, userID, email string) (string, error) {
 	claims := AccessClaims{
 		Email: email,
 		Roles: roles,
+		Type:  string(AccessToken),
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   userID,
 			Issuer:    m.config.Issuer,
@@ -35,7 +36,7 @@ func (m *Tokens) GenerateAccessToken(roles []string, userID, email string) (stri
 	return token.SignedString(m.config.JWTKey)
 }
 
-func (m *Tokens) ValidateJWT(tokenStr string) (*AccessClaims, error) {
+func (m *tokens) ValidateJWT(tokenStr string) (*AccessClaims, error) {
 	token, err := jwt.ParseWithClaims(
 		tokenStr,
 		&AccessClaims{},
@@ -57,10 +58,14 @@ func (m *Tokens) ValidateJWT(tokenStr string) (*AccessClaims, error) {
 		return nil, ErrInvalidToken
 	}
 
+	if claims.Type != string(AccessToken) {
+		return nil, ErrInvalidTokenType
+	}
+
 	return claims, nil
 }
 
-func (m *Tokens) GenerateRefreshToken() (string, error) {
+func (m *tokens) GenerateRefreshToken() (string, error) {
 	b := make([]byte, 32)
 	_, err := rand.Read(b)
 	if err != nil {
@@ -68,4 +73,53 @@ func (m *Tokens) GenerateRefreshToken() (string, error) {
 	}
 
 	return base64.URLEncoding.EncodeToString(b), nil
+}
+
+func (m *tokens) GenerateStepUpToken(userID, email, scope string) (string, time.Time, error) {
+	expiresAt := time.Now().Add(5 * time.Minute)
+	claims := StepUpClaims{
+		Email: email,
+		Scope: scope,
+		Type:  string(StepUpToken),
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   userID,
+			Issuer:    m.config.Issuer,
+			Audience:  jwt.ClaimStrings{m.config.Audience},
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(expiresAt),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString(m.config.JWTKey)
+	return tokenString, expiresAt, err
+}
+
+func (m *tokens) ValidateStepUpToken(tokenStr string) (*StepUpClaims, error) {
+	token, err := jwt.ParseWithClaims(
+		tokenStr,
+		&StepUpClaims{},
+		func(t *jwt.Token) (any, error) {
+			if t.Method != jwt.SigningMethodHS256 {
+				return nil, ErrSigningMethod
+			}
+			return m.config.JWTKey, nil
+		},
+		jwt.WithIssuer(m.config.Issuer),
+		jwt.WithAudience(m.config.Audience),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(*StepUpClaims)
+	if !ok || !token.Valid {
+		return nil, ErrInvalidToken
+	}
+
+	if claims.Type != string(StepUpToken) {
+		return nil, ErrInvalidTokenType
+	}
+
+	return claims, nil
 }

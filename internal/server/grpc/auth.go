@@ -203,3 +203,43 @@ func (s *server) CompleteLoginMFA(ctx context.Context, req *authv1.CompleteLogin
 		UserId:       res.UserID.String(),
 	}, nil
 }
+
+func (s *server) CreateStepUpChallenge(ctx context.Context, req *authv1.CreateStepUpChallengeRequest) (*authv1.CreateStepUpChallengeResponse, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	res, err := s.authService.CreateStepUpChallenge(ctx, mfa.MFAMethodType(req.MethodType), mfa.ChallengeScope(req.Scope))
+	if err != nil {
+		return nil, MapError(err)
+	}
+
+	return &authv1.CreateStepUpChallengeResponse{
+		ChallengeId: res.ChallengeID.String(),
+		MethodType:  string(res.MFAMethodType),
+		ExpiresAt:   timestamppb.New(res.ExpiresAt),
+	}, nil
+}
+
+func (s *server) VerifyStepUpChallenge(ctx context.Context, req *authv1.VerifyStepUpChallengeRequest) (*authv1.VerifyStepUpChallengeResponse, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	challengeID, err := uuid.Parse(req.ChallengeId)
+	if err != nil {
+		return nil, MapError(err)
+	}
+
+	res, err := s.authService.VerifyStepUpChallenge(ctx, challengeID, req.Code)
+	if err != nil {
+		return nil, MapError(err)
+	}
+
+	return &authv1.VerifyStepUpChallengeResponse{
+		StepUpToken: res.StepUpToken,
+		ExpiresIn:   timestamppb.New(res.ExpiresIn),
+	}, nil
+}

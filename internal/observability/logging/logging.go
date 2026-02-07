@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/alkuwaiti/auth/internal/core"
+	"github.com/alkuwaiti/auth/internal/contextkeys"
 	"github.com/alkuwaiti/auth/internal/observability"
 )
 
@@ -22,11 +22,11 @@ func (h *ContextHandler) Enabled(ctx context.Context, level slog.Level) bool {
 }
 
 func (h *ContextHandler) Handle(ctx context.Context, r slog.Record) error {
-	if meta, ok := ctx.Value(core.RequestMetaKeyType{}).(observability.RequestMeta); ok {
+	if meta, ok := ctx.Value(contextkeys.RequestMetaKeyType{}).(observability.RequestMeta); ok {
 		r.AddAttrs(meta.LogAttrs()...)
 	}
 
-	if userID, ok := ctx.Value(core.UserIDKey{}).(string); ok {
+	if userID, ok := ctx.Value(contextkeys.UserIDKey{}).(string); ok {
 		r.AddAttrs(slog.String("user_id", userID))
 	}
 

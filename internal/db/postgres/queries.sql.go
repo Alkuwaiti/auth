@@ -32,7 +32,9 @@ func (q *Queries) AssignRoleToUser(ctx context.Context, arg AssignRoleToUserPara
 
 const confirmUserMFAMethod = `-- name: ConfirmUserMFAMethod :exec
 UPDATE user_mfa_methods
-SET confirmed_at = now()
+SET
+  confirmed_at = now(),
+  expires_at = NULL
 WHERE id = $1
   AND confirmed_at IS NULL
 `
@@ -84,10 +86,10 @@ func (q *Queries) CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) 
 
 const createChallenge = `-- name: CreateChallenge :one
 INSERT INTO mfa_challenges (
-  user_id, mfa_method_id, challenge_type, expires_at
+  user_id, mfa_method_id, challenge_type, expires_at, scope
 )
-VALUES ($1, $2, $3, $4)
-RETURNING id, user_id, mfa_method_id, challenge_type, expires_at, consumed_at, created_at
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, user_id, mfa_method_id, challenge_type, expires_at, consumed_at, created_at, scope, attempts
 `
 
 type CreateChallengeParams struct {
@@ -95,6 +97,7 @@ type CreateChallengeParams struct {
 	MfaMethodID   uuid.UUID
 	ChallengeType string
 	ExpiresAt     time.Time
+	Scope         string
 }
 
 func (q *Queries) CreateChallenge(ctx context.Context, arg CreateChallengeParams) (MfaChallenge, error) {
@@ -103,6 +106,7 @@ func (q *Queries) CreateChallenge(ctx context.Context, arg CreateChallengeParams
 		arg.MfaMethodID,
 		arg.ChallengeType,
 		arg.ExpiresAt,
+		arg.Scope,
 	)
 	var i MfaChallenge
 	err := row.Scan(
@@ -113,6 +117,8 @@ func (q *Queries) CreateChallenge(ctx context.Context, arg CreateChallengeParams
 		&i.ExpiresAt,
 		&i.ConsumedAt,
 		&i.CreatedAt,
+		&i.Scope,
+		&i.Attempts,
 	)
 	return i, err
 }
@@ -197,10 +203,10 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 const createUserMFAMethod = `-- name: CreateUserMFAMethod :one
 
 INSERT INTO user_mfa_methods (
-  user_id, type, secret_ciphertext
+  user_id, type, secret_ciphertext, expires_at
 )
-VALUES ($1, $2, $3)
-RETURNING id, user_id, type, secret_ciphertext, confirmed_at, created_at
+VALUES ($1, $2, $3, now() + interval '10 minutes')
+RETURNING id, user_id, type, secret_ciphertext, confirmed_at, created_at, expires_at
 `
 
 type CreateUserMFAMethodParams struct {
@@ -220,8 +226,28 @@ func (q *Queries) CreateUserMFAMethod(ctx context.Context, arg CreateUserMFAMeth
 		&i.SecretCiphertext,
 		&i.ConfirmedAt,
 		&i.CreatedAt,
+		&i.ExpiresAt,
 	)
 	return i, err
+}
+
+const deleteExpiredUnconfirmedMethods = `-- name: DeleteExpiredUnconfirmedMethods :exec
+DELETE FROM user_mfa_methods
+WHERE
+  user_id = $1
+  AND type = $2
+  AND confirmed_at IS NULL
+  AND expires_at < now()
+`
+
+type DeleteExpiredUnconfirmedMethodsParams struct {
+	UserID uuid.UUID
+	Type   string
+}
+
+func (q *Queries) DeleteExpiredUnconfirmedMethods(ctx context.Context, arg DeleteExpiredUnconfirmedMethodsParams) error {
+	_, err := q.db.ExecContext(ctx, deleteExpiredUnconfirmedMethods, arg.UserID, arg.Type)
+	return err
 }
 
 const deleteUser = `-- name: DeleteUser :execrows
@@ -246,37 +272,58 @@ func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) (int64, 
 	return result.RowsAffected()
 }
 
-const getActiveChallenge = `-- name: GetActiveChallenge :one
-SELECT id, user_id, mfa_method_id, expires_at, consumed_at
+const getChallengeByID = `-- name: GetChallengeByID :one
+SELECT id, user_id, mfa_method_id, challenge_type, expires_at, consumed_at, created_at, scope, attempts
 FROM mfa_challenges
 WHERE id = $1
-  AND consumed_at IS NULL
-  AND expires_at > now()
 `
 
-type GetActiveChallengeRow struct {
-	ID          uuid.UUID
-	UserID      uuid.UUID
-	MfaMethodID uuid.UUID
-	ExpiresAt   time.Time
-	ConsumedAt  sql.NullTime
-}
-
-func (q *Queries) GetActiveChallenge(ctx context.Context, id uuid.UUID) (GetActiveChallengeRow, error) {
-	row := q.db.QueryRowContext(ctx, getActiveChallenge, id)
-	var i GetActiveChallengeRow
+func (q *Queries) GetChallengeByID(ctx context.Context, id uuid.UUID) (MfaChallenge, error) {
+	row := q.db.QueryRowContext(ctx, getChallengeByID, id)
+	var i MfaChallenge
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.MfaMethodID,
+		&i.ChallengeType,
 		&i.ExpiresAt,
 		&i.ConsumedAt,
+		&i.CreatedAt,
+		&i.Scope,
+		&i.Attempts,
+	)
+	return i, err
+}
+
+const getConfirmedMFAMethodByType = `-- name: GetConfirmedMFAMethodByType :one
+SELECT id, user_id, type, secret_ciphertext, confirmed_at, created_at, expires_at FROM user_mfa_methods
+WHERE user_id = $1 
+  AND type = $2 
+  AND confirmed_at IS NOT NULL
+`
+
+type GetConfirmedMFAMethodByTypeParams struct {
+	UserID uuid.UUID
+	Type   string
+}
+
+func (q *Queries) GetConfirmedMFAMethodByType(ctx context.Context, arg GetConfirmedMFAMethodByTypeParams) (UserMfaMethod, error) {
+	row := q.db.QueryRowContext(ctx, getConfirmedMFAMethodByType, arg.UserID, arg.Type)
+	var i UserMfaMethod
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Type,
+		&i.SecretCiphertext,
+		&i.ConfirmedAt,
+		&i.CreatedAt,
+		&i.ExpiresAt,
 	)
 	return i, err
 }
 
 const getMFAMethodByID = `-- name: GetMFAMethodByID :one
-SELECT id, user_id, type, secret_ciphertext, confirmed_at, created_at FROM user_mfa_methods
+SELECT id, user_id, type, secret_ciphertext, confirmed_at, created_at, expires_at FROM user_mfa_methods
 WHERE id = $1
 `
 
@@ -290,6 +337,7 @@ func (q *Queries) GetMFAMethodByID(ctx context.Context, id uuid.UUID) (UserMfaMe
 		&i.SecretCiphertext,
 		&i.ConfirmedAt,
 		&i.CreatedAt,
+		&i.ExpiresAt,
 	)
 	return i, err
 }
@@ -469,10 +517,22 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow
 	return i, err
 }
 
+const incrementChallengeAttempts = `-- name: IncrementChallengeAttempts :exec
+UPDATE mfa_challenges
+SET attempts = attempts + 1
+WHERE id = $1
+`
+
+func (q *Queries) IncrementChallengeAttempts(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, incrementChallengeAttempts, id)
+	return err
+}
+
 const lockActiveTOTPChallenge = `-- name: LockActiveTOTPChallenge :one
 SELECT
   c.id            AS challenge_id,
   c.user_id,
+  c.attempts,
   m.id            AS method_id,
   m.secret_ciphertext
 FROM mfa_challenges c
@@ -491,6 +551,7 @@ FOR UPDATE
 type LockActiveTOTPChallengeRow struct {
 	ChallengeID      uuid.UUID
 	UserID           uuid.UUID
+	Attempts         int32
 	MethodID         uuid.UUID
 	SecretCiphertext []byte
 }
@@ -501,6 +562,7 @@ func (q *Queries) LockActiveTOTPChallenge(ctx context.Context, id uuid.UUID) (Lo
 	err := row.Scan(
 		&i.ChallengeID,
 		&i.UserID,
+		&i.Attempts,
 		&i.MethodID,
 		&i.SecretCiphertext,
 	)
@@ -595,17 +657,31 @@ const userHasActiveMFAMethod = `-- name: UserHasActiveMFAMethod :one
 SELECT COUNT(*) > 0 AS exists
 FROM user_mfa_methods
 WHERE user_id = $1
+  AND confirmed_at IS NOT NULL
+`
+
+func (q *Queries) UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, userHasActiveMFAMethod, userID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const userHasActiveMFAMethodByType = `-- name: UserHasActiveMFAMethodByType :one
+SELECT COUNT(*) > 0 AS exists
+FROM user_mfa_methods
+WHERE user_id = $1
   AND type = $2
   AND confirmed_at IS NOT NULL
 `
 
-type UserHasActiveMFAMethodParams struct {
+type UserHasActiveMFAMethodByTypeParams struct {
 	UserID uuid.UUID
 	Type   string
 }
 
-func (q *Queries) UserHasActiveMFAMethod(ctx context.Context, arg UserHasActiveMFAMethodParams) (bool, error) {
-	row := q.db.QueryRowContext(ctx, userHasActiveMFAMethod, arg.UserID, arg.Type)
+func (q *Queries) UserHasActiveMFAMethodByType(ctx context.Context, arg UserHasActiveMFAMethodByTypeParams) (bool, error) {
+	row := q.db.QueryRowContext(ctx, userHasActiveMFAMethodByType, arg.UserID, arg.Type)
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err

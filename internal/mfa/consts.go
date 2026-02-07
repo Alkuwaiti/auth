@@ -21,3 +21,29 @@ const (
 	ChallengeLogin  ChallengeType = "login"
 	ChallengeStepUp ChallengeType = "step_up"
 )
+
+func (t ChallengeType) isValid() bool {
+	switch t {
+	case ChallengeLogin, ChallengeStepUp:
+		return true
+	default:
+		return false
+	}
+}
+
+type ChallengeScope string
+
+const (
+	ScopeLogin          ChallengeScope = "login"
+	ScopeDeleteAccount  ChallengeScope = "delete_account"
+	ScopeChangePassword ChallengeScope = "change_password"
+)
+
+func (s ChallengeScope) isValid() bool {
+	switch s {
+	case ScopeLogin, ScopeDeleteAccount, ScopeChangePassword:
+		return true
+	default:
+		return false
+	}
+}

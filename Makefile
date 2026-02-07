@@ -34,6 +34,10 @@ test-integration:
 	@echo "Running Integration tests..."
 	go test -tags=integration ./internal/... -v
 
+test-function:
+	@echo "testing passed function: $(METHOD)"
+	go test -tags=integration ./internal/auth -run $(METHOD)
+
 build:
 	@echo "Building..."
 	go build -ldflags "-X main.commit=`git rev-parse HEAD` -X main.ref=`git rev-parse --abbrev-ref HEAD` -X main.version=`git describe --tags --always`" -o ./bin/server ./cmd/server
@@ -67,14 +71,15 @@ proto:
 		./.proto/*.proto
 	@echo ""
 
+DB_URL ?= postgres://localuser:veryhardpassword123@localhost:5432/authdb?sslmode=disable
 run-migrations:
 	migrate \
   -path internal/db/migrations \
-  -database "postgres://localuser:veryhardpassword123@localhost:5432/authdb?sslmode=disable" \
+  -database $(DB_URL) \
   up
 
 rollback-last-migration:
 	migrate \
   -path internal/db/migrations \
-  -database "postgres://localuser:veryhardpassword123@localhost:5432/authdb?sslmode=disable" \
+  -database $(DB_URL) \
   down 1

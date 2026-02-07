@@ -13,24 +13,34 @@ type MFAMethod struct {
 	ConfirmedAt *time.Time
 	Secret      string
 	CreatedAt   time.Time
+	ExpiresAt   *time.Time
 }
 
 type MFAChallenge struct {
 	ID            uuid.UUID
 	UserID        uuid.UUID
 	MethodID      uuid.UUID
+	Scope         string
 	ChallengeType ChallengeType
 	ExpiresAt     time.Time
 	ConsumedAt    *time.Time
+}
+
+type VerifiedChallenge struct {
+	UserID      uuid.UUID
+	MethodID    uuid.UUID
+	ChallengeID uuid.UUID
 }
 
 type LockedTOTPChallenge struct {
 	ChallengeID      uuid.UUID
 	UserID           uuid.UUID
 	MethodID         uuid.UUID
+	Attempts         int
 	SecretCiphertext []byte
 }
 
 type Config struct {
-	AppName string
+	AppName              string
+	MaxChallengeAttempts int
 }

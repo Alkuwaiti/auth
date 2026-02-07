@@ -10,4 +10,6 @@ const (
 	ActionPasswordChange     AuditAction = "password_change"
 	ActionSessionCompromised AuditAction = "session_compromised"
 	ActionDeleteUser         AuditAction = "delete_user"
+	ActionConfirmMFAMethod   AuditAction = "confirm_mfa_method"
+	ActionConsumeChallenge   AuditAction = "consume_challenge"
 )

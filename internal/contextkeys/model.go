@@ -1,5 +1,5 @@
-// Package core contains shared application stuff.
-package core
+// Package contextkeys contains context keys..
+package contextkeys
 
 type EmailKey struct{}
 
@@ -12,3 +12,5 @@ type IPAddressKey struct{}
 type RequestMetaKeyType struct{}
 
 type RolesKey struct{}
+
+type StepUpClaimsKey struct{}

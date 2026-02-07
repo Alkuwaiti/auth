@@ -24,7 +24,7 @@ func main() {
 
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	client := auth.Must(ctx, "localhost:8081")
+	client := auth.Must(ctx, "127.0.0.1:8081")
 	defer func() {
 		if err := client.Close(); err != nil {
 			log.Printf("failed to close client: %v", err)
@@ -32,8 +32,8 @@ func main() {
 	}()
 
 	res, err := client.CompleteLoginMFA(ctx, &authv1.CompleteLoginMFARequest{
-		ChallengeId: "87a89177-5301-45be-ac21-8e8c7209ab0b",
-		Code:        "493884",
+		ChallengeId: "5d7dbd68-3f60-4c4e-82d6-a746557a235a",
+		Code:        "451845",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

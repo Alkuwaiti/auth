@@ -41,6 +41,8 @@ type MfaChallenge struct {
 	ExpiresAt     time.Time
 	ConsumedAt    sql.NullTime
 	CreatedAt     time.Time
+	Scope         string
+	Attempts      int32
 }
 
 type Role struct {
@@ -93,6 +95,7 @@ type UserMfaMethod struct {
 	SecretCiphertext []byte
 	ConfirmedAt      sql.NullTime
 	CreatedAt        time.Time
+	ExpiresAt        sql.NullTime
 }
 
 type UserRole struct {

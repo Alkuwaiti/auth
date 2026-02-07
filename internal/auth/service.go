@@ -10,7 +10,7 @@ import (
 	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/audit"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
-	"github.com/alkuwaiti/auth/internal/core"
+	"github.com/alkuwaiti/auth/internal/contextkeys"
 	"github.com/alkuwaiti/auth/internal/mfa"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
@@ -61,14 +61,18 @@ type featureFlags interface {
 type tokenManager interface {
 	GenerateAccessToken(roles []string, userID, email string) (string, error)
 	GenerateRefreshToken() (string, error)
+	GenerateStepUpToken(userID, email, scope string) (string, time.Time, error)
 }
 
 type MFAService interface {
 	EnrollMethod(ctx context.Context, userID uuid.UUID, email string, methodType mfa.MFAMethodType) (mfa.EnrollmentResult, error)
 	ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error
 	GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.UUID) ([]mfa.MFAMethod, error)
-	CreateChallenge(ctx context.Context, userID, methodID uuid.UUID, challengetype mfa.ChallengeType) (uuid.UUID, error)
-	VerifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (uuid.UUID, error)
+	CreateChallenge(ctx context.Context, userID, methodID uuid.UUID, challengetype mfa.ChallengeType, scope mfa.ChallengeScope) (mfa.MFAChallenge, error)
+	VerifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (mfa.VerifiedChallenge, error)
+	GetMethodByID(ctx context.Context, methodID uuid.UUID) (mfa.MFAMethod, error)
+	GetConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType mfa.MFAMethodType) (mfa.MFAMethod, error)
+	GetChallengeByID(ctx context.Context, challengeID uuid.UUID) (mfa.MFAChallenge, error)
 }
 
 // TODO: test race condition for all of these methods.
@@ -79,11 +83,11 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 	ctx, span := tracer.Start(ctx, "AuthService.RegisterUser")
 	defer span.End()
 
-	meta := core.RequestMetaFromContext(ctx)
+	meta := contextkeys.RequestMetaFromContext(ctx)
 
 	span.SetAttributes(
 		attribute.String("user.username", input.Username),
-		attribute.String("user.email_hash", core.HashForTelemetry(input.Email)),
+		attribute.String("user.email", input.Email),
 	)
 
 	if err := input.validate(); err != nil {
@@ -153,7 +157,7 @@ func (s *service) Login(ctx context.Context, email, password string) (LoginResul
 	}
 
 	span.SetAttributes(
-		attribute.String("user.email_hash", core.HashForTelemetry(email)),
+		attribute.String("user.email", email),
 	)
 
 	user, err := s.repo.getUserByEmail(ctx, email)
@@ -194,18 +198,17 @@ func (s *service) Login(ctx context.Context, email, password string) (LoginResul
 		return LoginResult{}, err
 	}
 
-	var ChallengeID uuid.UUID
+	var challenge mfa.MFAChallenge
 	if len(methods) > 0 {
 		// TODO: change the implementation when you have multiple methods.
-		ChallengeID, err = s.MFAService.CreateChallenge(ctx, methods[0].UserID, methods[0].ID, mfa.ChallengeLogin)
+		challenge, err = s.MFAService.CreateChallenge(ctx, methods[0].UserID, methods[0].ID, mfa.ChallengeLogin, mfa.ScopeLogin)
 		if err != nil {
-			slog.ErrorContext(ctx, "failed to get confirmed mfa methods by user", "err", err)
 			return LoginResult{}, err
 		}
 
 		return LoginResult{
 			RequiresMFA: true,
-			ChallengeID: &ChallengeID,
+			ChallengeID: &challenge.ID,
 			Tokens:      nil,
 		}, nil
 	}
@@ -231,7 +234,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 		return TokenPair{}, &apperrors.RefreshDisabledError{}
 	}
 
-	meta := core.RequestMetaFromContext(ctx)
+	meta := contextkeys.RequestMetaFromContext(ctx)
 
 	session, err := s.repo.getSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
@@ -352,7 +355,7 @@ func (s *service) Logout(ctx context.Context, refreshToken string) error {
 	ctx, span := tracer.Start(ctx, "AuthService.Logout")
 	defer span.End()
 
-	meta := core.RequestMetaFromContext(ctx)
+	meta := contextkeys.RequestMetaFromContext(ctx)
 
 	session, err := s.repo.getSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
@@ -385,12 +388,12 @@ func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 	ctx, span := tracer.Start(ctx, "AuthService.ChangePassword")
 	defer span.End()
 
-	userID, err := core.UserIDFromContext(ctx)
+	userID, err := contextkeys.UserIDFromContext(ctx)
 	if err != nil {
 		return err
 	}
 
-	meta := core.RequestMetaFromContext(ctx)
+	meta := contextkeys.RequestMetaFromContext(ctx)
 
 	if err = s.passwords.Validate(newPassword); err != nil {
 		span.RecordError(err)
@@ -463,7 +466,7 @@ func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 	}
 
 	span.SetAttributes(
-		attribute.String("user.email_hash", core.HashForTelemetry(user.Email)),
+		attribute.String("user.email", user.Email),
 	)
 	span.SetStatus(codes.Ok, "password changed")
 
@@ -474,18 +477,18 @@ func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 	ctx, span := tracer.Start(ctx, "AuthService.DeleteUser")
 	defer span.End()
 
-	actorID, err := core.UserIDFromContext(ctx)
+	actorID, err := contextkeys.UserIDFromContext(ctx)
 	if err != nil {
 		return err
 	}
 
-	roles, err := core.UserRolesFromContext(ctx)
+	roles, err := contextkeys.UserRolesFromContext(ctx)
 	if err != nil {
 		return err
 	}
 
 	if !s.authorizer.CanWithRoles(roles, authz.CanDeleteUser) {
-		userID, _ := core.UserIDFromContext(ctx)
+		userID, _ := contextkeys.UserIDFromContext(ctx)
 		slog.ErrorContext(ctx, "forbidden user attempt", "user_id", userID)
 		return &apperrors.ForbiddenError{}
 	}
@@ -497,7 +500,7 @@ func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 		return err
 	}
 
-	meta := core.RequestMetaFromContext(ctx)
+	meta := contextkeys.RequestMetaFromContext(ctx)
 
 	if err := s.repo.deleteUserAndRevokeSessions(ctx, input.UserID, input.DeletionReason, RevocationUserDeleted); err != nil {
 		if errors.Is(err, ErrUserNotFoundOrAlreadyDeleted) {
@@ -534,12 +537,12 @@ func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 
 // TODO: make sure to reference the completionist's MFA guide.
 func (s *service) EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodType) (mfa.EnrollmentResult, error) {
-	userID, err := core.UserIDFromContext(ctx)
+	userID, err := contextkeys.UserIDFromContext(ctx)
 	if err != nil {
 		return mfa.EnrollmentResult{}, err
 	}
 
-	userEmail, err := core.UserEmailFromContext(ctx)
+	userEmail, err := contextkeys.UserEmailFromContext(ctx)
 	if err != nil {
 		return mfa.EnrollmentResult{}, err
 	}
@@ -548,22 +551,59 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodT
 }
 
 func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error {
-	return s.MFAService.ConfirmMethod(ctx, methodID, code)
+	if err := s.MFAService.ConfirmMethod(ctx, methodID, code); err != nil {
+		return err
+	}
+
+	userID, err := contextkeys.UserIDFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	meta := contextkeys.RequestMetaFromContext(ctx)
+	if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+		UserID: &userID,
+		Action: audit.ActionConfirmMFAMethod,
+		Context: audit.AuditContext{
+			"method_type": "totp",
+			"method_id":   methodID.String(),
+		},
+		IPAddress: &meta.IPAddress,
+		UserAgent: &meta.UserAgent,
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, code string) (TokenPair, error) {
-	userID, err := s.MFAService.VerifyAndConsumeChallenge(ctx, challengeID, code)
+	verifiedChallenge, err := s.MFAService.VerifyAndConsumeChallenge(ctx, challengeID, code)
 	if err != nil {
 		return TokenPair{}, err
 	}
 
-	user, err := s.repo.getUserByID(ctx, userID)
+	user, err := s.repo.getUserByID(ctx, verifiedChallenge.UserID)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
 		}
 
-		slog.ErrorContext(ctx, "login failed: user lookup error", "user_id", userID, "err", err)
+		slog.ErrorContext(ctx, "login failed: user lookup error", "user_id", verifiedChallenge.UserID, "err", err)
+		return TokenPair{}, err
+	}
+
+	meta := contextkeys.RequestMetaFromContext(ctx)
+	if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+		UserID: &user.ID,
+		Action: audit.ActionConfirmMFAMethod,
+		Context: audit.AuditContext{
+			"method_type": "totp",
+			"method_id":   challengeID.String(),
+		},
+		IPAddress: &meta.IPAddress,
+		UserAgent: &meta.UserAgent,
+	}); err != nil {
 		return TokenPair{}, err
 	}
 
@@ -590,7 +630,7 @@ func (s *service) finalizeLogin(ctx context.Context, user User, action audit.Aud
 		return TokenPair{}, err
 	}
 
-	meta := core.RequestMetaFromContext(ctx)
+	meta := contextkeys.RequestMetaFromContext(ctx)
 
 	expiresAt := time.Now().Add(7 * 24 * time.Hour)
 	if _, err = s.repo.createSession(
@@ -626,5 +666,114 @@ func (s *service) finalizeLogin(ctx context.Context, user User, action audit.Aud
 		RefreshToken:     refreshToken,
 		RefreshExpiresAt: expiresAt,
 		UserID:           user.ID,
+	}, nil
+}
+
+// TODO: maybe add reason to challenge.
+func (s *service) CreateStepUpChallenge(ctx context.Context, methodType mfa.MFAMethodType, scope mfa.ChallengeScope) (CreateStepUpChallengeResponse, error) {
+	ctx, span := tracer.Start(ctx, "AuthService.CreateStepUpChallenge")
+	defer span.End()
+
+	userID, err := contextkeys.UserIDFromContext(ctx)
+	if err != nil {
+		return CreateStepUpChallengeResponse{}, err
+	}
+
+	method, err := s.MFAService.GetConfirmedMFAMethodByType(ctx, userID, methodType)
+	if err != nil {
+		return CreateStepUpChallengeResponse{}, err
+	}
+
+	challenge, err := s.MFAService.CreateChallenge(ctx, userID, method.ID, mfa.ChallengeStepUp, scope)
+	if err != nil {
+		return CreateStepUpChallengeResponse{}, err
+	}
+
+	span.SetAttributes(
+		attribute.String("user.id", userID.String()),
+	)
+
+	span.SetStatus(codes.Ok, "created step up challenge")
+
+	return CreateStepUpChallengeResponse{
+		ChallengeID:   challenge.ID,
+		MFAMethodType: methodType,
+		ExpiresAt:     challenge.ExpiresAt,
+	}, nil
+}
+
+// TODO: add tests
+func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UUID, code string) (VerifyStepUpChallengeResponse, error) {
+	ctx, span := tracer.Start(ctx, "AuthService.VerifyStepUpChallenge")
+	defer span.End()
+
+	userID, err := contextkeys.UserIDFromContext(ctx)
+	if err != nil {
+		return VerifyStepUpChallengeResponse{}, err
+	}
+
+	email, err := contextkeys.UserEmailFromContext(ctx)
+	if err != nil {
+		return VerifyStepUpChallengeResponse{}, err
+	}
+
+	challenge, err := s.MFAService.GetChallengeByID(ctx, challengeID)
+	if err != nil {
+		return VerifyStepUpChallengeResponse{}, err
+	}
+
+	if challenge.UserID != userID {
+		slog.WarnContext(ctx, "challenge does not belong to user", "user_id", userID, "err", err)
+		return VerifyStepUpChallengeResponse{}, &apperrors.ForbiddenError{}
+	}
+
+	if challenge.ExpiresAt.Before(time.Now()) {
+		return VerifyStepUpChallengeResponse{}, &apperrors.BadRequestError{
+			Field: "challenge",
+			Msg:   "challenge expired",
+		}
+	}
+
+	if challenge.ConsumedAt != nil {
+		return VerifyStepUpChallengeResponse{}, &apperrors.BadRequestError{
+			Field: "challenge",
+			Msg:   "challenge already consumed",
+		}
+	}
+
+	_, err = s.MFAService.VerifyAndConsumeChallenge(ctx, challengeID, code)
+	if err != nil {
+		return VerifyStepUpChallengeResponse{}, err
+	}
+
+	token, expiresIn, err := s.tokenManager.GenerateStepUpToken(userID.String(), email, challenge.Scope)
+	if err != nil {
+		slog.ErrorContext(ctx, "error generating step up token", "err", err)
+		return VerifyStepUpChallengeResponse{}, err
+	}
+
+	meta := contextkeys.RequestMetaFromContext(ctx)
+	if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+		UserID: &challenge.UserID,
+		Action: audit.ActionConfirmMFAMethod,
+		Context: audit.AuditContext{
+			"method_type": "totp",
+			"method_id":   challengeID.String(),
+		},
+		IPAddress: &meta.IPAddress,
+		UserAgent: &meta.UserAgent,
+	}); err != nil {
+		return VerifyStepUpChallengeResponse{}, err
+	}
+
+	span.SetAttributes(
+		attribute.String("user.id", userID.String()),
+	)
+
+	span.SetStatus(codes.Ok, "verified step up challenge")
+
+	return VerifyStepUpChallengeResponse{
+		StepUpToken: token,
+		ExpiresIn:   expiresIn,
 	}, nil
 }

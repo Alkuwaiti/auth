@@ -14,7 +14,7 @@ import (
 func main() {
 	ctx := context.Background()
 
-	client := auth.Must(ctx, "localhost:8081")
+	client := auth.Must(ctx, "127.0.0.1:8081")
 	defer func() {
 		if err := client.Close(); err != nil {
 			log.Printf("failed to close client: %v", err)
@@ -24,7 +24,7 @@ func main() {
 	res, err := client.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Username: "qasimm",
 		Email:    "qasimm@gmail.com",
-		Password: "Supersecretpassword1!",
+		Password: "Supersecretpassword1!!",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

@@ -165,3 +165,45 @@ func TestConfirmMFAMethod_InvalidCode(t *testing.T) {
 	require.ErrorAs(t, err, &badReq)
 	require.Equal(t, "code", badReq.Field)
 }
+
+func TestConfirmMFAMethod_ExpiredMethod(t *testing.T) {
+	service, db, cleanup := setupTestAuthService(t)
+	defer cleanup()
+
+	ctx := testutil.CtxWithRequestMeta()
+	userID := uuid.New()
+	ctx = testutil.CtxWithUserID(ctx, uuid.New())
+
+	email := "user@email.com"
+	ctx = testutil.CtxWithEmail(ctx, email)
+
+	seedUser(t, db, userID, email, ctx)
+
+	// generate real TOTP secret
+	key, err := totp.Generate(totp.GenerateOpts{
+		Issuer:      "TestApp",
+		AccountName: "user@test.com",
+	})
+	require.NoError(t, err)
+
+	encryptedSecret, _ := c.Encrypt([]byte(key.Secret()))
+
+	methodID := seedUserWithUnconfirmedTOTP(t, db, userID, encryptedSecret)
+
+	code, err := totp.GenerateCode(key.Secret(), time.Now())
+	require.NoError(t, err)
+
+	_, err = db.Exec(`
+		UPDATE user_mfa_methods
+		SET expires_at = now()
+		WHERE id = $1
+		`, methodID)
+	require.NoError(t, err)
+
+	err = service.MFAService.ConfirmMethod(ctx, methodID, code)
+	require.Error(t, err)
+
+	var badReq *apperrors.BadRequestError
+	require.ErrorAs(t, err, &badReq)
+	require.Equal(t, "method", badReq.Field)
+}

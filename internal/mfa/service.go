@@ -54,7 +54,7 @@ func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, email stri
 		}
 	}
 
-	exists, err := s.MFARepo.userHasActiveMFAMethod(ctx, userID, methodType)
+	exists, err := s.MFARepo.userHasActiveMFAMethodByType(ctx, userID, methodType)
 	if err != nil {
 		slog.ErrorContext(ctx, "error when checking if user has an active MFA method", "user_id", userID, "method_type", methodType, "err", err)
 		return EnrollmentResult{}, err
@@ -64,6 +64,10 @@ func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, email stri
 			Field: "MFAMethod",
 			Msg:   "MFA method already enrolled",
 		}
+	}
+
+	if err = s.MFARepo.DeleteExpiredUnconfirmedMethods(ctx, userID, methodType); err != nil {
+		return EnrollmentResult{}, err
 	}
 
 	key, err := totp.Generate(totp.GenerateOpts{
@@ -113,6 +117,14 @@ func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code st
 		return err
 	}
 
+	if method.ExpiresAt != nil && method.ExpiresAt.Before(time.Now()) {
+		span.SetStatus(codes.Error, "method expired")
+		return &apperrors.BadRequestError{
+			Field: "method",
+			Msg:   "enrollment window expired",
+		}
+	}
+
 	if method.ConfirmedAt != nil {
 		span.SetStatus(codes.Error, "method confirmed")
 		return &apperrors.BadRequestError{
@@ -125,7 +137,11 @@ func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code st
 		return err
 	}
 
-	return s.MFARepo.confirmUserMFAMethod(ctx, methodID)
+	if err := s.MFARepo.confirmUserMFAMethod(ctx, methodID); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *service) GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.UUID) ([]MFAMethod, error) {
@@ -138,25 +154,26 @@ func (s *service) GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.
 	return MFAMethods, nil
 }
 
-func (s *service) CreateChallenge(ctx context.Context, userID, methodID uuid.UUID, challengetype ChallengeType) (uuid.UUID, error) {
-	c, err := s.MFARepo.createChallenge(ctx, MFAChallenge{
+// TODO: figure out how to target which method type when creating a challenge.
+// TODO: add rate limiting
+func (s *service) CreateChallenge(ctx context.Context, userID, methodID uuid.UUID, challengetype ChallengeType, scope ChallengeScope) (MFAChallenge, error) {
+	if ok := challengetype.isValid(); !ok {
+		return MFAChallenge{}, ErrInvalidMFAChallengeType
+	}
+
+	if ok := scope.isValid(); !ok {
+		return MFAChallenge{}, ErrInvalidMFAChallengeScope
+	}
+
+	challenge, err := s.MFARepo.createChallenge(ctx, MFAChallenge{
 		MethodID:      methodID,
 		UserID:        userID,
+		Scope:         string(scope),
 		ExpiresAt:     time.Now().Add(5 * time.Minute),
 		ChallengeType: challengetype,
 	})
 	if err != nil {
-		slog.ErrorContext(ctx, "error when creating challenge", "err", err)
-		return uuid.UUID{}, err
-	}
-
-	return c.ID, nil
-}
-
-func (s *service) GetActiveChallenge(ctx context.Context, challengeID uuid.UUID) (MFAChallenge, error) {
-	challenge, err := s.MFARepo.getActiveChallenge(ctx, challengeID)
-	if err != nil {
-		slog.ErrorContext(ctx, "error getting active challenge", "err", err)
+		slog.ErrorContext(ctx, "error creating challenge", "err", err)
 		return MFAChallenge{}, err
 	}
 
@@ -167,6 +184,26 @@ func (s *service) GetMethodByID(ctx context.Context, methodID uuid.UUID) (MFAMet
 	method, err := s.MFARepo.getMFAMethodByID(ctx, methodID)
 	if err != nil {
 		slog.ErrorContext(ctx, "error getting method by id", "err", err)
+		return MFAMethod{}, err
+	}
+
+	return method, nil
+}
+
+func (s *service) GetChallengeByID(ctx context.Context, challengeID uuid.UUID) (MFAChallenge, error) {
+	challenge, err := s.MFARepo.getChallengeByID(ctx, challengeID)
+	if err != nil {
+		slog.ErrorContext(ctx, "error getting challenge by id", "err", err)
+		return MFAChallenge{}, err
+	}
+
+	return challenge, nil
+}
+
+func (s *service) GetConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType MFAMethodType) (MFAMethod, error) {
+	method, err := s.MFARepo.GetConfirmedMFAMethodByType(ctx, userID, methodType)
+	if err != nil {
+		slog.ErrorContext(ctx, "error getting confirmed mfa methods by type", "err", err)
 		return MFAMethod{}, err
 	}
 
@@ -207,14 +244,13 @@ func (s *service) verifyTOTP(ctx context.Context, secret, code string) error {
 	return nil
 }
 
-func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (uuid.UUID, error) {
+func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (VerifiedChallenge, error) {
 	tx, err := s.MFARepo.beginTx(ctx)
 	if err != nil {
-		return uuid.Nil, err
+		return VerifiedChallenge{}, err
 	}
 	defer func() {
 		if err = tx.Rollback(); err != nil && err != sql.ErrTxDone {
-			// Handle rollback error
 			slog.ErrorContext(ctx, "rollback failed", "err", err)
 		}
 	}()
@@ -222,26 +258,46 @@ func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 	locked, err := s.MFARepo.lockActiveTOTPChallenge(ctx, tx, challengeID)
 	if err != nil {
 		if errors.Is(err, ErrInvalidMFAChallenge) {
-			return uuid.Nil, &apperrors.InvalidMFACodeError{}
+			return VerifiedChallenge{}, &apperrors.InvalidMFACodeError{}
 		}
 
 		slog.ErrorContext(ctx, "error locking active totp challenge", "err", err)
-		return uuid.Nil, err
+		return VerifiedChallenge{}, err
+	}
+
+	if locked.Attempts >= s.Config.MaxChallengeAttempts {
+		return VerifiedChallenge{}, &apperrors.InvalidMFACodeError{}
 	}
 
 	if err := s.verifyTOTP(ctx, string(locked.SecretCiphertext), code); err != nil {
-		return uuid.Nil, err
+		if incErr := s.MFARepo.incrementChallengeAttempts(ctx, tx, locked.ChallengeID); incErr != nil {
+			return VerifiedChallenge{}, incErr
+		}
+		return VerifiedChallenge{}, err
 	}
 
 	if err := s.MFARepo.consumeChallenge(ctx, tx, locked.ChallengeID); err != nil {
 		slog.ErrorContext(ctx, "error consuming challenge", "err", err)
-		return uuid.Nil, err
+		return VerifiedChallenge{}, err
 	}
 
 	if err := tx.Commit(); err != nil {
 		slog.ErrorContext(ctx, "error committing transaction", "err", err)
-		return uuid.Nil, err
+		return VerifiedChallenge{}, err
 	}
 
-	return locked.UserID, nil
+	return VerifiedChallenge{
+		ChallengeID: locked.ChallengeID,
+		UserID:      locked.UserID,
+		MethodID:    locked.MethodID,
+	}, nil
+}
+
+func (s *service) UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error) {
+	exists, err := s.MFARepo.userHasActiveMFAMethod(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
 }
