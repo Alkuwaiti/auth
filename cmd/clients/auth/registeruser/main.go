@@ -24,7 +24,7 @@ func main() {
 	res, err := client.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Username: "qasimm",
 		Email:    "qasimm@gmail.com",
-		Password: "Supersecretpassword1!",
+		Password: "Supersecretpassword1!!",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

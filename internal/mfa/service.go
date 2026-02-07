@@ -62,7 +62,7 @@ func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, email stri
 		}
 	}
 
-	exists, err := s.MFARepo.userHasActiveMFAMethod(ctx, userID, methodType)
+	exists, err := s.MFARepo.userHasActiveMFAMethodByType(ctx, userID, methodType)
 	if err != nil {
 		slog.ErrorContext(ctx, "error when checking if user has an active MFA method", "user_id", userID, "method_type", methodType, "err", err)
 		return EnrollmentResult{}, err
@@ -336,4 +336,13 @@ func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 		UserID:      locked.UserID,
 		MethodID:    locked.MethodID,
 	}, nil
+}
+
+func (s *service) UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error) {
+	exists, err := s.MFARepo.userHasActiveMFAMethod(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
 }

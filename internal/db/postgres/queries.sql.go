@@ -641,17 +641,31 @@ const userHasActiveMFAMethod = `-- name: UserHasActiveMFAMethod :one
 SELECT COUNT(*) > 0 AS exists
 FROM user_mfa_methods
 WHERE user_id = $1
+  AND confirmed_at IS NOT NULL
+`
+
+func (q *Queries) UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, userHasActiveMFAMethod, userID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const userHasActiveMFAMethodByType = `-- name: UserHasActiveMFAMethodByType :one
+SELECT COUNT(*) > 0 AS exists
+FROM user_mfa_methods
+WHERE user_id = $1
   AND type = $2
   AND confirmed_at IS NOT NULL
 `
 
-type UserHasActiveMFAMethodParams struct {
+type UserHasActiveMFAMethodByTypeParams struct {
 	UserID uuid.UUID
 	Type   string
 }
 
-func (q *Queries) UserHasActiveMFAMethod(ctx context.Context, arg UserHasActiveMFAMethodParams) (bool, error) {
-	row := q.db.QueryRowContext(ctx, userHasActiveMFAMethod, arg.UserID, arg.Type)
+func (q *Queries) UserHasActiveMFAMethodByType(ctx context.Context, arg UserHasActiveMFAMethodByTypeParams) (bool, error) {
+	row := q.db.QueryRowContext(ctx, userHasActiveMFAMethodByType, arg.UserID, arg.Type)
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err

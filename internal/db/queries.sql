@@ -145,11 +145,17 @@ SET consumed_at = now()
 WHERE id = $1
   AND consumed_at IS NULL;
 
--- name: UserHasActiveMFAMethod :one
+-- name: UserHasActiveMFAMethodByType :one
 SELECT COUNT(*) > 0 AS exists
 FROM user_mfa_methods
 WHERE user_id = $1
   AND type = $2
+  AND confirmed_at IS NOT NULL;
+
+-- name: UserHasActiveMFAMethod :one
+SELECT COUNT(*) > 0 AS exists
+FROM user_mfa_methods
+WHERE user_id = $1
   AND confirmed_at IS NOT NULL;
 
 -- name: GetMFAMethodByID :one

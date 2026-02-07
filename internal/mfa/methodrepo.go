@@ -43,11 +43,20 @@ func (m *MFARepo) confirmUserMFAMethod(ctx context.Context, methodID uuid.UUID) 
 	return nil
 }
 
-func (m *MFARepo) userHasActiveMFAMethod(ctx context.Context, userID uuid.UUID, methodType MFAMethodType) (bool, error) {
-	exists, err := m.queries.UserHasActiveMFAMethod(ctx, postgres.UserHasActiveMFAMethodParams{
+func (m *MFARepo) userHasActiveMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType MFAMethodType) (bool, error) {
+	exists, err := m.queries.UserHasActiveMFAMethodByType(ctx, postgres.UserHasActiveMFAMethodByTypeParams{
 		UserID: userID,
 		Type:   string(methodType),
 	})
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}
+
+func (m *MFARepo) userHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error) {
+	exists, err := m.queries.UserHasActiveMFAMethod(ctx, userID)
 	if err != nil {
 		return false, err
 	}
