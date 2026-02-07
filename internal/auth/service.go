@@ -551,7 +551,30 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodT
 }
 
 func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error {
-	return s.MFAService.ConfirmMethod(ctx, methodID, code)
+	if err := s.MFAService.ConfirmMethod(ctx, methodID, code); err != nil {
+		return err
+	}
+
+	userID, err := contextkeys.UserIDFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	meta := contextkeys.RequestMetaFromContext(ctx)
+	if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+		UserID: &userID,
+		Action: audit.ActionConfirmMFAMethod,
+		Context: audit.AuditContext{
+			"method_type": "totp",
+			"method_id":   methodID.String(),
+		},
+		IPAddress: &meta.IPAddress,
+		UserAgent: &meta.UserAgent,
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, code string) (TokenPair, error) {
@@ -567,6 +590,20 @@ func (s *service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, c
 		}
 
 		slog.ErrorContext(ctx, "login failed: user lookup error", "user_id", verifiedChallenge.UserID, "err", err)
+		return TokenPair{}, err
+	}
+
+	meta := contextkeys.RequestMetaFromContext(ctx)
+	if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+		UserID: &user.ID,
+		Action: audit.ActionConfirmMFAMethod,
+		Context: audit.AuditContext{
+			"method_type": "totp",
+			"method_id":   challengeID.String(),
+		},
+		IPAddress: &meta.IPAddress,
+		UserAgent: &meta.UserAgent,
+	}); err != nil {
 		return TokenPair{}, err
 	}
 
@@ -712,6 +749,20 @@ func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 	token, expiresIn, err := s.tokenManager.GenerateStepUpToken(userID.String(), email, challenge.Scope)
 	if err != nil {
 		slog.ErrorContext(ctx, "error generating step up token", "err", err)
+		return VerifyStepUpChallengeResponse{}, err
+	}
+
+	meta := contextkeys.RequestMetaFromContext(ctx)
+	if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+		UserID: &challenge.UserID,
+		Action: audit.ActionConfirmMFAMethod,
+		Context: audit.AuditContext{
+			"method_type": "totp",
+			"method_id":   challengeID.String(),
+		},
+		IPAddress: &meta.IPAddress,
+		UserAgent: &meta.UserAgent,
+	}); err != nil {
 		return VerifyStepUpChallengeResponse{}, err
 	}
 

@@ -9,8 +9,6 @@ import (
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
-	"github.com/alkuwaiti/auth/internal/audit"
-	"github.com/alkuwaiti/auth/internal/contextkeys"
 	"github.com/google/uuid"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
@@ -22,21 +20,15 @@ type service struct {
 	MFARepo MFARepo
 	crypto  Crypto
 	Config  Config
-	auditor auditor
-}
-
-type auditor interface {
-	CreateAuditLog(ctx context.Context, input audit.CreateAuditLogInput) error
 }
 
 var tracer = otel.Tracer("auth-service/mfa")
 
-func NewService(MFARepo MFARepo, crypto Crypto, auditor auditor, config Config) *service {
+func NewService(MFARepo MFARepo, crypto Crypto, config Config) *service {
 	return &service{
 		MFARepo: MFARepo,
 		crypto:  crypto,
 		Config:  config,
-		auditor: auditor,
 	}
 }
 
@@ -146,28 +138,6 @@ func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code st
 	}
 
 	if err := s.MFARepo.confirmUserMFAMethod(ctx, methodID); err != nil {
-		return err
-	}
-
-	meta := contextkeys.RequestMetaFromContext(ctx)
-	var ipAddr, userAgent *string
-	if meta.IPAddress != "" {
-		ipAddr = &meta.IPAddress
-	}
-	if meta.UserAgent != "" {
-		userAgent = &meta.UserAgent
-	}
-
-	if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
-		UserID: &method.UserID,
-		Action: audit.ActionConfirmMFAMethod,
-		Context: audit.AuditContext{
-			"method_type": "totp",
-			"method_id":   methodID.String(),
-		},
-		IPAddress: ipAddr,
-		UserAgent: userAgent,
-	}); err != nil {
 		return err
 	}
 
@@ -306,28 +276,6 @@ func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 
 	if err := tx.Commit(); err != nil {
 		slog.ErrorContext(ctx, "error committing transaction", "err", err)
-		return VerifiedChallenge{}, err
-	}
-
-	meta := contextkeys.RequestMetaFromContext(ctx)
-	var ipAddr, userAgent *string
-	if meta.IPAddress != "" {
-		ipAddr = &meta.IPAddress
-	}
-	if meta.UserAgent != "" {
-		userAgent = &meta.UserAgent
-	}
-
-	if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
-		UserID: &locked.UserID,
-		Action: audit.ActionConfirmMFAMethod,
-		Context: audit.AuditContext{
-			"method_type": "totp",
-			"method_id":   challengeID.String(),
-		},
-		IPAddress: ipAddr,
-		UserAgent: userAgent,
-	}); err != nil {
 		return VerifiedChallenge{}, err
 	}
 
