@@ -112,7 +112,8 @@ func main() {
 	c := crypto.NewAESCrypto(keyBytes)
 
 	multifactor := mfa.NewService(*mfaRepo, c, mfa.Config{
-		AppName: cfg.AppName,
+		AppName:              cfg.AppName,
+		MaxChallengeAttempts: cfg.MaxChallengeAttempts,
 	})
 
 	authRepo := auth.NewRepo(dbConn)

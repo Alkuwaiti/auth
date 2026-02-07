@@ -42,6 +42,7 @@ type MfaChallenge struct {
 	ConsumedAt    sql.NullTime
 	CreatedAt     time.Time
 	Scope         string
+	Attempts      int32
 }
 
 type Role struct {

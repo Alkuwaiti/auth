@@ -36,9 +36,11 @@ type LockedTOTPChallenge struct {
 	ChallengeID      uuid.UUID
 	UserID           uuid.UUID
 	MethodID         uuid.UUID
+	Attempts         int
 	SecretCiphertext []byte
 }
 
 type Config struct {
-	AppName string
+	AppName              string
+	MaxChallengeAttempts int
 }

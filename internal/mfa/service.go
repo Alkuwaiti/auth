@@ -265,7 +265,14 @@ func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 		return VerifiedChallenge{}, err
 	}
 
+	if locked.Attempts >= s.Config.MaxChallengeAttempts {
+		return VerifiedChallenge{}, &apperrors.InvalidMFACodeError{}
+	}
+
 	if err := s.verifyTOTP(ctx, string(locked.SecretCiphertext), code); err != nil {
+		if incErr := s.MFARepo.incrementChallengeAttempts(ctx, tx, locked.ChallengeID); incErr != nil {
+			return VerifiedChallenge{}, incErr
+		}
 		return VerifiedChallenge{}, err
 	}
 

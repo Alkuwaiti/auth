@@ -168,10 +168,16 @@ WHERE user_id = $1
   AND type = $2 
   AND confirmed_at IS NOT NULL;
 
+-- name: IncrementChallengeAttempts :exec
+UPDATE mfa_challenges
+SET attempts = attempts + 1
+WHERE id = $1;
+
 -- name: LockActiveTOTPChallenge :one
 SELECT
   c.id            AS challenge_id,
   c.user_id,
+  c.attempts,
   m.id            AS method_id,
   m.secret_ciphertext
 FROM mfa_challenges c
@@ -185,3 +191,4 @@ WHERE
   AND m.type = 'totp'
   AND m.confirmed_at IS NOT NULL
 FOR UPDATE;
+

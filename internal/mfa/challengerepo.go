@@ -65,8 +65,13 @@ func (m *MFARepo) lockActiveTOTPChallenge(ctx context.Context, tx *sql.Tx, chall
 		ChallengeID:      row.ChallengeID,
 		UserID:           row.UserID,
 		MethodID:         row.MethodID,
+		Attempts:         int(row.Attempts),
 		SecretCiphertext: row.SecretCiphertext,
 	}, nil
+}
+
+func (m *MFARepo) incrementChallengeAttempts(ctx context.Context, tx *sql.Tx, challengeID uuid.UUID) error {
+	return m.queries.WithTx(tx).IncrementChallengeAttempts(ctx, challengeID)
 }
 
 func (m *MFARepo) consumeChallenge(ctx context.Context, tx *sql.Tx, challengeID uuid.UUID) error {

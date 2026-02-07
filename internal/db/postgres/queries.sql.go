@@ -89,7 +89,7 @@ INSERT INTO mfa_challenges (
   user_id, mfa_method_id, challenge_type, expires_at, scope
 )
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, user_id, mfa_method_id, challenge_type, expires_at, consumed_at, created_at, scope
+RETURNING id, user_id, mfa_method_id, challenge_type, expires_at, consumed_at, created_at, scope, attempts
 `
 
 type CreateChallengeParams struct {
@@ -118,6 +118,7 @@ func (q *Queries) CreateChallenge(ctx context.Context, arg CreateChallengeParams
 		&i.ConsumedAt,
 		&i.CreatedAt,
 		&i.Scope,
+		&i.Attempts,
 	)
 	return i, err
 }
@@ -272,7 +273,7 @@ func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) (int64, 
 }
 
 const getChallengeByID = `-- name: GetChallengeByID :one
-SELECT id, user_id, mfa_method_id, challenge_type, expires_at, consumed_at, created_at, scope
+SELECT id, user_id, mfa_method_id, challenge_type, expires_at, consumed_at, created_at, scope, attempts
 FROM mfa_challenges
 WHERE id = $1
 `
@@ -289,6 +290,7 @@ func (q *Queries) GetChallengeByID(ctx context.Context, id uuid.UUID) (MfaChalle
 		&i.ConsumedAt,
 		&i.CreatedAt,
 		&i.Scope,
+		&i.Attempts,
 	)
 	return i, err
 }
@@ -515,10 +517,22 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow
 	return i, err
 }
 
+const incrementChallengeAttempts = `-- name: IncrementChallengeAttempts :exec
+UPDATE mfa_challenges
+SET attempts = attempts + 1
+WHERE id = $1
+`
+
+func (q *Queries) IncrementChallengeAttempts(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, incrementChallengeAttempts, id)
+	return err
+}
+
 const lockActiveTOTPChallenge = `-- name: LockActiveTOTPChallenge :one
 SELECT
   c.id            AS challenge_id,
   c.user_id,
+  c.attempts,
   m.id            AS method_id,
   m.secret_ciphertext
 FROM mfa_challenges c
@@ -537,6 +551,7 @@ FOR UPDATE
 type LockActiveTOTPChallengeRow struct {
 	ChallengeID      uuid.UUID
 	UserID           uuid.UUID
+	Attempts         int32
 	MethodID         uuid.UUID
 	SecretCiphertext []byte
 }
@@ -547,6 +562,7 @@ func (q *Queries) LockActiveTOTPChallenge(ctx context.Context, id uuid.UUID) (Lo
 	err := row.Scan(
 		&i.ChallengeID,
 		&i.UserID,
+		&i.Attempts,
 		&i.MethodID,
 		&i.SecretCiphertext,
 	)

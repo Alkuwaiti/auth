@@ -22,16 +22,17 @@ var (
 )
 
 type Config struct {
-	Environment      string
-	Jurisdiction     string
-	LogLevel         string
-	TracingCollector string
-	DatabaseURL      string
-	JWTKey           string
-	OTLPEndpoint     string
-	RefreshEnabled   bool
-	AESKey           string
-	AppName          string
+	Environment          string
+	Jurisdiction         string
+	LogLevel             string
+	TracingCollector     string
+	DatabaseURL          string
+	JWTKey               string
+	OTLPEndpoint         string
+	RefreshEnabled       bool
+	AESKey               string
+	AppName              string
+	MaxChallengeAttempts int
 }
 
 func Load(env, jur string) Config {

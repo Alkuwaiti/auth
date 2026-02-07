@@ -55,7 +55,8 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 	mfaRepo := mfa.NewMFARepo(testDB.DB)
 
 	multifactor := mfa.NewService(*mfaRepo, &noopCrypto{}, mfa.Config{
-		AppName: "MyApp",
+		AppName:              "MyApp",
+		MaxChallengeAttempts: 5,
 	})
 
 	service := NewService(authRepo, passwordService, auditService, authorizerService, flagsService, tokenManager, multifactor)
