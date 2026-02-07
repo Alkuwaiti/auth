@@ -186,10 +186,19 @@ func (s *service) GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.
 
 // TODO: figure out how to target which method type when creating a challenge.
 // TODO: add rate limiting
-func (s *service) CreateChallenge(ctx context.Context, userID, methodID uuid.UUID, challengetype ChallengeType) (MFAChallenge, error) {
+func (s *service) CreateChallenge(ctx context.Context, userID, methodID uuid.UUID, challengetype ChallengeType, scope ChallengeScope) (MFAChallenge, error) {
+	if ok := challengetype.isValid(); !ok {
+		return MFAChallenge{}, ErrInvalidMFAChallengeType
+	}
+
+	if ok := scope.isValid(); !ok {
+		return MFAChallenge{}, ErrInvalidMFAChallengeScope
+	}
+
 	challenge, err := s.MFARepo.createChallenge(ctx, MFAChallenge{
 		MethodID:      methodID,
 		UserID:        userID,
+		Scope:         string(scope),
 		ExpiresAt:     time.Now().Add(5 * time.Minute),
 		ChallengeType: challengetype,
 	})

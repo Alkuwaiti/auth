@@ -86,10 +86,10 @@ func (q *Queries) CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) 
 
 const createChallenge = `-- name: CreateChallenge :one
 INSERT INTO mfa_challenges (
-  user_id, mfa_method_id, challenge_type, expires_at
+  user_id, mfa_method_id, challenge_type, expires_at, scope
 )
-VALUES ($1, $2, $3, $4)
-RETURNING id, user_id, mfa_method_id, challenge_type, expires_at, consumed_at, created_at
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, user_id, mfa_method_id, challenge_type, expires_at, consumed_at, created_at, scope
 `
 
 type CreateChallengeParams struct {
@@ -97,6 +97,7 @@ type CreateChallengeParams struct {
 	MfaMethodID   uuid.UUID
 	ChallengeType string
 	ExpiresAt     time.Time
+	Scope         string
 }
 
 func (q *Queries) CreateChallenge(ctx context.Context, arg CreateChallengeParams) (MfaChallenge, error) {
@@ -105,6 +106,7 @@ func (q *Queries) CreateChallenge(ctx context.Context, arg CreateChallengeParams
 		arg.MfaMethodID,
 		arg.ChallengeType,
 		arg.ExpiresAt,
+		arg.Scope,
 	)
 	var i MfaChallenge
 	err := row.Scan(
@@ -115,6 +117,7 @@ func (q *Queries) CreateChallenge(ctx context.Context, arg CreateChallengeParams
 		&i.ExpiresAt,
 		&i.ConsumedAt,
 		&i.CreatedAt,
+		&i.Scope,
 	)
 	return i, err
 }
@@ -269,7 +272,7 @@ func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) (int64, 
 }
 
 const getChallengeByID = `-- name: GetChallengeByID :one
-SELECT id, user_id, mfa_method_id, challenge_type, expires_at, consumed_at, created_at
+SELECT id, user_id, mfa_method_id, challenge_type, expires_at, consumed_at, created_at, scope
 FROM mfa_challenges
 WHERE id = $1
 `
@@ -285,6 +288,7 @@ func (q *Queries) GetChallengeByID(ctx context.Context, id uuid.UUID) (MfaChalle
 		&i.ExpiresAt,
 		&i.ConsumedAt,
 		&i.CreatedAt,
+		&i.Scope,
 	)
 	return i, err
 }

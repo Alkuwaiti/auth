@@ -1,0 +1,2 @@
+ALTER TABLE mfa_challenges
+ADD COLUMN scope VARCHAR(50) NOT NULL;

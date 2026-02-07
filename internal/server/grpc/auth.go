@@ -210,7 +210,7 @@ func (s *server) CreateStepUpChallenge(ctx context.Context, req *authv1.CreateSt
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	res, err := s.authService.CreateStepUpChallenge(ctx, mfa.MFAMethodType(req.MethodType))
+	res, err := s.authService.CreateStepUpChallenge(ctx, mfa.MFAMethodType(req.MethodType), mfa.ChallengeScope(req.Scope))
 	if err != nil {
 		return nil, MapError(err)
 	}

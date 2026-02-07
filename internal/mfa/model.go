@@ -20,6 +20,7 @@ type MFAChallenge struct {
 	ID            uuid.UUID
 	UserID        uuid.UUID
 	MethodID      uuid.UUID
+	Scope         string
 	ChallengeType ChallengeType
 	ExpiresAt     time.Time
 	ConsumedAt    *time.Time

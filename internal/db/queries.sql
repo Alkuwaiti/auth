@@ -129,9 +129,9 @@ WHERE id = $1
 
 -- name: CreateChallenge :one
 INSERT INTO mfa_challenges (
-  user_id, mfa_method_id, challenge_type, expires_at
+  user_id, mfa_method_id, challenge_type, expires_at, scope
 )
-VALUES ($1, $2, $3, $4)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
 -- name: GetChallengeByID :one

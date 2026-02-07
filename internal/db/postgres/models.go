@@ -41,6 +41,7 @@ type MfaChallenge struct {
 	ExpiresAt     time.Time
 	ConsumedAt    sql.NullTime
 	CreatedAt     time.Time
+	Scope         string
 }
 
 type Role struct {

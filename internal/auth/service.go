@@ -68,7 +68,7 @@ type MFAService interface {
 	EnrollMethod(ctx context.Context, userID uuid.UUID, email string, methodType mfa.MFAMethodType) (mfa.EnrollmentResult, error)
 	ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error
 	GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.UUID) ([]mfa.MFAMethod, error)
-	CreateChallenge(ctx context.Context, userID, methodID uuid.UUID, challengetype mfa.ChallengeType) (mfa.MFAChallenge, error)
+	CreateChallenge(ctx context.Context, userID, methodID uuid.UUID, challengetype mfa.ChallengeType, scope mfa.ChallengeScope) (mfa.MFAChallenge, error)
 	VerifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (mfa.VerifiedChallenge, error)
 	GetMethodByID(ctx context.Context, methodID uuid.UUID) (mfa.MFAMethod, error)
 	GetConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType mfa.MFAMethodType) (mfa.MFAMethod, error)
@@ -201,7 +201,7 @@ func (s *service) Login(ctx context.Context, email, password string) (LoginResul
 	var challenge mfa.MFAChallenge
 	if len(methods) > 0 {
 		// TODO: change the implementation when you have multiple methods.
-		challenge, err = s.MFAService.CreateChallenge(ctx, methods[0].UserID, methods[0].ID, mfa.ChallengeLogin)
+		challenge, err = s.MFAService.CreateChallenge(ctx, methods[0].UserID, methods[0].ID, mfa.ChallengeLogin, mfa.ScopeLogin)
 		if err != nil {
 			return LoginResult{}, err
 		}
@@ -633,7 +633,7 @@ func (s *service) finalizeLogin(ctx context.Context, user User, action audit.Aud
 }
 
 // TODO: maybe add reason to challenge.
-func (s *service) CreateStepUpChallenge(ctx context.Context, methodType mfa.MFAMethodType) (CreateStepUpChallengeResponse, error) {
+func (s *service) CreateStepUpChallenge(ctx context.Context, methodType mfa.MFAMethodType, scope mfa.ChallengeScope) (CreateStepUpChallengeResponse, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.CreateStepUpChallenge")
 	defer span.End()
 
@@ -647,7 +647,7 @@ func (s *service) CreateStepUpChallenge(ctx context.Context, methodType mfa.MFAM
 		return CreateStepUpChallengeResponse{}, err
 	}
 
-	challenge, err := s.MFAService.CreateChallenge(ctx, userID, method.ID, mfa.ChallengeStepUp)
+	challenge, err := s.MFAService.CreateChallenge(ctx, userID, method.ID, mfa.ChallengeStepUp, scope)
 	if err != nil {
 		return CreateStepUpChallengeResponse{}, err
 	}

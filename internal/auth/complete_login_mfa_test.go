@@ -54,6 +54,7 @@ func setupUserWithTOTP(t *testing.T, svc *service, ctx context.Context) (userID 
 		userID,
 		enrollment.Method.ID,
 		mfa.ChallengeLogin,
+		mfa.ScopeLogin,
 	)
 	require.NoError(t, err)
 

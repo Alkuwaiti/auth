@@ -750,6 +750,7 @@ func (x *CompleteLoginMFARequest) GetCode() string {
 type CreateStepUpChallengeRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	MethodType    string                 `protobuf:"bytes,1,opt,name=method_type,json=methodType,proto3" json:"method_type,omitempty"`
+	Scope         string                 `protobuf:"bytes,2,opt,name=scope,proto3" json:"scope,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -787,6 +788,13 @@ func (*CreateStepUpChallengeRequest) Descriptor() ([]byte, []int) {
 func (x *CreateStepUpChallengeRequest) GetMethodType() string {
 	if x != nil {
 		return x.MethodType
+	}
+	return ""
+}
+
+func (x *CreateStepUpChallengeRequest) GetScope() string {
+	if x != nil {
+		return x.Scope
 	}
 	return ""
 }
@@ -1007,10 +1015,11 @@ const file___proto_auth_proto_rawDesc = "" +
 	"\x04code\x18\x02 \x01(\tR\x04code\"P\n" +
 	"\x17CompleteLoginMFARequest\x12!\n" +
 	"\fchallenge_id\x18\x01 \x01(\tR\vchallengeId\x12\x12\n" +
-	"\x04code\x18\x02 \x01(\tR\x04code\"?\n" +
+	"\x04code\x18\x02 \x01(\tR\x04code\"U\n" +
 	"\x1cCreateStepUpChallengeRequest\x12\x1f\n" +
 	"\vmethod_type\x18\x01 \x01(\tR\n" +
-	"methodType\"\x9e\x01\n" +
+	"methodType\x12\x14\n" +
+	"\x05scope\x18\x02 \x01(\tR\x05scope\"\x9e\x01\n" +
 	"\x1dCreateStepUpChallengeResponse\x12!\n" +
 	"\fchallenge_id\x18\x01 \x01(\tR\vchallengeId\x12\x1f\n" +
 	"\vmethod_type\x18\x02 \x01(\tR\n" +

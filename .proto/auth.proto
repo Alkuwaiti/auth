@@ -95,6 +95,7 @@ message CompleteLoginMFARequest {
 
 message CreateStepUpChallengeRequest {
   string method_type = 1;
+  string scope = 2;
 }
 
 message CreateStepUpChallengeResponse {
