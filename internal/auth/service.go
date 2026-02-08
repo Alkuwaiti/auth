@@ -62,7 +62,6 @@ type tokenManager interface {
 	GenerateAccessToken(roles []string, userID, email string) (string, error)
 	GenerateRefreshToken() (string, error)
 	GenerateStepUpToken(userID, email, scope string) (string, time.Time, error)
-	GenerateBackupCodes(n int, hash func(string) (string, error)) (plain []string, hashed []string, err error)
 }
 
 type MFAService interface {
@@ -74,6 +73,7 @@ type MFAService interface {
 	GetMethodByID(ctx context.Context, methodID uuid.UUID) (mfa.MFAMethod, error)
 	GetConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType mfa.MFAMethodType) (mfa.MFAMethod, error)
 	GetChallengeByID(ctx context.Context, challengeID uuid.UUID) (mfa.MFAChallenge, error)
+	GenerateBackupCodes(n int, hash func(string) (string, error)) (plain []string, hashed []string, err error)
 }
 
 // TODO: test race condition for all of these methods.
@@ -561,10 +561,10 @@ func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code st
 		return err
 	}
 
-	// codes, hashed, err := s.tokenManager.GenerateBackupCodes(10, s.passwords.Hash)
-	// if err != nil {
-	// 	return err
-	// }
+	codes, hashed, err := s.MFAService.GenerateBackupCodes(10, s.passwords.Hash)
+	if err != nil {
+		return err
+	}
 
 	meta := contextkeys.RequestMetaFromContext(ctx)
 	if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{

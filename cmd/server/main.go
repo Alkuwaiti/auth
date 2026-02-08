@@ -96,7 +96,7 @@ func main() {
 
 	authorizer := authz.New()
 
-	tokens := tokens.New(passwords, tokens.Config{
+	tokens := tokens.New(tokens.Config{
 		JWTKey:   []byte(cfg.JWTKey),
 		Issuer:   name,
 		Audience: name,

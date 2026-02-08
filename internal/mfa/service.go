@@ -3,6 +3,7 @@ package mfa
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
 	"errors"
 	"log/slog"
@@ -107,6 +108,7 @@ func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, email stri
 	}, nil
 }
 
+// TODO: decide where you want to keep backup codes. Transaction here? or no transaction at all...
 func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error {
 	ctx, span := tracer.Start(ctx, "mfaService.ConfirmMethod")
 	defer span.End()
@@ -300,4 +302,53 @@ func (s *service) UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) 
 	}
 
 	return exists, nil
+}
+
+func (s *service) GenerateBackupCodes(n int, hash func(string) (string, error)) (plain []string, hashed []string, err error) {
+	plain = make([]string, 0, n)
+	hashed = make([]string, 0, n)
+
+	for range n {
+		raw, err := generateBackupCode(8)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		formatted := formatBackupCode(raw)
+
+		hash, err := hash(formatted)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		plain = append(plain, formatted)
+		hashed = append(hashed, hash)
+	}
+
+	return plain, hashed, nil
+}
+
+// no O, I, 0, 1 → avoids confusion
+var backupCodeAlphabet = []rune("ABCDEFGHJKLMNPQRSTUVWXYZ23456789")
+
+func generateBackupCode(length int) (string, error) {
+	b := make([]byte, length)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+
+	runes := make([]rune, length)
+	for i := range b {
+		runes[i] = backupCodeAlphabet[int(b[i])%len(backupCodeAlphabet)]
+	}
+
+	return string(runes), nil
+}
+
+func formatBackupCode(raw string) string {
+	// e.g. ABCDEFGH → ABCD-EFGH
+	if len(raw) != 8 {
+		return raw
+	}
+	return raw[:4] + "-" + raw[4:]
 }
