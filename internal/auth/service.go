@@ -13,6 +13,7 @@ import (
 	"github.com/alkuwaiti/auth/internal/contextkeys"
 	"github.com/alkuwaiti/auth/internal/mfa"
 	"github.com/google/uuid"
+	"github.com/pquerna/otp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -26,9 +27,10 @@ type service struct {
 	flags        featureFlags
 	tokenManager tokenManager
 	MFAService   MFAService
+	MFAProvider  MFAProvider
 }
 
-func NewService(repo *repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAService MFAService) *service {
+func NewService(repo *repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAService MFAService, MFAProvider MFAProvider) *service {
 	return &service{
 		repo:         repo,
 		passwords:    passwords,
@@ -37,6 +39,7 @@ func NewService(repo *repo, passwords passwords, auditor auditor, authorizer aut
 		flags:        flags,
 		tokenManager: tokenManager,
 		MFAService:   MFAService,
+		MFAProvider:  MFAProvider,
 	}
 }
 
@@ -65,7 +68,6 @@ type tokenManager interface {
 }
 
 type MFAService interface {
-	EnrollMethod(ctx context.Context, userID uuid.UUID, email string, methodType mfa.MFAMethodType) (mfa.EnrollmentResult, error)
 	ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error
 	GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.UUID) ([]mfa.MFAMethod, error)
 	CreateChallenge(ctx context.Context, userID, methodID uuid.UUID, challengetype mfa.ChallengeType, scope mfa.ChallengeScope) (mfa.MFAChallenge, error)
@@ -74,6 +76,11 @@ type MFAService interface {
 	GetConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType mfa.MFAMethodType) (mfa.MFAMethod, error)
 	GetChallengeByID(ctx context.Context, challengeID uuid.UUID) (mfa.MFAChallenge, error)
 	GenerateBackupCodes(n int, hash func(string) (string, error)) (plain []string, hashed []string, err error)
+}
+
+type MFAProvider interface {
+	GenerateTOTPKey(email string) (*otp.Key, error)
+	GenerateEncryptedSecret(key *otp.Key) ([]byte, error)
 }
 
 // TODO: test race condition for all of these methods.
@@ -536,8 +543,12 @@ func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 	return nil
 }
 
+// TODO: enroll other methods.
 // TODO: make sure to reference the completionist's MFA guide.
 func (s *service) EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodType) (mfa.EnrollmentResult, error) {
+	ctx, span := tracer.Start(ctx, "AuthService.EnrollMethod")
+	defer span.End()
+
 	userID, err := contextkeys.UserIDFromContext(ctx)
 	if err != nil {
 		return mfa.EnrollmentResult{}, err
@@ -548,7 +559,61 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodT
 		return mfa.EnrollmentResult{}, err
 	}
 
-	return s.MFAService.EnrollMethod(ctx, userID, userEmail, methodType)
+	if !methodType.IsValid() {
+		return mfa.EnrollmentResult{}, &apperrors.ValidationError{
+			Field: "method type",
+			Msg:   "invalid MFA method type",
+		}
+	}
+
+	exists, err := s.repo.userHasActiveMFAMethodByType(ctx, userID, methodType)
+	if err != nil {
+		slog.ErrorContext(ctx, "error when checking if user has an active MFA method", "user_id", userID, "method_type", methodType, "err", err)
+		return mfa.EnrollmentResult{}, err
+	}
+	if exists {
+		return mfa.EnrollmentResult{}, &apperrors.BadRequestError{
+			Field: "MFAMethod",
+			Msg:   "MFA method already enrolled",
+		}
+	}
+
+	if err = s.repo.deleteExpiredUnconfirmedMethods(ctx, userID, methodType); err != nil {
+		return mfa.EnrollmentResult{}, err
+	}
+
+	key, err := s.MFAProvider.GenerateTOTPKey(userEmail)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "totp generation failed")
+		slog.ErrorContext(ctx, "error generating totp", "err", err)
+		return mfa.EnrollmentResult{}, err
+	}
+
+	setupURI := key.URL()
+
+	encryptedSecret, err := s.MFAProvider.GenerateEncryptedSecret(key)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "error encrypting")
+		slog.ErrorContext(ctx, "error when encrypting secret", "err", err)
+		return mfa.EnrollmentResult{}, err
+	}
+
+	method, err := s.repo.createUserMFAMethod(ctx, userID, encryptedSecret, methodType)
+	if err != nil {
+		slog.ErrorContext(ctx, "error when creating a user mfa method", "err", err)
+		return mfa.EnrollmentResult{}, err
+	}
+
+	return mfa.EnrollmentResult{
+		Method: mfa.MFAMethod{
+			ID:        method.ID,
+			Type:      method.Type,
+			CreatedAt: method.CreatedAt,
+		},
+		SetupURI: setupURI,
+	}, nil
 }
 
 func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error {
@@ -561,10 +626,10 @@ func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code st
 		return err
 	}
 
-	codes, hashed, err := s.MFAService.GenerateBackupCodes(10, s.passwords.Hash)
-	if err != nil {
-		return err
-	}
+	// codes, hashed, err := s.MFAService.GenerateBackupCodes(10, s.passwords.Hash)
+	// if err != nil {
+	// 	return err
+	// }
 
 	meta := contextkeys.RequestMetaFromContext(ctx)
 	if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{

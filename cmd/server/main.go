@@ -118,7 +118,7 @@ func main() {
 
 	authRepo := auth.NewRepo(dbConn)
 
-	authService := auth.NewService(authRepo, passwords, auditor, authorizer, flags, tokens, multifactor)
+	authService := auth.NewService(authRepo, passwords, auditor, authorizer, flags, tokens, multifactor, multifactor)
 
 	port := 8081
 

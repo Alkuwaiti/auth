@@ -43,71 +43,6 @@ type EnrollmentResult struct {
 	SetupURI string
 }
 
-// TODO: enroll other methods.
-func (s *service) EnrollMethod(ctx context.Context, userID uuid.UUID, email string, methodType MFAMethodType) (EnrollmentResult, error) {
-	ctx, span := tracer.Start(ctx, "mfaService.EnrollMethod")
-	defer span.End()
-
-	if !methodType.isValid() {
-		return EnrollmentResult{}, &apperrors.ValidationError{
-			Field: "method type",
-			Msg:   "invalid MFA method type",
-		}
-	}
-
-	exists, err := s.MFARepo.userHasActiveMFAMethodByType(ctx, userID, methodType)
-	if err != nil {
-		slog.ErrorContext(ctx, "error when checking if user has an active MFA method", "user_id", userID, "method_type", methodType, "err", err)
-		return EnrollmentResult{}, err
-	}
-	if exists {
-		return EnrollmentResult{}, &apperrors.BadRequestError{
-			Field: "MFAMethod",
-			Msg:   "MFA method already enrolled",
-		}
-	}
-
-	if err = s.MFARepo.DeleteExpiredUnconfirmedMethods(ctx, userID, methodType); err != nil {
-		return EnrollmentResult{}, err
-	}
-
-	key, err := totp.Generate(totp.GenerateOpts{
-		Issuer:      s.Config.AppName,
-		AccountName: email,
-	})
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "totp generation failed")
-		slog.ErrorContext(ctx, "error generating totp", "err", err)
-		return EnrollmentResult{}, err
-	}
-
-	setupURI := key.URL()
-
-	encryptedSecret, err := s.crypto.Encrypt([]byte(key.Secret()))
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "error encrypting")
-		slog.ErrorContext(ctx, "error when encrypting secret", "err", err)
-		return EnrollmentResult{}, err
-	}
-
-	method, err := s.MFARepo.createUserMFAMethod(ctx, userID, encryptedSecret, methodType)
-	if err != nil {
-		slog.ErrorContext(ctx, "error when creating a user mfa method", "err", err)
-		return EnrollmentResult{}, err
-	}
-
-	return EnrollmentResult{
-		Method: MFAMethod{
-			ID:        method.ID,
-			Type:      method.Type,
-			CreatedAt: method.CreatedAt,
-		},
-		SetupURI: setupURI,
-	}, nil
-}
-
 // TODO: decide where you want to keep backup codes. Transaction here? or no transaction at all...
 func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error {
 	ctx, span := tracer.Start(ctx, "mfaService.ConfirmMethod")
@@ -159,7 +94,7 @@ func (s *service) GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.
 // TODO: figure out how to target which method type when creating a challenge.
 // TODO: add rate limiting
 func (s *service) CreateChallenge(ctx context.Context, userID, methodID uuid.UUID, challengetype ChallengeType, scope ChallengeScope) (MFAChallenge, error) {
-	if ok := challengetype.isValid(); !ok {
+	if ok := challengetype.IsValid(); !ok {
 		return MFAChallenge{}, ErrInvalidMFAChallengeType
 	}
 
@@ -302,6 +237,18 @@ func (s *service) UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) 
 	}
 
 	return exists, nil
+}
+
+func (s *service) GenerateTOTPKey(email string) (*otp.Key, error) {
+	return totp.Generate(totp.GenerateOpts{
+		Issuer:      s.Config.AppName,
+		AccountName: email,
+	})
+}
+
+func (s *service) GenerateEncryptedSecret(key *otp.Key) ([]byte, error) {
+	return s.crypto.Encrypt([]byte(key.Secret()))
+
 }
 
 func (s *service) GenerateBackupCodes(n int, hash func(string) (string, error)) (plain []string, hashed []string, err error) {

@@ -6,7 +6,7 @@ const (
 	MFAMethodTOTP MFAMethodType = "totp"
 )
 
-func (t MFAMethodType) isValid() bool {
+func (t MFAMethodType) IsValid() bool {
 	switch t {
 	case MFAMethodTOTP:
 		return true
@@ -22,7 +22,7 @@ const (
 	ChallengeStepUp ChallengeType = "step_up"
 )
 
-func (t ChallengeType) isValid() bool {
+func (t ChallengeType) IsValid() bool {
 	switch t {
 	case ChallengeLogin, ChallengeStepUp:
 		return true

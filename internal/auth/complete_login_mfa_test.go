@@ -26,12 +26,11 @@ func setupUserWithTOTP(t *testing.T, svc *service, ctx context.Context) (userID 
 
 	userID = user.ID
 	ctx = testutil.CtxWithUserID(ctx, userID)
+	ctx = testutil.CtxWithEmail(ctx, user.Email)
 
 	// enroll TOTP
-	enrollment, err := svc.MFAService.EnrollMethod(
+	enrollment, err := svc.EnrollMFAMethod(
 		ctx,
-		userID,
-		"test@example.com",
 		mfa.MFAMethodTOTP,
 	)
 	require.NoError(t, err)
