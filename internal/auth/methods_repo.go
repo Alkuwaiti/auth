@@ -62,6 +62,20 @@ func (r *repo) confirmUserMFAMethod(ctx context.Context, methodID uuid.UUID) err
 	return nil
 }
 
+func (r *repo) getMFAMethodsConfirmedByUser(ctx context.Context, userID uuid.UUID) ([]mfa.MFAMethod, error) {
+	rows, err := r.queries.GetMFAMethodsConfirmedByUser(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	methods := make([]mfa.MFAMethod, len(rows))
+	for i, row := range rows {
+		methods[i] = toMFAMethodFromRow(row)
+	}
+
+	return methods, nil
+}
+
 func toMFAMethod(row postgres.UserMfaMethod) mfa.MFAMethod {
 	var confirmedAt *time.Time
 	if row.ConfirmedAt.Valid {
@@ -81,5 +95,20 @@ func toMFAMethod(row postgres.UserMfaMethod) mfa.MFAMethod {
 		Secret:      string(row.SecretCiphertext),
 		ConfirmedAt: confirmedAt,
 		ExpiresAt:   expiresAt,
+	}
+}
+
+func toMFAMethodFromRow(row postgres.GetMFAMethodsConfirmedByUserRow) mfa.MFAMethod {
+	var confirmedAt *time.Time
+	if row.ConfirmedAt.Valid {
+		confirmedAt = &row.ConfirmedAt.Time
+	}
+
+	return mfa.MFAMethod{
+		ID:          row.ID,
+		UserID:      row.UserID,
+		Type:        mfa.MFAMethodType(row.Type),
+		CreatedAt:   row.CreatedAt,
+		ConfirmedAt: confirmedAt,
 	}
 }

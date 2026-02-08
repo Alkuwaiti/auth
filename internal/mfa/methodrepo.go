@@ -8,20 +8,6 @@ import (
 	"github.com/google/uuid"
 )
 
-func (m *MFARepo) getMFAMethodsConfirmedByUser(ctx context.Context, userID uuid.UUID) ([]MFAMethod, error) {
-	rows, err := m.queries.GetMFAMethodsConfirmedByUser(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-
-	methods := make([]MFAMethod, len(rows))
-	for i, row := range rows {
-		methods[i] = toMFAMethodFromRow(row)
-	}
-
-	return methods, nil
-}
-
 func (m *MFARepo) userHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error) {
 	exists, err := m.queries.UserHasActiveMFAMethod(ctx, userID)
 	if err != nil {
@@ -82,20 +68,5 @@ func toMFAMethod(row postgres.UserMfaMethod) MFAMethod {
 		Secret:      string(row.SecretCiphertext),
 		ConfirmedAt: confirmedAt,
 		ExpiresAt:   expiresAt,
-	}
-}
-
-func toMFAMethodFromRow(row postgres.GetMFAMethodsConfirmedByUserRow) MFAMethod {
-	var confirmedAt *time.Time
-	if row.ConfirmedAt.Valid {
-		confirmedAt = &row.ConfirmedAt.Time
-	}
-
-	return MFAMethod{
-		ID:          row.ID,
-		UserID:      row.UserID,
-		Type:        MFAMethodType(row.Type),
-		CreatedAt:   row.CreatedAt,
-		ConfirmedAt: confirmedAt,
 	}
 }

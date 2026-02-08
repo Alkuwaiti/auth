@@ -68,7 +68,6 @@ type tokenManager interface {
 }
 
 type MFAService interface {
-	GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.UUID) ([]mfa.MFAMethod, error)
 	CreateChallenge(ctx context.Context, userID, methodID uuid.UUID, challengetype mfa.ChallengeType, scope mfa.ChallengeScope) (mfa.MFAChallenge, error)
 	VerifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (mfa.VerifiedChallenge, error)
 	GetMethodByID(ctx context.Context, methodID uuid.UUID) (mfa.MFAMethod, error)
@@ -200,7 +199,7 @@ func (s *service) Login(ctx context.Context, email, password string) (LoginResul
 		return LoginResult{}, &apperrors.InvalidCredentialsError{}
 	}
 
-	methods, err := s.MFAService.GetConfirmedMFAMethodsByUser(ctx, user.ID)
+	methods, err := s.repo.getMFAMethodsConfirmedByUser(ctx, user.ID)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to get confirmed mfa methods by user", "err", err)
 		return LoginResult{}, err

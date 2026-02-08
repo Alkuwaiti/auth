@@ -43,16 +43,6 @@ type EnrollmentResult struct {
 	SetupURI string
 }
 
-func (s *service) GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.UUID) ([]MFAMethod, error) {
-	MFAMethods, err := s.MFARepo.getMFAMethodsConfirmedByUser(ctx, userID)
-	if err != nil {
-		slog.ErrorContext(ctx, "error when getting mfa methods confirmed by user id", "err", err)
-		return nil, err
-	}
-
-	return MFAMethods, nil
-}
-
 // TODO: figure out how to target which method type when creating a challenge.
 // TODO: add rate limiting
 func (s *service) CreateChallenge(ctx context.Context, userID, methodID uuid.UUID, challengetype ChallengeType, scope ChallengeScope) (MFAChallenge, error) {
