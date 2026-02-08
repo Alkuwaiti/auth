@@ -171,7 +171,7 @@ func (s *server) ConfirmMFAMethod(ctx context.Context, req *authv1.ConfirmMFAMet
 		return nil, status.Error(codes.InvalidArgument, "user id is not a uuid")
 	}
 
-	err = s.authService.ConfirmMethod(ctx, methodID, req.Code)
+	err = s.authService.ConfirmMFAMethod(ctx, methodID, req.Code)
 	if err != nil {
 		return nil, MapError(err)
 	}

@@ -33,7 +33,7 @@ type authService interface {
 	RegisterUser(context.Context, auth.RegisterUserInput) (auth.User, error)
 	DeleteUser(ctx context.Context, input auth.DeleteUserInput) error
 	EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodType) (mfa.EnrollmentResult, error)
-	ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error
+	ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code string) error
 	CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, code string) (auth.TokenPair, error)
 	CreateStepUpChallenge(ctx context.Context, methodType mfa.MFAMethodType, scope mfa.ChallengeScope) (auth.CreateStepUpChallengeResponse, error)
 	VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UUID, code string) (auth.VerifyStepUpChallengeResponse, error)

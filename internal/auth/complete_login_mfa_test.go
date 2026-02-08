@@ -44,7 +44,7 @@ func setupUserWithTOTP(t *testing.T, svc *service, ctx context.Context) (userID 
 	code, err := totp.GenerateCode(secret, time.Now())
 	require.NoError(t, err)
 
-	err = svc.MFAService.ConfirmMethod(ctx, enrollment.Method.ID, code)
+	err = svc.ConfirmMFAMethod(ctx, enrollment.Method.ID, code)
 	require.NoError(t, err)
 
 	// create MFA challenge

@@ -43,44 +43,6 @@ type EnrollmentResult struct {
 	SetupURI string
 }
 
-// TODO: decide where you want to keep backup codes. Transaction here? or no transaction at all...
-func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error {
-	ctx, span := tracer.Start(ctx, "mfaService.ConfirmMethod")
-	defer span.End()
-
-	method, err := s.MFARepo.getMFAMethodByID(ctx, methodID)
-	if err != nil {
-		slog.ErrorContext(ctx, "error when getting mfa method by id", "err", err)
-		return err
-	}
-
-	if method.ExpiresAt != nil && method.ExpiresAt.Before(time.Now()) {
-		span.SetStatus(codes.Error, "method expired")
-		return &apperrors.BadRequestError{
-			Field: "method",
-			Msg:   "enrollment window expired",
-		}
-	}
-
-	if method.ConfirmedAt != nil {
-		span.SetStatus(codes.Error, "method confirmed")
-		return &apperrors.BadRequestError{
-			Field: "method",
-			Msg:   "already confirmed",
-		}
-	}
-
-	if err := s.verifyTOTP(ctx, method.Secret, code); err != nil {
-		return err
-	}
-
-	if err := s.MFARepo.confirmUserMFAMethod(ctx, methodID); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (s *service) GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.UUID) ([]MFAMethod, error) {
 	MFAMethods, err := s.MFARepo.getMFAMethodsConfirmedByUser(ctx, userID)
 	if err != nil {
@@ -147,7 +109,7 @@ func (s *service) GetConfirmedMFAMethodByType(ctx context.Context, userID uuid.U
 	return method, nil
 }
 
-func (s *service) verifyTOTP(ctx context.Context, secret, code string) error {
+func (s *service) VerifyTOTP(ctx context.Context, secret, code string) error {
 	ctx, span := tracer.Start(ctx, "mfaService.verifyTOTP")
 	defer span.End()
 
@@ -206,7 +168,7 @@ func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 		return VerifiedChallenge{}, &apperrors.InvalidMFACodeError{}
 	}
 
-	if err := s.verifyTOTP(ctx, string(locked.SecretCiphertext), code); err != nil {
+	if err := s.VerifyTOTP(ctx, string(locked.SecretCiphertext), code); err != nil {
 		if incErr := s.MFARepo.incrementChallengeAttempts(ctx, tx, locked.ChallengeID); incErr != nil {
 			return VerifiedChallenge{}, incErr
 		}

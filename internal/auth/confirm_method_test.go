@@ -71,7 +71,7 @@ func TestConfirmMFAMethod_Success(t *testing.T) {
 	code, err := totp.GenerateCode(key.Secret(), time.Now())
 	require.NoError(t, err)
 
-	err = service.MFAService.ConfirmMethod(ctx, methodID, code)
+	err = service.ConfirmMFAMethod(ctx, methodID, code)
 	require.NoError(t, err)
 
 	var confirmedAt *time.Time
@@ -90,7 +90,7 @@ func TestConfirmMFAMethod_NotFound(t *testing.T) {
 
 	ctx := testutil.CtxWithRequestMeta()
 
-	err := service.MFAService.ConfirmMethod(ctx, uuid.New(), "123456")
+	err := service.ConfirmMFAMethod(ctx, uuid.New(), "123456")
 	require.Error(t, err)
 }
 
@@ -126,7 +126,7 @@ func TestConfirmMFAMethod_AlreadyConfirmed(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	err = service.MFAService.ConfirmMethod(ctx, methodID, "123456")
+	err = service.ConfirmMFAMethod(ctx, methodID, "123456")
 	require.Error(t, err)
 
 	var badReq *apperrors.BadRequestError
@@ -158,7 +158,7 @@ func TestConfirmMFAMethod_InvalidCode(t *testing.T) {
 
 	methodID := seedUserWithUnconfirmedTOTP(t, db, userID, encryptedSecret)
 
-	err = service.MFAService.ConfirmMethod(ctx, methodID, "000000")
+	err = service.ConfirmMFAMethod(ctx, methodID, "000000")
 	require.Error(t, err)
 
 	var badReq *apperrors.BadRequestError
@@ -200,7 +200,7 @@ func TestConfirmMFAMethod_ExpiredMethod(t *testing.T) {
 		`, methodID)
 	require.NoError(t, err)
 
-	err = service.MFAService.ConfirmMethod(ctx, methodID, code)
+	err = service.ConfirmMFAMethod(ctx, methodID, code)
 	require.Error(t, err)
 
 	var badReq *apperrors.BadRequestError

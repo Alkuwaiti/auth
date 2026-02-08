@@ -68,7 +68,6 @@ type tokenManager interface {
 }
 
 type MFAService interface {
-	ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error
 	GetConfirmedMFAMethodsByUser(ctx context.Context, userID uuid.UUID) ([]mfa.MFAMethod, error)
 	CreateChallenge(ctx context.Context, userID, methodID uuid.UUID, challengetype mfa.ChallengeType, scope mfa.ChallengeScope) (mfa.MFAChallenge, error)
 	VerifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (mfa.VerifiedChallenge, error)
@@ -81,6 +80,7 @@ type MFAService interface {
 type MFAProvider interface {
 	GenerateTOTPKey(email string) (*otp.Key, error)
 	GenerateEncryptedSecret(key *otp.Key) ([]byte, error)
+	VerifyTOTP(ctx context.Context, secret, code string) error
 }
 
 // TODO: test race condition for all of these methods.
@@ -616,13 +616,38 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodT
 	}, nil
 }
 
-func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code string) error {
-	if err := s.MFAService.ConfirmMethod(ctx, methodID, code); err != nil {
+// TODO: decide where you want to keep backup codes. Transaction here? or no transaction at all...
+func (s *service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code string) error {
+	ctx, span := tracer.Start(ctx, "AuthService.ConfirmMFAMethod")
+	defer span.End()
+
+	method, err := s.repo.getMFAMethodByID(ctx, methodID)
+	if err != nil {
+		slog.ErrorContext(ctx, "error when getting mfa method by id", "err", err)
 		return err
 	}
 
-	userID, err := contextkeys.UserIDFromContext(ctx)
-	if err != nil {
+	if method.ExpiresAt != nil && method.ExpiresAt.Before(time.Now()) {
+		span.SetStatus(codes.Error, "method expired")
+		return &apperrors.BadRequestError{
+			Field: "method",
+			Msg:   "enrollment window expired",
+		}
+	}
+
+	if method.ConfirmedAt != nil {
+		span.SetStatus(codes.Error, "method confirmed")
+		return &apperrors.BadRequestError{
+			Field: "method",
+			Msg:   "already confirmed",
+		}
+	}
+
+	if err = s.MFAProvider.VerifyTOTP(ctx, method.Secret, code); err != nil {
+		return err
+	}
+
+	if err = s.repo.confirmUserMFAMethod(ctx, methodID); err != nil {
 		return err
 	}
 
@@ -633,7 +658,7 @@ func (s *service) ConfirmMethod(ctx context.Context, methodID uuid.UUID, code st
 
 	meta := contextkeys.RequestMetaFromContext(ctx)
 	if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
-		UserID: &userID,
+		UserID: &method.UserID,
 		Action: audit.ActionConfirmMFAMethod,
 		Context: audit.AuditContext{
 			"method_type": "totp",

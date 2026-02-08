@@ -22,14 +22,6 @@ func (m *MFARepo) getMFAMethodsConfirmedByUser(ctx context.Context, userID uuid.
 	return methods, nil
 }
 
-func (m *MFARepo) confirmUserMFAMethod(ctx context.Context, methodID uuid.UUID) error {
-	if err := m.queries.ConfirmUserMFAMethod(ctx, methodID); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (m *MFARepo) userHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error) {
 	exists, err := m.queries.UserHasActiveMFAMethod(ctx, userID)
 	if err != nil {
