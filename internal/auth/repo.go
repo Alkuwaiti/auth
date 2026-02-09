@@ -22,6 +22,10 @@ func NewRepo(db *sql.DB) *repo {
 	}
 }
 
+func (r *repo) beginTx(ctx context.Context) (*sql.Tx, error) {
+	return r.db.BeginTx(ctx, nil)
+}
+
 func (r *repo) execTx(ctx context.Context, fn func(*postgres.Queries) error) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
