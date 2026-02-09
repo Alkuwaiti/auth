@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
-	"github.com/google/uuid"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 	"go.opentelemetry.io/otel"
@@ -16,18 +15,16 @@ import (
 )
 
 type service struct {
-	MFARepo MFARepo
-	crypto  Crypto
-	Config  Config
+	crypto Crypto
+	Config Config
 }
 
 var tracer = otel.Tracer("auth-service/mfa")
 
-func NewService(MFARepo MFARepo, crypto Crypto, config Config) *service {
+func NewService(crypto Crypto, config Config) *service {
 	return &service{
-		MFARepo: MFARepo,
-		crypto:  crypto,
-		Config:  config,
+		crypto: crypto,
+		Config: config,
 	}
 }
 
@@ -76,15 +73,6 @@ func (s *service) VerifyTOTP(ctx context.Context, secret, code string) error {
 	}
 
 	return nil
-}
-
-func (s *service) UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error) {
-	exists, err := s.MFARepo.userHasActiveMFAMethod(ctx, userID)
-	if err != nil {
-		return false, err
-	}
-
-	return exists, nil
 }
 
 func (s *service) GenerateTOTPKey(email string) (*otp.Key, error) {

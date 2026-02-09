@@ -925,3 +925,12 @@ func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uui
 
 	return lockedChallenge, nil
 }
+
+func (s *service) UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error) {
+	exists, err := s.repo.userHasActiveMFAMethod(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}

@@ -88,6 +88,15 @@ func (r *repo) getConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID
 	return toMFAMethod(method), nil
 }
 
+func (r *repo) userHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error) {
+	exists, err := r.queries.UserHasActiveMFAMethod(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}
+
 func toMFAMethod(row postgres.UserMfaMethod) mfa.MFAMethod {
 	var confirmedAt *time.Time
 	if row.ConfirmedAt.Valid {
