@@ -885,8 +885,44 @@ func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 		}
 	}
 
-	_, err = s.MFAService.VerifyAndConsumeChallenge(ctx, challengeID, code)
+	tx, err := s.repo.beginTx(ctx)
 	if err != nil {
+		return VerifyStepUpChallengeResponse{}, err
+	}
+	defer func() {
+		if err = tx.Rollback(); err != nil && err != sql.ErrTxDone {
+			slog.ErrorContext(ctx, "rollback failed", "err", err)
+		}
+	}()
+
+	lockedChallenge, err := s.repo.lockActiveTOTPChallenge(ctx, tx, challengeID)
+	if err != nil {
+		if errors.Is(err, mfa.ErrInvalidMFAChallenge) {
+			return VerifyStepUpChallengeResponse{}, &apperrors.InvalidMFACodeError{}
+		}
+
+		slog.ErrorContext(ctx, "error locking active totp challenge", "err", err)
+		return VerifyStepUpChallengeResponse{}, err
+	}
+
+	if lockedChallenge.Attempts >= s.Config.MaxChallengeAttempts {
+		return VerifyStepUpChallengeResponse{}, &apperrors.InvalidMFACodeError{}
+	}
+
+	if err = s.MFAProvider.VerifyTOTP(ctx, string(lockedChallenge.SecretCiphertext), code); err != nil {
+		if incErr := s.repo.incrementChallengeAttempts(ctx, tx, lockedChallenge.ChallengeID); incErr != nil {
+			return VerifyStepUpChallengeResponse{}, incErr
+		}
+		return VerifyStepUpChallengeResponse{}, err
+	}
+
+	if err = s.repo.consumeChallenge(ctx, tx, lockedChallenge.ChallengeID); err != nil {
+		slog.ErrorContext(ctx, "error consuming challenge", "err", err)
+		return VerifyStepUpChallengeResponse{}, err
+	}
+
+	if err = tx.Commit(); err != nil {
+		slog.ErrorContext(ctx, "error committing transaction", "err", err)
 		return VerifyStepUpChallengeResponse{}, err
 	}
 
