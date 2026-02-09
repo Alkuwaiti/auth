@@ -4,8 +4,6 @@ package mfa
 import (
 	"context"
 	"crypto/rand"
-	"database/sql"
-	"errors"
 	"log/slog"
 	"time"
 
@@ -78,55 +76,6 @@ func (s *service) VerifyTOTP(ctx context.Context, secret, code string) error {
 	}
 
 	return nil
-}
-
-func (s *service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (VerifiedChallenge, error) {
-	tx, err := s.MFARepo.beginTx(ctx)
-	if err != nil {
-		return VerifiedChallenge{}, err
-	}
-	defer func() {
-		if err = tx.Rollback(); err != nil && err != sql.ErrTxDone {
-			slog.ErrorContext(ctx, "rollback failed", "err", err)
-		}
-	}()
-
-	locked, err := s.MFARepo.lockActiveTOTPChallenge(ctx, tx, challengeID)
-	if err != nil {
-		if errors.Is(err, ErrInvalidMFAChallenge) {
-			return VerifiedChallenge{}, &apperrors.InvalidMFACodeError{}
-		}
-
-		slog.ErrorContext(ctx, "error locking active totp challenge", "err", err)
-		return VerifiedChallenge{}, err
-	}
-
-	if locked.Attempts >= s.Config.MaxChallengeAttempts {
-		return VerifiedChallenge{}, &apperrors.InvalidMFACodeError{}
-	}
-
-	if err := s.VerifyTOTP(ctx, string(locked.SecretCiphertext), code); err != nil {
-		if incErr := s.MFARepo.incrementChallengeAttempts(ctx, tx, locked.ChallengeID); incErr != nil {
-			return VerifiedChallenge{}, incErr
-		}
-		return VerifiedChallenge{}, err
-	}
-
-	if err := s.MFARepo.consumeChallenge(ctx, tx, locked.ChallengeID); err != nil {
-		slog.ErrorContext(ctx, "error consuming challenge", "err", err)
-		return VerifiedChallenge{}, err
-	}
-
-	if err := tx.Commit(); err != nil {
-		slog.ErrorContext(ctx, "error committing transaction", "err", err)
-		return VerifiedChallenge{}, err
-	}
-
-	return VerifiedChallenge{
-		ChallengeID: locked.ChallengeID,
-		UserID:      locked.UserID,
-		MethodID:    locked.MethodID,
-	}, nil
 }
 
 func (s *service) UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error) {

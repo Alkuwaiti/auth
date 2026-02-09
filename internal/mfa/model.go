@@ -41,6 +41,5 @@ type LockedTOTPChallenge struct {
 }
 
 type Config struct {
-	AppName              string
-	MaxChallengeAttempts int
+	AppName string
 }

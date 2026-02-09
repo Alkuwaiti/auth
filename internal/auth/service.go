@@ -27,7 +27,6 @@ type service struct {
 	authorizer   authorizer
 	flags        featureFlags
 	tokenManager tokenManager
-	MFAService   MFAService
 	MFAProvider  MFAProvider
 	Config       Config
 }
@@ -36,7 +35,7 @@ type Config struct {
 	MaxChallengeAttempts int
 }
 
-func NewService(repo *repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAService MFAService, MFAProvider MFAProvider, Config Config) *service {
+func NewService(repo *repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, Config Config) *service {
 	return &service{
 		repo:         repo,
 		passwords:    passwords,
@@ -44,7 +43,6 @@ func NewService(repo *repo, passwords passwords, auditor auditor, authorizer aut
 		authorizer:   authorizer,
 		flags:        flags,
 		tokenManager: tokenManager,
-		MFAService:   MFAService,
 		MFAProvider:  MFAProvider,
 		Config:       Config,
 	}
@@ -72,10 +70,6 @@ type tokenManager interface {
 	GenerateAccessToken(roles []string, userID, email string) (string, error)
 	GenerateRefreshToken() (string, error)
 	GenerateStepUpToken(userID, email, scope string) (string, time.Time, error)
-}
-
-type MFAService interface {
-	VerifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (mfa.VerifiedChallenge, error)
 }
 
 type MFAProvider interface {
@@ -681,44 +675,8 @@ func (s *service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 }
 
 func (s *service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, code string) (TokenPair, error) {
-	tx, err := s.repo.beginTx(ctx)
+	lockedChallenge, err := s.verifyAndConsumeChallenge(ctx, challengeID, code)
 	if err != nil {
-		return TokenPair{}, err
-	}
-	defer func() {
-		if err = tx.Rollback(); err != nil && err != sql.ErrTxDone {
-			slog.ErrorContext(ctx, "rollback failed", "err", err)
-		}
-	}()
-
-	lockedChallenge, err := s.repo.lockActiveTOTPChallenge(ctx, tx, challengeID)
-	if err != nil {
-		if errors.Is(err, mfa.ErrInvalidMFAChallenge) {
-			return TokenPair{}, &apperrors.InvalidMFACodeError{}
-		}
-
-		slog.ErrorContext(ctx, "error locking active totp challenge", "err", err)
-		return TokenPair{}, err
-	}
-
-	if lockedChallenge.Attempts >= s.Config.MaxChallengeAttempts {
-		return TokenPair{}, &apperrors.InvalidMFACodeError{}
-	}
-
-	if err = s.MFAProvider.VerifyTOTP(ctx, string(lockedChallenge.SecretCiphertext), code); err != nil {
-		if incErr := s.repo.incrementChallengeAttempts(ctx, tx, lockedChallenge.ChallengeID); incErr != nil {
-			return TokenPair{}, incErr
-		}
-		return TokenPair{}, err
-	}
-
-	if err = s.repo.consumeChallenge(ctx, tx, lockedChallenge.ChallengeID); err != nil {
-		slog.ErrorContext(ctx, "error consuming challenge", "err", err)
-		return TokenPair{}, err
-	}
-
-	if err = tx.Commit(); err != nil {
-		slog.ErrorContext(ctx, "error committing transaction", "err", err)
 		return TokenPair{}, err
 	}
 
@@ -885,44 +843,8 @@ func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 		}
 	}
 
-	tx, err := s.repo.beginTx(ctx)
+	_, err = s.verifyAndConsumeChallenge(ctx, challengeID, code)
 	if err != nil {
-		return VerifyStepUpChallengeResponse{}, err
-	}
-	defer func() {
-		if err = tx.Rollback(); err != nil && err != sql.ErrTxDone {
-			slog.ErrorContext(ctx, "rollback failed", "err", err)
-		}
-	}()
-
-	lockedChallenge, err := s.repo.lockActiveTOTPChallenge(ctx, tx, challengeID)
-	if err != nil {
-		if errors.Is(err, mfa.ErrInvalidMFAChallenge) {
-			return VerifyStepUpChallengeResponse{}, &apperrors.InvalidMFACodeError{}
-		}
-
-		slog.ErrorContext(ctx, "error locking active totp challenge", "err", err)
-		return VerifyStepUpChallengeResponse{}, err
-	}
-
-	if lockedChallenge.Attempts >= s.Config.MaxChallengeAttempts {
-		return VerifyStepUpChallengeResponse{}, &apperrors.InvalidMFACodeError{}
-	}
-
-	if err = s.MFAProvider.VerifyTOTP(ctx, string(lockedChallenge.SecretCiphertext), code); err != nil {
-		if incErr := s.repo.incrementChallengeAttempts(ctx, tx, lockedChallenge.ChallengeID); incErr != nil {
-			return VerifyStepUpChallengeResponse{}, incErr
-		}
-		return VerifyStepUpChallengeResponse{}, err
-	}
-
-	if err = s.repo.consumeChallenge(ctx, tx, lockedChallenge.ChallengeID); err != nil {
-		slog.ErrorContext(ctx, "error consuming challenge", "err", err)
-		return VerifyStepUpChallengeResponse{}, err
-	}
-
-	if err = tx.Commit(); err != nil {
-		slog.ErrorContext(ctx, "error committing transaction", "err", err)
 		return VerifyStepUpChallengeResponse{}, err
 	}
 
@@ -956,4 +878,50 @@ func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 		StepUpToken: token,
 		ExpiresIn:   expiresIn,
 	}, nil
+}
+
+// verifyAndConsumeChallenge handles the common flow of verifying a TOTP challenge
+// Returns the locked challenge on success
+func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (mfa.LockedTOTPChallenge, error) {
+	tx, err := s.repo.beginTx(ctx)
+	if err != nil {
+		return mfa.LockedTOTPChallenge{}, err
+	}
+	defer func() {
+		if err = tx.Rollback(); err != nil && err != sql.ErrTxDone {
+			slog.ErrorContext(ctx, "rollback failed", "err", err)
+		}
+	}()
+
+	lockedChallenge, err := s.repo.lockActiveTOTPChallenge(ctx, tx, challengeID)
+	if err != nil {
+		if errors.Is(err, mfa.ErrInvalidMFAChallenge) {
+			return mfa.LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
+		}
+		slog.ErrorContext(ctx, "error locking active totp challenge", "err", err)
+		return mfa.LockedTOTPChallenge{}, err
+	}
+
+	if lockedChallenge.Attempts >= s.Config.MaxChallengeAttempts {
+		return mfa.LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
+	}
+
+	if err = s.MFAProvider.VerifyTOTP(ctx, string(lockedChallenge.SecretCiphertext), code); err != nil {
+		if incErr := s.repo.incrementChallengeAttempts(ctx, tx, lockedChallenge.ChallengeID); incErr != nil {
+			return mfa.LockedTOTPChallenge{}, incErr
+		}
+		return mfa.LockedTOTPChallenge{}, err
+	}
+
+	if err = s.repo.consumeChallenge(ctx, tx, lockedChallenge.ChallengeID); err != nil {
+		slog.ErrorContext(ctx, "error consuming challenge", "err", err)
+		return mfa.LockedTOTPChallenge{}, err
+	}
+
+	if err = tx.Commit(); err != nil {
+		slog.ErrorContext(ctx, "error committing transaction", "err", err)
+		return mfa.LockedTOTPChallenge{}, err
+	}
+
+	return lockedChallenge, nil
 }

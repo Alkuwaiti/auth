@@ -113,13 +113,11 @@ func main() {
 
 	multifactor := mfa.NewService(*mfaRepo, c, mfa.Config{
 		AppName: cfg.AppName,
-		// TODO: delete from here
-		MaxChallengeAttempts: cfg.MaxChallengeAttempts,
 	})
 
 	authRepo := auth.NewRepo(dbConn)
 
-	authService := auth.NewService(authRepo, passwords, auditor, authorizer, flags, tokens, multifactor, multifactor, auth.Config{
+	authService := auth.NewService(authRepo, passwords, auditor, authorizer, flags, tokens, multifactor, auth.Config{
 		// TODO: change this to a config value
 		MaxChallengeAttempts: cfg.MaxChallengeAttempts,
 	})
