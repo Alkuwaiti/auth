@@ -69,16 +69,13 @@ type tokenManager interface {
 
 type MFAService interface {
 	VerifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (mfa.VerifiedChallenge, error)
-	GetMethodByID(ctx context.Context, methodID uuid.UUID) (mfa.MFAMethod, error)
-	GetConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType mfa.MFAMethodType) (mfa.MFAMethod, error)
-	GetChallengeByID(ctx context.Context, challengeID uuid.UUID) (mfa.MFAChallenge, error)
-	GenerateBackupCodes(n int, hash func(string) (string, error)) (plain []string, hashed []string, err error)
 }
 
 type MFAProvider interface {
 	GenerateTOTPKey(email string) (*otp.Key, error)
 	GenerateEncryptedSecret(key *otp.Key) ([]byte, error)
 	VerifyTOTP(ctx context.Context, secret, code string) error
+	GenerateBackupCodes(n int, hash func(string) (string, error)) (plain []string, hashed []string, err error)
 }
 
 // TODO: test race condition for all of these methods.
@@ -654,7 +651,7 @@ func (s *service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 		return err
 	}
 
-	// codes, hashed, err := s.MFAService.GenerateBackupCodes(10, s.passwords.Hash)
+	// codes, hashed, err := s.MFAProvider.GenerateBackupCodes(10, s.passwords.Hash)
 	// if err != nil {
 	// 	return err
 	// }
@@ -778,7 +775,7 @@ func (s *service) CreateStepUpChallenge(ctx context.Context, methodType mfa.MFAM
 		return CreateStepUpChallengeResponse{}, err
 	}
 
-	method, err := s.MFAService.GetConfirmedMFAMethodByType(ctx, userID, methodType)
+	method, err := s.repo.getConfirmedMFAMethodByType(ctx, userID, methodType)
 	if err != nil {
 		return CreateStepUpChallengeResponse{}, err
 	}
@@ -821,7 +818,7 @@ func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 		return VerifyStepUpChallengeResponse{}, err
 	}
 
-	challenge, err := s.MFAService.GetChallengeByID(ctx, challengeID)
+	challenge, err := s.repo.getChallengeByID(ctx, challengeID)
 	if err != nil {
 		return VerifyStepUpChallengeResponse{}, err
 	}

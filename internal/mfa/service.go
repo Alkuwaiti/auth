@@ -45,59 +45,6 @@ type EnrollmentResult struct {
 
 // TODO: figure out how to target which method type when creating a challenge.
 // TODO: add rate limiting
-func (s *service) CreateChallenge(ctx context.Context, userID, methodID uuid.UUID, challengetype ChallengeType, scope ChallengeScope) (MFAChallenge, error) {
-	if ok := challengetype.IsValid(); !ok {
-		return MFAChallenge{}, ErrInvalidMFAChallengeType
-	}
-
-	if ok := scope.isValid(); !ok {
-		return MFAChallenge{}, ErrInvalidMFAChallengeScope
-	}
-
-	challenge, err := s.MFARepo.createChallenge(ctx, MFAChallenge{
-		MethodID:      methodID,
-		UserID:        userID,
-		Scope:         string(scope),
-		ExpiresAt:     time.Now().Add(5 * time.Minute),
-		ChallengeType: challengetype,
-	})
-	if err != nil {
-		slog.ErrorContext(ctx, "error creating challenge", "err", err)
-		return MFAChallenge{}, err
-	}
-
-	return challenge, nil
-}
-
-func (s *service) GetMethodByID(ctx context.Context, methodID uuid.UUID) (MFAMethod, error) {
-	method, err := s.MFARepo.getMFAMethodByID(ctx, methodID)
-	if err != nil {
-		slog.ErrorContext(ctx, "error getting method by id", "err", err)
-		return MFAMethod{}, err
-	}
-
-	return method, nil
-}
-
-func (s *service) GetChallengeByID(ctx context.Context, challengeID uuid.UUID) (MFAChallenge, error) {
-	challenge, err := s.MFARepo.getChallengeByID(ctx, challengeID)
-	if err != nil {
-		slog.ErrorContext(ctx, "error getting challenge by id", "err", err)
-		return MFAChallenge{}, err
-	}
-
-	return challenge, nil
-}
-
-func (s *service) GetConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType MFAMethodType) (MFAMethod, error) {
-	method, err := s.MFARepo.GetConfirmedMFAMethodByType(ctx, userID, methodType)
-	if err != nil {
-		slog.ErrorContext(ctx, "error getting confirmed mfa methods by type", "err", err)
-		return MFAMethod{}, err
-	}
-
-	return method, nil
-}
 
 func (s *service) VerifyTOTP(ctx context.Context, secret, code string) error {
 	ctx, span := tracer.Start(ctx, "mfaService.verifyTOTP")
