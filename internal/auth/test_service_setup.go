@@ -59,7 +59,9 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 		MaxChallengeAttempts: 5,
 	})
 
-	service := NewService(authRepo, passwordService, auditService, authorizerService, flagsService, tokenManager, multifactor, multifactor)
+	service := NewService(authRepo, passwordService, auditService, authorizerService, flagsService, tokenManager, multifactor, multifactor, Config{
+		MaxChallengeAttempts: 5,
+	})
 
 	cleanup := func() {
 		_ = testDB.DB.Close()

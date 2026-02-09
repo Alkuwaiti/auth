@@ -3,6 +3,7 @@ package auth
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"log/slog"
 	"time"
@@ -28,9 +29,14 @@ type service struct {
 	tokenManager tokenManager
 	MFAService   MFAService
 	MFAProvider  MFAProvider
+	Config       Config
 }
 
-func NewService(repo *repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAService MFAService, MFAProvider MFAProvider) *service {
+type Config struct {
+	MaxChallengeAttempts int
+}
+
+func NewService(repo *repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAService MFAService, MFAProvider MFAProvider, Config Config) *service {
 	return &service{
 		repo:         repo,
 		passwords:    passwords,
@@ -40,6 +46,7 @@ func NewService(repo *repo, passwords passwords, auditor auditor, authorizer aut
 		tokenManager: tokenManager,
 		MFAService:   MFAService,
 		MFAProvider:  MFAProvider,
+		Config:       Config,
 	}
 }
 
@@ -674,18 +681,54 @@ func (s *service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 }
 
 func (s *service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, code string) (TokenPair, error) {
-	verifiedChallenge, err := s.MFAService.VerifyAndConsumeChallenge(ctx, challengeID, code)
+	tx, err := s.repo.beginTx(ctx)
 	if err != nil {
 		return TokenPair{}, err
 	}
+	defer func() {
+		if err = tx.Rollback(); err != nil && err != sql.ErrTxDone {
+			slog.ErrorContext(ctx, "rollback failed", "err", err)
+		}
+	}()
 
-	user, err := s.repo.getUserByID(ctx, verifiedChallenge.UserID)
+	lockedChallenge, err := s.repo.lockActiveTOTPChallenge(ctx, tx, challengeID)
+	if err != nil {
+		if errors.Is(err, mfa.ErrInvalidMFAChallenge) {
+			return TokenPair{}, &apperrors.InvalidMFACodeError{}
+		}
+
+		slog.ErrorContext(ctx, "error locking active totp challenge", "err", err)
+		return TokenPair{}, err
+	}
+
+	if lockedChallenge.Attempts >= s.Config.MaxChallengeAttempts {
+		return TokenPair{}, &apperrors.InvalidMFACodeError{}
+	}
+
+	if err = s.MFAProvider.VerifyTOTP(ctx, string(lockedChallenge.SecretCiphertext), code); err != nil {
+		if incErr := s.repo.incrementChallengeAttempts(ctx, tx, lockedChallenge.ChallengeID); incErr != nil {
+			return TokenPair{}, incErr
+		}
+		return TokenPair{}, err
+	}
+
+	if err = s.repo.consumeChallenge(ctx, tx, lockedChallenge.ChallengeID); err != nil {
+		slog.ErrorContext(ctx, "error consuming challenge", "err", err)
+		return TokenPair{}, err
+	}
+
+	if err = tx.Commit(); err != nil {
+		slog.ErrorContext(ctx, "error committing transaction", "err", err)
+		return TokenPair{}, err
+	}
+
+	user, err := s.repo.getUserByID(ctx, lockedChallenge.UserID)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
 		}
 
-		slog.ErrorContext(ctx, "login failed: user lookup error", "user_id", verifiedChallenge.UserID, "err", err)
+		slog.ErrorContext(ctx, "login failed: user lookup error", "user_id", lockedChallenge.UserID, "err", err)
 		return TokenPair{}, err
 	}
 
