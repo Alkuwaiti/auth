@@ -231,6 +231,16 @@ func (q *Queries) CreateUserMFAMethod(ctx context.Context, arg CreateUserMFAMeth
 	return i, err
 }
 
+const deleteBackupCodesForUser = `-- name: DeleteBackupCodesForUser :exec
+DELETE FROM mfa_backup_codes
+WHERE user_id = $1
+`
+
+func (q *Queries) DeleteBackupCodesForUser(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteBackupCodesForUser, userID)
+	return err
+}
+
 const deleteExpiredUnconfirmedMethods = `-- name: DeleteExpiredUnconfirmedMethods :exec
 DELETE FROM user_mfa_methods
 WHERE
@@ -525,6 +535,21 @@ WHERE id = $1
 
 func (q *Queries) IncrementChallengeAttempts(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, incrementChallengeAttempts, id)
+	return err
+}
+
+const insertBackupCodes = `-- name: InsertBackupCodes :exec
+INSERT INTO mfa_backup_codes (user_id, code_hash)
+SELECT $1, unnest($2::text[])
+`
+
+type InsertBackupCodesParams struct {
+	UserID  uuid.UUID
+	Column2 []string
+}
+
+func (q *Queries) InsertBackupCodes(ctx context.Context, arg InsertBackupCodesParams) error {
+	_, err := q.db.ExecContext(ctx, insertBackupCodes, arg.UserID, pq.Array(arg.Column2))
 	return err
 }
 

@@ -38,9 +38,6 @@ type EnrollmentResult struct {
 	SetupURI string
 }
 
-// TODO: figure out how to target which method type when creating a challenge.
-// TODO: add rate limiting
-
 func (s *service) VerifyTOTP(ctx context.Context, secret, code string) error {
 	ctx, span := tracer.Start(ctx, "mfaService.verifyTOTP")
 	defer span.End()

@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
@@ -618,47 +619,71 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodT
 }
 
 // TODO: decide where you want to keep backup codes. Transaction here? or no transaction at all...
-func (s *service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code string) error {
+func (s *service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code string) (backupCodes []string, err error) {
 	ctx, span := tracer.Start(ctx, "AuthService.ConfirmMFAMethod")
 	defer span.End()
 
+	code = strings.TrimSpace(code)
+
 	method, err := s.repo.getMFAMethodByID(ctx, methodID)
 	if err != nil {
-		slog.ErrorContext(ctx, "error when getting mfa method by id", "err", err)
-		return err
+		return nil, err
 	}
 
 	if method.ExpiresAt != nil && method.ExpiresAt.Before(time.Now()) {
-		span.SetStatus(codes.Error, "method expired")
-		return &apperrors.BadRequestError{
+		return nil, &apperrors.BadRequestError{
 			Field: "method",
 			Msg:   "enrollment window expired",
 		}
 	}
 
 	if method.ConfirmedAt != nil {
-		span.SetStatus(codes.Error, "method confirmed")
-		return &apperrors.BadRequestError{
+		return nil, &apperrors.BadRequestError{
 			Field: "method",
 			Msg:   "already confirmed",
 		}
 	}
 
-	if err = s.MFAProvider.VerifyTOTP(ctx, method.Secret, code); err != nil {
-		return err
+	tx, err := s.repo.beginTx(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	if err = s.repo.confirmUserMFAMethod(ctx, methodID); err != nil {
-		return err
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+
+	if err = s.MFAProvider.VerifyTOTP(ctx, method.EncryptedSecret, code); err != nil {
+		return nil, err
 	}
 
-	// codes, hashed, err := s.MFAProvider.GenerateBackupCodes(10, s.passwords.Hash)
-	// if err != nil {
-	// 	return err
-	// }
+	if err = s.repo.confirmUserMFAMethod(ctx, tx, methodID); err != nil {
+		return nil, err
+	}
+
+	if err = s.repo.DeleteBackupCodesForUser(ctx, tx, method.UserID); err != nil {
+		return nil, err
+	}
+
+	backupCodes, hashed, err := s.MFAProvider.GenerateBackupCodes(10, s.passwords.Hash)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = s.repo.InsertBackupCodes(ctx, tx, method.UserID, hashed); err != nil {
+		return nil, err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, err
+	}
+	committed = true
 
 	meta := contextkeys.RequestMetaFromContext(ctx)
-	if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+	_ = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
 		UserID: &method.UserID,
 		Action: audit.ActionConfirmMFAMethod,
 		Context: audit.AuditContext{
@@ -667,11 +692,9 @@ func (s *service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 		},
 		IPAddress: &meta.IPAddress,
 		UserAgent: &meta.UserAgent,
-	}); err != nil {
-		return err
-	}
+	})
 
-	return nil
+	return backupCodes, nil
 }
 
 func (s *service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, code string) (TokenPair, error) {
@@ -880,8 +903,7 @@ func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 	}, nil
 }
 
-// verifyAndConsumeChallenge handles the common flow of verifying a TOTP challenge
-// Returns the locked challenge on success
+// TODO: add backup codes here
 func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (mfa.LockedTOTPChallenge, error) {
 	tx, err := s.repo.beginTx(ctx)
 	if err != nil {

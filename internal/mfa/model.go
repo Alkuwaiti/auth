@@ -7,13 +7,13 @@ import (
 )
 
 type MFAMethod struct {
-	ID          uuid.UUID
-	UserID      uuid.UUID
-	Type        MFAMethodType
-	ConfirmedAt *time.Time
-	Secret      string
-	CreatedAt   time.Time
-	ExpiresAt   *time.Time
+	ID              uuid.UUID
+	UserID          uuid.UUID
+	Type            MFAMethodType
+	ConfirmedAt     *time.Time
+	EncryptedSecret string
+	CreatedAt       time.Time
+	ExpiresAt       *time.Time
 }
 
 type MFAChallenge struct {

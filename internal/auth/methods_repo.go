@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/db/postgres"
@@ -22,14 +23,10 @@ func (r *repo) userHasActiveMFAMethodByType(ctx context.Context, userID uuid.UUI
 }
 
 func (r *repo) deleteExpiredUnconfirmedMethods(ctx context.Context, userID uuid.UUID, methodType mfa.MFAMethodType) error {
-	if err := r.queries.DeleteExpiredUnconfirmedMethods(ctx, postgres.DeleteExpiredUnconfirmedMethodsParams{
+	return r.queries.DeleteExpiredUnconfirmedMethods(ctx, postgres.DeleteExpiredUnconfirmedMethodsParams{
 		UserID: userID,
 		Type:   string(methodType),
-	}); err != nil {
-		return err
-	}
-
-	return nil
+	})
 }
 
 func (r *repo) createUserMFAMethod(ctx context.Context, userID uuid.UUID, secret []byte, methodType mfa.MFAMethodType) (mfa.MFAMethod, error) {
@@ -54,12 +51,8 @@ func (r *repo) getMFAMethodByID(ctx context.Context, methodID uuid.UUID) (mfa.MF
 	return toMFAMethod(postgresMethod), nil
 }
 
-func (r *repo) confirmUserMFAMethod(ctx context.Context, methodID uuid.UUID) error {
-	if err := r.queries.ConfirmUserMFAMethod(ctx, methodID); err != nil {
-		return err
-	}
-
-	return nil
+func (r *repo) confirmUserMFAMethod(ctx context.Context, tx *sql.Tx, methodID uuid.UUID) error {
+	return r.queries.WithTx(tx).ConfirmUserMFAMethod(ctx, methodID)
 }
 
 func (r *repo) getMFAMethodsConfirmedByUser(ctx context.Context, userID uuid.UUID) ([]mfa.MFAMethod, error) {
@@ -109,13 +102,13 @@ func toMFAMethod(row postgres.UserMfaMethod) mfa.MFAMethod {
 	}
 
 	return mfa.MFAMethod{
-		ID:          row.ID,
-		UserID:      row.UserID,
-		Type:        mfa.MFAMethodType(row.Type),
-		CreatedAt:   row.CreatedAt,
-		Secret:      string(row.SecretCiphertext),
-		ConfirmedAt: confirmedAt,
-		ExpiresAt:   expiresAt,
+		ID:              row.ID,
+		UserID:          row.UserID,
+		Type:            mfa.MFAMethodType(row.Type),
+		CreatedAt:       row.CreatedAt,
+		EncryptedSecret: string(row.SecretCiphertext),
+		ConfirmedAt:     confirmedAt,
+		ExpiresAt:       expiresAt,
 	}
 }
 

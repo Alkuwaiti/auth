@@ -76,17 +76,13 @@ func (r *repo) getSessionByRefreshToken(ctx context.Context, refreshToken string
 }
 
 func (r *repo) revokeSession(ctx context.Context, SessionID uuid.UUID, revocationReason RevocationReason) error {
-	if err := r.queries.RevokeSession(ctx, postgres.RevokeSessionParams{
+	return r.queries.RevokeSession(ctx, postgres.RevokeSessionParams{
 		ID: SessionID,
 		RevocationReason: sql.NullString{
 			String: string(revocationReason),
 			Valid:  revocationReason != "",
 		},
-	}); err != nil {
-		return err
-	}
-
-	return nil
+	})
 }
 
 func (r *repo) updatePasswordAndRevokeSessions(
@@ -333,6 +329,17 @@ func toSessionModel(session postgres.Session) Session {
 		RevocationReason: RevocationReason(session.RevocationReason.String),
 		CompromisedAt:    compromisedAt,
 	}
+}
+
+func (r *repo) InsertBackupCodes(ctx context.Context, tx *sql.Tx, userID uuid.UUID, hashedCodes []string) error {
+	return r.queries.WithTx(tx).InsertBackupCodes(ctx, postgres.InsertBackupCodesParams{
+		UserID:  userID,
+		Column2: hashedCodes,
+	})
+}
+
+func (r *repo) DeleteBackupCodesForUser(ctx context.Context, tx *sql.Tx, userID uuid.UUID) error {
+	return r.queries.WithTx(tx).DeleteBackupCodesForUser(ctx, userID)
 }
 
 func toUserModel(user postgres.User) User {

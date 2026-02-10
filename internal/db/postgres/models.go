@@ -33,6 +33,14 @@ type AuthToken struct {
 	CreatedAt sql.NullTime
 }
 
+type MfaBackupCode struct {
+	ID         uuid.UUID
+	UserID     uuid.UUID
+	CodeHash   string
+	ConsumedAt sql.NullTime
+	CreatedAt  time.Time
+}
+
 type MfaChallenge struct {
 	ID            uuid.UUID
 	UserID        uuid.UUID
