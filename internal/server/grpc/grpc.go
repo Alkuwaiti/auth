@@ -16,7 +16,6 @@ import (
 )
 
 type server struct {
-	// TODO: change these to unimplemented when the time comes.
 	authv1.UnsafeAuthServiceServer
 
 	srv         *grpc.Server

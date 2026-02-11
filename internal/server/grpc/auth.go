@@ -159,7 +159,7 @@ func (s *server) EnrollMFAMethod(ctx context.Context, req *authv1.EnrollMFAMetho
 	}, nil
 }
 
-func (s *server) ConfirmMFAMethod(ctx context.Context, req *authv1.ConfirmMFAMethodRequest) (*emptypb.Empty, error) {
+func (s *server) ConfirmMFAMethod(ctx context.Context, req *authv1.ConfirmMFAMethodRequest) (*authv1.ConfirmMFAMethodResponse, error) {
 	if req == nil {
 		slog.ErrorContext(ctx, "Invalid request: request is nil")
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
@@ -170,12 +170,14 @@ func (s *server) ConfirmMFAMethod(ctx context.Context, req *authv1.ConfirmMFAMet
 		return nil, status.Error(codes.InvalidArgument, "user id is not a uuid")
 	}
 
-	_, err = s.authService.ConfirmMFAMethod(ctx, methodID, req.Code)
+	backupCodes, err := s.authService.ConfirmMFAMethod(ctx, methodID, req.Code)
 	if err != nil {
 		return nil, MapError(err)
 	}
 
-	return &emptypb.Empty{}, nil
+	return &authv1.ConfirmMFAMethodResponse{
+		BackupCodes: backupCodes,
+	}, nil
 }
 
 func (s *server) CompleteLoginMFA(ctx context.Context, req *authv1.CompleteLoginMFARequest) (*authv1.TokenPair, error) {

@@ -116,7 +116,6 @@ func main() {
 	authRepo := auth.NewRepo(dbConn)
 
 	authService := auth.NewService(authRepo, passwords, auditor, authorizer, flags, tokens, multifactor, auth.Config{
-		// TODO: change this to a config value
 		MaxChallengeAttempts: cfg.MaxChallengeAttempts,
 	})
 

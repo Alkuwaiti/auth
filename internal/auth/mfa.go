@@ -148,6 +148,8 @@ func (s *service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 		return nil, err
 	}
 
+	slog.DebugContext(ctx, "where are my backup codes? ", "backupCodes", backupCodes)
+
 	if err = s.repo.InsertBackupCodes(ctx, tx, method.UserID, hashed); err != nil {
 		return nil, err
 	}
@@ -211,7 +213,6 @@ type CreateStepUpChallengeResponse struct {
 	ExpiresAt     time.Time
 }
 
-// TODO: maybe add reason to challenge.
 func (s *service) CreateStepUpChallenge(ctx context.Context, methodType MFAMethodType, scope ChallengeScope) (CreateStepUpChallengeResponse, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.CreateStepUpChallenge")
 	defer span.End()

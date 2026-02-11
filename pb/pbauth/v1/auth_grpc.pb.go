@@ -46,7 +46,7 @@ type AuthServiceClient interface {
 	RegisterUser(ctx context.Context, in *RegisterUserRequest, opts ...grpc.CallOption) (*User, error)
 	DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	EnrollMFAMethod(ctx context.Context, in *EnrollMFAMethodRequest, opts ...grpc.CallOption) (*EnrollMFAMethodResponse, error)
-	ConfirmMFAMethod(ctx context.Context, in *ConfirmMFAMethodRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	ConfirmMFAMethod(ctx context.Context, in *ConfirmMFAMethodRequest, opts ...grpc.CallOption) (*ConfirmMFAMethodResponse, error)
 	CompleteLoginMFA(ctx context.Context, in *CompleteLoginMFARequest, opts ...grpc.CallOption) (*TokenPair, error)
 	CreateStepUpChallenge(ctx context.Context, in *CreateStepUpChallengeRequest, opts ...grpc.CallOption) (*CreateStepUpChallengeResponse, error)
 	VerifyStepUpChallenge(ctx context.Context, in *VerifyStepUpChallengeRequest, opts ...grpc.CallOption) (*VerifyStepUpChallengeResponse, error)
@@ -140,9 +140,9 @@ func (c *authServiceClient) EnrollMFAMethod(ctx context.Context, in *EnrollMFAMe
 	return out, nil
 }
 
-func (c *authServiceClient) ConfirmMFAMethod(ctx context.Context, in *ConfirmMFAMethodRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *authServiceClient) ConfirmMFAMethod(ctx context.Context, in *ConfirmMFAMethodRequest, opts ...grpc.CallOption) (*ConfirmMFAMethodResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
+	out := new(ConfirmMFAMethodResponse)
 	err := c.cc.Invoke(ctx, AuthService_ConfirmMFAMethod_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -192,7 +192,7 @@ type AuthServiceServer interface {
 	RegisterUser(context.Context, *RegisterUserRequest) (*User, error)
 	DeleteUser(context.Context, *DeleteUserRequest) (*emptypb.Empty, error)
 	EnrollMFAMethod(context.Context, *EnrollMFAMethodRequest) (*EnrollMFAMethodResponse, error)
-	ConfirmMFAMethod(context.Context, *ConfirmMFAMethodRequest) (*emptypb.Empty, error)
+	ConfirmMFAMethod(context.Context, *ConfirmMFAMethodRequest) (*ConfirmMFAMethodResponse, error)
 	CompleteLoginMFA(context.Context, *CompleteLoginMFARequest) (*TokenPair, error)
 	CreateStepUpChallenge(context.Context, *CreateStepUpChallengeRequest) (*CreateStepUpChallengeResponse, error)
 	VerifyStepUpChallenge(context.Context, *VerifyStepUpChallengeRequest) (*VerifyStepUpChallengeResponse, error)
@@ -230,7 +230,7 @@ func (UnimplementedAuthServiceServer) DeleteUser(context.Context, *DeleteUserReq
 func (UnimplementedAuthServiceServer) EnrollMFAMethod(context.Context, *EnrollMFAMethodRequest) (*EnrollMFAMethodResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method EnrollMFAMethod not implemented")
 }
-func (UnimplementedAuthServiceServer) ConfirmMFAMethod(context.Context, *ConfirmMFAMethodRequest) (*emptypb.Empty, error) {
+func (UnimplementedAuthServiceServer) ConfirmMFAMethod(context.Context, *ConfirmMFAMethodRequest) (*ConfirmMFAMethodResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ConfirmMFAMethod not implemented")
 }
 func (UnimplementedAuthServiceServer) CompleteLoginMFA(context.Context, *CompleteLoginMFARequest) (*TokenPair, error) {
