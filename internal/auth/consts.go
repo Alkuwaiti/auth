@@ -12,6 +12,10 @@ const (
 	RevocationUserDeleted        RevocationReason = "user deleted"
 )
 
+func (r RevocationReason) String() string {
+	return string(r)
+}
+
 type DeletionReason string
 
 const (
@@ -20,13 +24,20 @@ const (
 	DeletionAdminAction DeletionReason = "ADMIN_ACTION"
 )
 
-func (d DeletionReason) Validate() error {
+func (d DeletionReason) validate() error {
 	switch d {
 	case DeletionUserBot, DeletionUserRequest, DeletionAdminAction:
 		return nil
 	default:
-		return &apperrors.ValidationError{Field: "deletion reason", Msg: "invalid deletion reason"}
+		return &apperrors.ValidationError{
+			Field: "deletion reason",
+			Msg:   "invalid deletion reason",
+		}
 	}
+}
+
+func (d DeletionReason) String() string {
+	return string(d)
 }
 
 type MFAMethodType string
@@ -35,13 +46,20 @@ const (
 	MFAMethodTOTP MFAMethodType = "totp"
 )
 
-func (t MFAMethodType) IsValid() bool {
+func (t MFAMethodType) validate() error {
 	switch t {
 	case MFAMethodTOTP:
-		return true
+		return nil
 	default:
-		return false
+		return &apperrors.ValidationError{
+			Field: "method type",
+			Msg:   "invalid method type",
+		}
 	}
+}
+
+func (t MFAMethodType) String() string {
+	return string(t)
 }
 
 type ChallengeType string
@@ -51,6 +69,10 @@ const (
 	ChallengeStepUp ChallengeType = "step_up"
 )
 
+func (c ChallengeType) String() string {
+	return string(c)
+}
+
 type ChallengeScope string
 
 const (
@@ -58,3 +80,7 @@ const (
 	ScopeDeleteAccount  ChallengeScope = "delete_account"
 	ScopeChangePassword ChallengeScope = "change_password"
 )
+
+func (c ChallengeScope) String() string {
+	return string(c)
+}

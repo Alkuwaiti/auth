@@ -31,7 +31,7 @@ func (r *repo) deleteExpiredUnconfirmedMethods(ctx context.Context, userID uuid.
 func (r *repo) createUserMFAMethod(ctx context.Context, userID uuid.UUID, secret []byte, methodType MFAMethodType) (MFAMethod, error) {
 	postgresMFAMethod, err := r.queries.CreateUserMFAMethod(ctx, postgres.CreateUserMFAMethodParams{
 		UserID:           userID,
-		Type:             string(methodType),
+		Type:             methodType.String(),
 		SecretCiphertext: secret,
 	})
 	if err != nil {

@@ -14,8 +14,8 @@ func (r *repo) createChallenge(ctx context.Context, challenge MFAChallenge) (MFA
 	postgresChallenge, err := r.queries.CreateChallenge(ctx, postgres.CreateChallengeParams{
 		UserID:        challenge.UserID,
 		MfaMethodID:   challenge.MethodID,
-		Scope:         challenge.Scope,
-		ChallengeType: string(challenge.ChallengeType),
+		Scope:         challenge.Scope.String(),
+		ChallengeType: challenge.ChallengeType.String(),
 		ExpiresAt:     time.Now().Add(5 * time.Minute),
 	})
 	if err != nil {
@@ -81,7 +81,7 @@ func toMFAChallenge(row postgres.MfaChallenge) MFAChallenge {
 		UserID:     row.UserID,
 		MethodID:   row.MfaMethodID,
 		ExpiresAt:  row.ExpiresAt,
-		Scope:      row.Scope,
+		Scope:      ChallengeScope(row.Scope),
 		ConsumedAt: consumedAt,
 	}
 }

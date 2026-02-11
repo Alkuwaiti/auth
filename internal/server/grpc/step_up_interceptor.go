@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/contextkeys"
 	"github.com/alkuwaiti/auth/internal/tokens"
 	"github.com/google/uuid"
@@ -13,9 +14,9 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var StepUpMethods = map[string]string{
-	"/auth.v1.AuthService/DeleteAccount":  "delete_account",
-	"/auth.v1.AuthService/ChangePassword": "change_password",
+var StepUpMethods = map[string]auth.ChallengeScope{
+	"/auth.v1.AuthService/DeleteAccount":  auth.ScopeDeleteAccount,
+	"/auth.v1.AuthService/ChangePassword": auth.ScopeChangePassword,
 }
 
 type StepUpInterceptor struct {
@@ -74,7 +75,7 @@ func (i *StepUpInterceptor) Unary() grpc.UnaryServerInterceptor {
 			return nil, status.Error(codes.Unauthenticated, "invalid step-up token")
 		}
 
-		if claims.Scope != requiredScope {
+		if claims.Scope != requiredScope.String() {
 			return nil, status.Errorf(
 				codes.PermissionDenied,
 				"insufficient scope: required=%s, got=%s",

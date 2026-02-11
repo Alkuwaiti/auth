@@ -37,7 +37,7 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType MFAMethodType)
 		return EnrollmentResult{}, err
 	}
 
-	if !methodType.IsValid() {
+	if err = methodType.validate(); err != nil {
 		return EnrollmentResult{}, &apperrors.ValidationError{
 			Field: "method type",
 			Msg:   "invalid MFA method type",
@@ -229,8 +229,8 @@ func (s *service) CreateStepUpChallenge(ctx context.Context, methodType MFAMetho
 	challenge, err := s.repo.createChallenge(ctx, MFAChallenge{
 		MethodID:      method.ID,
 		UserID:        userID,
-		Scope:         string(ScopeLogin),
-		ChallengeType: ChallengeLogin,
+		Scope:         ScopeLogin,
+		ChallengeType: ChallengeStepUp,
 	})
 	if err != nil {
 		return CreateStepUpChallengeResponse{}, err
@@ -298,7 +298,7 @@ func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 		return VerifyStepUpChallengeResponse{}, err
 	}
 
-	token, expiresIn, err := s.tokenManager.GenerateStepUpToken(userID.String(), email, challenge.Scope)
+	token, expiresIn, err := s.tokenManager.GenerateStepUpToken(userID.String(), email, challenge.Scope.String())
 	if err != nil {
 		slog.ErrorContext(ctx, "error generating step up token", "err", err)
 		return VerifyStepUpChallengeResponse{}, err

@@ -19,8 +19,6 @@ type service struct {
 	Config Config
 }
 
-var tracer = otel.Tracer("auth-service/mfa")
-
 type Config struct {
 	AppName string
 }
@@ -36,6 +34,8 @@ type Crypto interface {
 	Encrypt(plaintext []byte) ([]byte, error)
 	Decrypt(ciphertext []byte) ([]byte, error)
 }
+
+var tracer = otel.Tracer("auth-service/mfa")
 
 func (s *service) VerifyTOTP(ctx context.Context, secret, code string) error {
 	ctx, span := tracer.Start(ctx, "mfaService.verifyTOTP")

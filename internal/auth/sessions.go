@@ -77,7 +77,7 @@ func (s *service) Login(ctx context.Context, email, password string) (LoginResul
 		challenge, err = s.repo.createChallenge(ctx, MFAChallenge{
 			MethodID:      methods[0].ID,
 			UserID:        user.ID,
-			Scope:         string(ScopeLogin),
+			Scope:         ScopeLogin,
 			ChallengeType: ChallengeLogin,
 		})
 		if err != nil {

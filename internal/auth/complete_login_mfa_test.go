@@ -50,7 +50,7 @@ func setupUserWithTOTP(t *testing.T, svc *service, ctx context.Context) (userID 
 	challenge, err := svc.repo.createChallenge(ctx, MFAChallenge{
 		MethodID:      enrollment.Method.ID,
 		UserID:        user.ID,
-		Scope:         string(ScopeLogin),
+		Scope:         ScopeLogin,
 		ChallengeType: ChallengeLogin,
 	})
 	require.NoError(t, err)

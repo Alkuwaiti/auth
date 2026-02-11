@@ -97,7 +97,7 @@ type DeleteUserInput struct {
 }
 
 func (d *DeleteUserInput) validate() error {
-	if err := d.DeletionReason.Validate(); err != nil {
+	if err := d.DeletionReason.validate(); err != nil {
 		return err
 	}
 
@@ -133,7 +133,7 @@ type MFAChallenge struct {
 	ID            uuid.UUID
 	UserID        uuid.UUID
 	MethodID      uuid.UUID
-	Scope         string
+	Scope         ChallengeScope
 	ChallengeType ChallengeType
 	ExpiresAt     time.Time
 	ConsumedAt    *time.Time
