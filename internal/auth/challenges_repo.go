@@ -7,11 +7,10 @@ import (
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/db/postgres"
-	"github.com/alkuwaiti/auth/internal/mfa"
 	"github.com/google/uuid"
 )
 
-func (r *repo) createChallenge(ctx context.Context, challenge mfa.MFAChallenge) (mfa.MFAChallenge, error) {
+func (r *repo) createChallenge(ctx context.Context, challenge MFAChallenge) (MFAChallenge, error) {
 	postgresChallenge, err := r.queries.CreateChallenge(ctx, postgres.CreateChallengeParams{
 		UserID:        challenge.UserID,
 		MfaMethodID:   challenge.MethodID,
@@ -20,33 +19,41 @@ func (r *repo) createChallenge(ctx context.Context, challenge mfa.MFAChallenge) 
 		ExpiresAt:     time.Now().Add(5 * time.Minute),
 	})
 	if err != nil {
-		return mfa.MFAChallenge{}, err
+		return MFAChallenge{}, err
 	}
 
 	return toMFAChallenge(postgresChallenge), nil
 }
 
-func (r *repo) getChallengeByID(ctx context.Context, challengeID uuid.UUID) (mfa.MFAChallenge, error) {
+func (r *repo) getChallengeByID(ctx context.Context, challengeID uuid.UUID) (MFAChallenge, error) {
 	challenge, err := r.queries.GetChallengeByID(ctx, challengeID)
 	if err != nil {
-		return mfa.MFAChallenge{}, err
+		return MFAChallenge{}, err
 	}
 
 	return toMFAChallenge(challenge), nil
 }
 
-func (r *repo) lockActiveTOTPChallenge(ctx context.Context, tx *sql.Tx, challengeID uuid.UUID) (mfa.LockedTOTPChallenge, error) {
+type LockedTOTPChallenge struct {
+	ChallengeID      uuid.UUID
+	UserID           uuid.UUID
+	MethodID         uuid.UUID
+	Attempts         int
+	SecretCiphertext []byte
+}
+
+func (r *repo) lockActiveTOTPChallenge(ctx context.Context, tx *sql.Tx, challengeID uuid.UUID) (LockedTOTPChallenge, error) {
 	q := r.queries.WithTx(tx)
 
 	row, err := q.LockActiveTOTPChallenge(ctx, challengeID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return mfa.LockedTOTPChallenge{}, mfa.ErrInvalidMFAChallenge
+			return LockedTOTPChallenge{}, ErrInvalidMFAChallenge
 		}
-		return mfa.LockedTOTPChallenge{}, err
+		return LockedTOTPChallenge{}, err
 	}
 
-	return mfa.LockedTOTPChallenge{
+	return LockedTOTPChallenge{
 		ChallengeID:      row.ChallengeID,
 		UserID:           row.UserID,
 		MethodID:         row.MethodID,
@@ -63,13 +70,13 @@ func (r *repo) consumeChallenge(ctx context.Context, tx *sql.Tx, challengeID uui
 	return r.queries.WithTx(tx).ConsumeChallenge(ctx, challengeID)
 }
 
-func toMFAChallenge(row postgres.MfaChallenge) mfa.MFAChallenge {
+func toMFAChallenge(row postgres.MfaChallenge) MFAChallenge {
 	var consumedAt *time.Time
 	if row.ConsumedAt.Valid {
 		consumedAt = &row.ConsumedAt.Time
 	}
 
-	return mfa.MFAChallenge{
+	return MFAChallenge{
 		ID:         row.ID,
 		UserID:     row.UserID,
 		MethodID:   row.MfaMethodID,

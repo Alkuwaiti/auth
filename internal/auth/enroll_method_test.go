@@ -7,7 +7,6 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/alkuwaiti/auth/internal/mfa"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -16,19 +15,19 @@ import (
 func TestEnrollMFAMethod(t *testing.T) {
 	tests := []struct {
 		name    string
-		method  mfa.MFAMethodType
+		method  MFAMethodType
 		seed    func(t *testing.T, svc *service, db *sql.DB, userID uuid.UUID, ctx context.Context)
 		wantErr bool
 		wantURI bool
 	}{
 		{
 			name:    "invalid method type",
-			method:  mfa.MFAMethodType("invalid"),
+			method:  MFAMethodType("invalid"),
 			wantErr: true,
 		},
 		{
 			name:   "method already exists",
-			method: mfa.MFAMethodTOTP,
+			method: MFAMethodTOTP,
 			seed: func(t *testing.T, svc *service, db *sql.DB, userID uuid.UUID, ctx context.Context) {
 
 				_, err := db.ExecContext(ctx, `
@@ -43,7 +42,7 @@ func TestEnrollMFAMethod(t *testing.T) {
 					`,
 					uuid.New(),
 					userID,
-					mfa.MFAMethodTOTP,
+					MFAMethodTOTP,
 					[]byte("encrypted-secret"),
 				)
 				require.NoError(t, err)
@@ -52,7 +51,7 @@ func TestEnrollMFAMethod(t *testing.T) {
 		},
 		{
 			name:    "successful enrollment",
-			method:  mfa.MFAMethodTOTP,
+			method:  MFAMethodTOTP,
 			wantURI: true,
 		},
 	}

@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"log/slog"
 	"strings"
@@ -10,29 +11,34 @@ import (
 	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/contextkeys"
-	"github.com/alkuwaiti/auth/internal/mfa"
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 )
 
+type EnrollmentResult struct {
+	Method   MFAMethod
+	SetupURI string
+}
+
 // TODO: enroll other methods.
 // TODO: make sure to reference the completionist's MFA guide.
-func (s *service) EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodType) (mfa.EnrollmentResult, error) {
+func (s *service) EnrollMFAMethod(ctx context.Context, methodType MFAMethodType) (EnrollmentResult, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.EnrollMethod")
 	defer span.End()
 
 	userID, err := contextkeys.UserIDFromContext(ctx)
 	if err != nil {
-		return mfa.EnrollmentResult{}, err
+		return EnrollmentResult{}, err
 	}
 
 	userEmail, err := contextkeys.UserEmailFromContext(ctx)
 	if err != nil {
-		return mfa.EnrollmentResult{}, err
+		return EnrollmentResult{}, err
 	}
 
 	if !methodType.IsValid() {
-		return mfa.EnrollmentResult{}, &apperrors.ValidationError{
+		return EnrollmentResult{}, &apperrors.ValidationError{
 			Field: "method type",
 			Msg:   "invalid MFA method type",
 		}
@@ -41,17 +47,17 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodT
 	exists, err := s.repo.userHasActiveMFAMethodByType(ctx, userID, methodType)
 	if err != nil {
 		slog.ErrorContext(ctx, "error when checking if user has an active MFA method", "user_id", userID, "method_type", methodType, "err", err)
-		return mfa.EnrollmentResult{}, err
+		return EnrollmentResult{}, err
 	}
 	if exists {
-		return mfa.EnrollmentResult{}, &apperrors.BadRequestError{
+		return EnrollmentResult{}, &apperrors.BadRequestError{
 			Field: "MFAMethod",
 			Msg:   "MFA method already enrolled",
 		}
 	}
 
 	if err = s.repo.deleteExpiredUnconfirmedMethods(ctx, userID, methodType); err != nil {
-		return mfa.EnrollmentResult{}, err
+		return EnrollmentResult{}, err
 	}
 
 	key, err := s.MFAProvider.GenerateTOTPKey(userEmail)
@@ -59,7 +65,7 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodT
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "totp generation failed")
 		slog.ErrorContext(ctx, "error generating totp", "err", err)
-		return mfa.EnrollmentResult{}, err
+		return EnrollmentResult{}, err
 	}
 
 	setupURI := key.URL()
@@ -69,17 +75,17 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodT
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "error encrypting")
 		slog.ErrorContext(ctx, "error when encrypting secret", "err", err)
-		return mfa.EnrollmentResult{}, err
+		return EnrollmentResult{}, err
 	}
 
 	method, err := s.repo.createUserMFAMethod(ctx, userID, encryptedSecret, methodType)
 	if err != nil {
 		slog.ErrorContext(ctx, "error when creating a user mfa method", "err", err)
-		return mfa.EnrollmentResult{}, err
+		return EnrollmentResult{}, err
 	}
 
-	return mfa.EnrollmentResult{
-		Method: mfa.MFAMethod{
+	return EnrollmentResult{
+		Method: MFAMethod{
 			ID:        method.ID,
 			Type:      method.Type,
 			CreatedAt: method.CreatedAt,
@@ -88,7 +94,6 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType mfa.MFAMethodT
 	}, nil
 }
 
-// TODO: decide where you want to keep backup codes. Transaction here? or no transaction at all...
 func (s *service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code string) (backupCodes []string, err error) {
 	ctx, span := tracer.Start(ctx, "AuthService.ConfirmMFAMethod")
 	defer span.End()
@@ -200,8 +205,14 @@ func (s *service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, c
 	return s.finalizeLogin(ctx, user, audit.ActionLoginMFA)
 }
 
+type CreateStepUpChallengeResponse struct {
+	ChallengeID   uuid.UUID
+	MFAMethodType MFAMethodType
+	ExpiresAt     time.Time
+}
+
 // TODO: maybe add reason to challenge.
-func (s *service) CreateStepUpChallenge(ctx context.Context, methodType mfa.MFAMethodType, scope mfa.ChallengeScope) (CreateStepUpChallengeResponse, error) {
+func (s *service) CreateStepUpChallenge(ctx context.Context, methodType MFAMethodType, scope ChallengeScope) (CreateStepUpChallengeResponse, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.CreateStepUpChallenge")
 	defer span.End()
 
@@ -215,11 +226,11 @@ func (s *service) CreateStepUpChallenge(ctx context.Context, methodType mfa.MFAM
 		return CreateStepUpChallengeResponse{}, err
 	}
 
-	challenge, err := s.repo.createChallenge(ctx, mfa.MFAChallenge{
+	challenge, err := s.repo.createChallenge(ctx, MFAChallenge{
 		MethodID:      method.ID,
 		UserID:        userID,
-		Scope:         string(mfa.ScopeLogin),
-		ChallengeType: mfa.ChallengeLogin,
+		Scope:         string(ScopeLogin),
+		ChallengeType: ChallengeLogin,
 	})
 	if err != nil {
 		return CreateStepUpChallengeResponse{}, err
@@ -236,6 +247,11 @@ func (s *service) CreateStepUpChallenge(ctx context.Context, methodType mfa.MFAM
 		MFAMethodType: methodType,
 		ExpiresAt:     challenge.ExpiresAt,
 	}, nil
+}
+
+type VerifyStepUpChallengeResponse struct {
+	StepUpToken string
+	ExpiresIn   time.Time
 }
 
 // TODO: add tests
@@ -315,10 +331,10 @@ func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 }
 
 // TODO: add backup codes here
-func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (mfa.LockedTOTPChallenge, error) {
+func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (LockedTOTPChallenge, error) {
 	tx, err := s.repo.beginTx(ctx)
 	if err != nil {
-		return mfa.LockedTOTPChallenge{}, err
+		return LockedTOTPChallenge{}, err
 	}
 	defer func() {
 		if err = tx.Rollback(); err != nil && err != sql.ErrTxDone {
@@ -328,32 +344,32 @@ func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uui
 
 	lockedChallenge, err := s.repo.lockActiveTOTPChallenge(ctx, tx, challengeID)
 	if err != nil {
-		if errors.Is(err, mfa.ErrInvalidMFAChallenge) {
-			return mfa.LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
+		if errors.Is(err, ErrInvalidMFAChallenge) {
+			return LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
 		}
 		slog.ErrorContext(ctx, "error locking active totp challenge", "err", err)
-		return mfa.LockedTOTPChallenge{}, err
+		return LockedTOTPChallenge{}, err
 	}
 
 	if lockedChallenge.Attempts >= s.Config.MaxChallengeAttempts {
-		return mfa.LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
+		return LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
 	}
 
 	if err = s.MFAProvider.VerifyTOTP(ctx, string(lockedChallenge.SecretCiphertext), code); err != nil {
 		if incErr := s.repo.incrementChallengeAttempts(ctx, tx, lockedChallenge.ChallengeID); incErr != nil {
-			return mfa.LockedTOTPChallenge{}, incErr
+			return LockedTOTPChallenge{}, incErr
 		}
-		return mfa.LockedTOTPChallenge{}, err
+		return LockedTOTPChallenge{}, err
 	}
 
 	if err = s.repo.consumeChallenge(ctx, tx, lockedChallenge.ChallengeID); err != nil {
 		slog.ErrorContext(ctx, "error consuming challenge", "err", err)
-		return mfa.LockedTOTPChallenge{}, err
+		return LockedTOTPChallenge{}, err
 	}
 
 	if err = tx.Commit(); err != nil {
 		slog.ErrorContext(ctx, "error committing transaction", "err", err)
-		return mfa.LockedTOTPChallenge{}, err
+		return LockedTOTPChallenge{}, err
 	}
 
 	return lockedChallenge, nil

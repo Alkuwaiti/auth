@@ -5,7 +5,6 @@ import (
 	"log/slog"
 
 	"github.com/alkuwaiti/auth/internal/auth"
-	"github.com/alkuwaiti/auth/internal/mfa"
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
@@ -145,7 +144,7 @@ func (s *server) EnrollMFAMethod(ctx context.Context, req *authv1.EnrollMFAMetho
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	res, err := s.authService.EnrollMFAMethod(ctx, mfa.MFAMethodType(req.Method))
+	res, err := s.authService.EnrollMFAMethod(ctx, auth.MFAMethodType(req.Method))
 	if err != nil {
 		return nil, MapError(err)
 	}
@@ -210,7 +209,7 @@ func (s *server) CreateStepUpChallenge(ctx context.Context, req *authv1.CreateSt
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	res, err := s.authService.CreateStepUpChallenge(ctx, mfa.MFAMethodType(req.MethodType), mfa.ChallengeScope(req.Scope))
+	res, err := s.authService.CreateStepUpChallenge(ctx, auth.MFAMethodType(req.MethodType), auth.ChallengeScope(req.Scope))
 	if err != nil {
 		return nil, MapError(err)
 	}

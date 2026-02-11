@@ -9,10 +9,16 @@ import (
 	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/contextkeys"
-	"github.com/alkuwaiti/auth/internal/mfa"
+	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 )
+
+type LoginResult struct {
+	RequiresMFA bool
+	ChallengeID *uuid.UUID
+	Tokens      *TokenPair
+}
 
 func (s *service) Login(ctx context.Context, email, password string) (LoginResult, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.Login")
@@ -65,14 +71,14 @@ func (s *service) Login(ctx context.Context, email, password string) (LoginResul
 		return LoginResult{}, err
 	}
 
-	var challenge mfa.MFAChallenge
+	var challenge MFAChallenge
 	if len(methods) > 0 {
 		// TODO: change the implementation when you have multiple methods.
-		challenge, err = s.repo.createChallenge(ctx, mfa.MFAChallenge{
+		challenge, err = s.repo.createChallenge(ctx, MFAChallenge{
 			MethodID:      methods[0].ID,
 			UserID:        user.ID,
-			Scope:         string(mfa.ScopeLogin),
-			ChallengeType: mfa.ChallengeLogin,
+			Scope:         string(ScopeLogin),
+			ChallengeType: ChallengeLogin,
 		})
 		if err != nil {
 			return LoginResult{}, err

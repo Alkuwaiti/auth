@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
-	"github.com/alkuwaiti/auth/internal/mfa"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/google/uuid"
 	"github.com/pquerna/otp/totp"
@@ -36,7 +35,7 @@ func seedUserWithUnconfirmedTOTP(
 	`,
 		methodID,
 		userID,
-		mfa.MFAMethodTOTP,
+		MFAMethodTOTP,
 		encryptedSecret,
 	)
 	require.NoError(t, err)
@@ -121,7 +120,7 @@ func TestConfirmMFAMethod_AlreadyConfirmed(t *testing.T) {
 	`,
 		methodID,
 		userID,
-		mfa.MFAMethodTOTP,
+		MFAMethodTOTP,
 		[]byte("irrelevant"),
 	)
 	require.NoError(t, err)

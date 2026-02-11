@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/mfa"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/google/uuid"
 	"github.com/pquerna/otp"
@@ -31,7 +30,7 @@ func setupUserWithTOTP(t *testing.T, svc *service, ctx context.Context) (userID 
 	// enroll TOTP
 	enrollment, err := svc.EnrollMFAMethod(
 		ctx,
-		mfa.MFAMethodTOTP,
+		MFAMethodTOTP,
 	)
 	require.NoError(t, err)
 
@@ -48,11 +47,11 @@ func setupUserWithTOTP(t *testing.T, svc *service, ctx context.Context) (userID 
 	require.NoError(t, err)
 
 	// create MFA challenge
-	challenge, err := svc.repo.createChallenge(ctx, mfa.MFAChallenge{
+	challenge, err := svc.repo.createChallenge(ctx, MFAChallenge{
 		MethodID:      enrollment.Method.ID,
 		UserID:        user.ID,
-		Scope:         string(mfa.ScopeLogin),
-		ChallengeType: mfa.ChallengeLogin,
+		Scope:         string(ScopeLogin),
+		ChallengeType: ChallengeLogin,
 	})
 	require.NoError(t, err)
 

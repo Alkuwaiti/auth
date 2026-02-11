@@ -6,11 +6,10 @@ import (
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/db/postgres"
-	"github.com/alkuwaiti/auth/internal/mfa"
 	"github.com/google/uuid"
 )
 
-func (r *repo) userHasActiveMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType mfa.MFAMethodType) (bool, error) {
+func (r *repo) userHasActiveMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType MFAMethodType) (bool, error) {
 	exists, err := r.queries.UserHasActiveMFAMethodByType(ctx, postgres.UserHasActiveMFAMethodByTypeParams{
 		UserID: userID,
 		Type:   string(methodType),
@@ -22,30 +21,30 @@ func (r *repo) userHasActiveMFAMethodByType(ctx context.Context, userID uuid.UUI
 	return exists, nil
 }
 
-func (r *repo) deleteExpiredUnconfirmedMethods(ctx context.Context, userID uuid.UUID, methodType mfa.MFAMethodType) error {
+func (r *repo) deleteExpiredUnconfirmedMethods(ctx context.Context, userID uuid.UUID, methodType MFAMethodType) error {
 	return r.queries.DeleteExpiredUnconfirmedMethods(ctx, postgres.DeleteExpiredUnconfirmedMethodsParams{
 		UserID: userID,
 		Type:   string(methodType),
 	})
 }
 
-func (r *repo) createUserMFAMethod(ctx context.Context, userID uuid.UUID, secret []byte, methodType mfa.MFAMethodType) (mfa.MFAMethod, error) {
+func (r *repo) createUserMFAMethod(ctx context.Context, userID uuid.UUID, secret []byte, methodType MFAMethodType) (MFAMethod, error) {
 	postgresMFAMethod, err := r.queries.CreateUserMFAMethod(ctx, postgres.CreateUserMFAMethodParams{
 		UserID:           userID,
 		Type:             string(methodType),
 		SecretCiphertext: secret,
 	})
 	if err != nil {
-		return mfa.MFAMethod{}, err
+		return MFAMethod{}, err
 	}
 
 	return toMFAMethod(postgresMFAMethod), nil
 }
 
-func (r *repo) getMFAMethodByID(ctx context.Context, methodID uuid.UUID) (mfa.MFAMethod, error) {
+func (r *repo) getMFAMethodByID(ctx context.Context, methodID uuid.UUID) (MFAMethod, error) {
 	postgresMethod, err := r.queries.GetMFAMethodByID(ctx, methodID)
 	if err != nil {
-		return mfa.MFAMethod{}, err
+		return MFAMethod{}, err
 	}
 
 	return toMFAMethod(postgresMethod), nil
@@ -55,13 +54,13 @@ func (r *repo) confirmUserMFAMethod(ctx context.Context, tx *sql.Tx, methodID uu
 	return r.queries.WithTx(tx).ConfirmUserMFAMethod(ctx, methodID)
 }
 
-func (r *repo) getMFAMethodsConfirmedByUser(ctx context.Context, userID uuid.UUID) ([]mfa.MFAMethod, error) {
+func (r *repo) getMFAMethodsConfirmedByUser(ctx context.Context, userID uuid.UUID) ([]MFAMethod, error) {
 	rows, err := r.queries.GetMFAMethodsConfirmedByUser(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	methods := make([]mfa.MFAMethod, len(rows))
+	methods := make([]MFAMethod, len(rows))
 	for i, row := range rows {
 		methods[i] = toMFAMethodFromRow(row)
 	}
@@ -69,13 +68,13 @@ func (r *repo) getMFAMethodsConfirmedByUser(ctx context.Context, userID uuid.UUI
 	return methods, nil
 }
 
-func (r *repo) getConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType mfa.MFAMethodType) (mfa.MFAMethod, error) {
+func (r *repo) getConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType MFAMethodType) (MFAMethod, error) {
 	method, err := r.queries.GetConfirmedMFAMethodByType(ctx, postgres.GetConfirmedMFAMethodByTypeParams{
 		UserID: userID,
 		Type:   string(methodType),
 	})
 	if err != nil {
-		return mfa.MFAMethod{}, err
+		return MFAMethod{}, err
 	}
 
 	return toMFAMethod(method), nil
@@ -90,7 +89,7 @@ func (r *repo) userHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bo
 	return exists, nil
 }
 
-func toMFAMethod(row postgres.UserMfaMethod) mfa.MFAMethod {
+func toMFAMethod(row postgres.UserMfaMethod) MFAMethod {
 	var confirmedAt *time.Time
 	if row.ConfirmedAt.Valid {
 		confirmedAt = &row.ConfirmedAt.Time
@@ -101,10 +100,10 @@ func toMFAMethod(row postgres.UserMfaMethod) mfa.MFAMethod {
 		expiresAt = &row.ExpiresAt.Time
 	}
 
-	return mfa.MFAMethod{
+	return MFAMethod{
 		ID:              row.ID,
 		UserID:          row.UserID,
-		Type:            mfa.MFAMethodType(row.Type),
+		Type:            MFAMethodType(row.Type),
 		CreatedAt:       row.CreatedAt,
 		EncryptedSecret: string(row.SecretCiphertext),
 		ConfirmedAt:     confirmedAt,
@@ -112,16 +111,16 @@ func toMFAMethod(row postgres.UserMfaMethod) mfa.MFAMethod {
 	}
 }
 
-func toMFAMethodFromRow(row postgres.GetMFAMethodsConfirmedByUserRow) mfa.MFAMethod {
+func toMFAMethodFromRow(row postgres.GetMFAMethodsConfirmedByUserRow) MFAMethod {
 	var confirmedAt *time.Time
 	if row.ConfirmedAt.Valid {
 		confirmedAt = &row.ConfirmedAt.Time
 	}
 
-	return mfa.MFAMethod{
+	return MFAMethod{
 		ID:          row.ID,
 		UserID:      row.UserID,
-		Type:        mfa.MFAMethodType(row.Type),
+		Type:        MFAMethodType(row.Type),
 		CreatedAt:   row.CreatedAt,
 		ConfirmedAt: confirmedAt,
 	}

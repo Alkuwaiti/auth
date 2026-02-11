@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
-	"github.com/alkuwaiti/auth/internal/mfa"
 	"github.com/google/uuid"
 )
 
@@ -120,19 +119,22 @@ type User struct {
 	MFAEnabled      bool            `json:"mfa_enabled"`
 }
 
-type LoginResult struct {
-	RequiresMFA bool
-	ChallengeID *uuid.UUID
-	Tokens      *TokenPair
+type MFAMethod struct {
+	ID              uuid.UUID
+	UserID          uuid.UUID
+	Type            MFAMethodType
+	ConfirmedAt     *time.Time
+	EncryptedSecret string
+	CreatedAt       time.Time
+	ExpiresAt       *time.Time
 }
 
-type CreateStepUpChallengeResponse struct {
-	ChallengeID   uuid.UUID
-	MFAMethodType mfa.MFAMethodType
+type MFAChallenge struct {
+	ID            uuid.UUID
+	UserID        uuid.UUID
+	MethodID      uuid.UUID
+	Scope         string
+	ChallengeType ChallengeType
 	ExpiresAt     time.Time
-}
-
-type VerifyStepUpChallengeResponse struct {
-	StepUpToken string
-	ExpiresIn   time.Time
+	ConsumedAt    *time.Time
 }

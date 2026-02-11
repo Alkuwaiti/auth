@@ -21,6 +21,10 @@ type service struct {
 
 var tracer = otel.Tracer("auth-service/mfa")
 
+type Config struct {
+	AppName string
+}
+
 func NewService(crypto Crypto, config Config) *service {
 	return &service{
 		crypto: crypto,
@@ -31,11 +35,6 @@ func NewService(crypto Crypto, config Config) *service {
 type Crypto interface {
 	Encrypt(plaintext []byte) ([]byte, error)
 	Decrypt(ciphertext []byte) ([]byte, error)
-}
-
-type EnrollmentResult struct {
-	Method   MFAMethod
-	SetupURI string
 }
 
 func (s *service) VerifyTOTP(ctx context.Context, secret, code string) error {
@@ -108,7 +107,7 @@ func (s *service) GenerateBackupCodes(n int, hash func(string) (string, error)) 
 	return plain, hashed, nil
 }
 
-// no O, I, 0, 1 → avoids confusion
+// no O, I, 0, 1 to avoid confusion
 var backupCodeAlphabet = []rune("ABCDEFGHJKLMNPQRSTUVWXYZ23456789")
 
 func generateBackupCode(length int) (string, error) {
@@ -126,7 +125,7 @@ func generateBackupCode(length int) (string, error) {
 }
 
 func formatBackupCode(raw string) string {
-	// e.g. ABCDEFGH → ABCD-EFGH
+	// e.g. ABCDEFGH -> ABCD-EFGH
 	if len(raw) != 8 {
 		return raw
 	}
