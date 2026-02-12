@@ -131,8 +131,12 @@ func (s *service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 		}
 	}()
 
-	if err = s.MFAProvider.VerifyTOTP(ctx, method.EncryptedSecret, code); err != nil {
+	totpValid, err := s.MFAProvider.VerifyTOTP(ctx, method.EncryptedSecret, code)
+	if err != nil {
 		return nil, err
+	}
+	if !totpValid {
+		return nil, &apperrors.InvalidMFACodeError{}
 	}
 
 	if err = s.repo.confirmUserMFAMethod(ctx, tx, methodID); err != nil {
@@ -352,7 +356,7 @@ func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uui
 		return LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
 	}
 
-	if err = s.MFAProvider.VerifyTOTP(ctx, string(challenge.SecretCiphertext), code); err == nil {
+	consumeAndCommit := func() (LockedTOTPChallenge, error) {
 		if err = s.repo.consumeChallenge(ctx, tx, challenge.ChallengeID); err != nil {
 			return LockedTOTPChallenge{}, err
 		}
@@ -362,14 +366,22 @@ func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uui
 		return challenge, nil
 	}
 
-	if err = s.verifyBackupCode(ctx, tx, challenge.UserID, code); err == nil {
-		if err = s.repo.consumeChallenge(ctx, tx, challenge.ChallengeID); err != nil {
-			return LockedTOTPChallenge{}, err
-		}
-		if err = tx.Commit(); err != nil {
-			return LockedTOTPChallenge{}, err
-		}
-		return challenge, nil
+	totpValid, err := s.MFAProvider.VerifyTOTP(ctx, string(challenge.SecretCiphertext), code)
+	if err != nil {
+		return LockedTOTPChallenge{}, err
+	}
+
+	if totpValid {
+		return consumeAndCommit()
+	}
+
+	backupCodeValid, err := s.verifyBackupCode(ctx, tx, challenge.UserID, code)
+	if err != nil {
+		return LockedTOTPChallenge{}, err
+	}
+
+	if backupCodeValid {
+		return consumeAndCommit()
 	}
 
 	if err = s.repo.incrementChallengeAttempts(ctx, tx, challenge.ChallengeID); err != nil {
@@ -392,17 +404,25 @@ func (s *service) UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) 
 	return exists, nil
 }
 
-func (s *service) verifyBackupCode(ctx context.Context, tx *sql.Tx, userID uuid.UUID, input string) error {
+func (s *service) verifyBackupCode(ctx context.Context, tx *sql.Tx, userID uuid.UUID, code string) (bool, error) {
 	codes, err := s.repo.getUserBackupCodes(ctx, userID)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	for _, c := range codes {
-		if err = s.passwords.Compare(c.CodeHash, input); err == nil {
-			return s.repo.consumeBackupCode(ctx, tx, c.ID)
+		ok, err := s.passwords.Compare(c.CodeHash, code)
+		if err != nil {
+			return false, err
+		}
+
+		if ok {
+			if err := s.repo.consumeBackupCode(ctx, tx, c.ID); err != nil {
+				return false, err
+			}
+			return true, nil
 		}
 	}
 
-	return &apperrors.InvalidMFACodeError{}
+	return false, nil
 }

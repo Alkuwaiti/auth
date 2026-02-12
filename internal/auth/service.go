@@ -46,7 +46,7 @@ type auditor interface {
 type passwords interface {
 	Validate(password string) error
 	Hash(password string) (string, error)
-	Compare(hash string, password string) error
+	Compare(hash string, password string) (bool, error)
 }
 
 type authorizer interface {
@@ -66,7 +66,7 @@ type tokenManager interface {
 type MFAProvider interface {
 	GenerateTOTPKey(email string) (*otp.Key, error)
 	GenerateEncryptedSecret(key *otp.Key) ([]byte, error)
-	VerifyTOTP(ctx context.Context, secret, code string) error
+	VerifyTOTP(ctx context.Context, secret, code string) (bool, error)
 	GenerateBackupCodes(n int, hash func(string) (string, error)) (plain []string, hashed []string, err error)
 }
 

@@ -34,7 +34,7 @@ func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 	user, err := s.repo.getUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
-			_ = s.passwords.Compare(dummyBcryptHash, oldPassword)
+			_, _ = s.passwords.Compare(dummyBcryptHash, oldPassword)
 			return &apperrors.InvalidCredentialsError{}
 		}
 
@@ -50,20 +50,26 @@ func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 		return &apperrors.InvalidCredentialsError{}
 	}
 
-	if err = s.passwords.Compare(
-		user.PasswordHash,
-		oldPassword,
-	); err != nil {
+	match, err := s.passwords.Compare(user.PasswordHash, oldPassword)
+	if err != nil {
 		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to compare passwords")
+		slog.ErrorContext(ctx, "failed to compare passwords", "err", err)
+		return err
+	}
+	if !match {
 		span.SetStatus(codes.Error, "old password and current password do not match")
 		return &apperrors.InvalidCredentialsError{}
 	}
 
-	if err = s.passwords.Compare(
-		user.PasswordHash,
-		newPassword,
-	); err == nil {
+	match, err = s.passwords.Compare(user.PasswordHash, newPassword)
+	if err != nil {
 		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to compare passwords")
+		slog.ErrorContext(ctx, "failed to compare passwords", "err", err)
+		return err
+	}
+	if match {
 		span.SetStatus(codes.Error, "old password cannot be new password")
 		return &apperrors.PasswordReuseError{}
 	}
@@ -76,12 +82,7 @@ func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 		return err
 	}
 
-	if err = s.repo.updatePasswordAndRevokeSessions(
-		ctx,
-		userID,
-		newPasswordHash,
-		RevocationPasswordChange,
-	); err != nil {
+	if err = s.repo.updatePasswordAndRevokeSessions(ctx, userID, newPasswordHash, RevocationPasswordChange); err != nil {
 		slog.ErrorContext(ctx, "failed to update password and revoke sessions", "err", err)
 		return err
 	}

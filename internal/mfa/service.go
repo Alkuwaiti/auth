@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 	"go.opentelemetry.io/otel"
@@ -37,7 +36,7 @@ type Crypto interface {
 
 var tracer = otel.Tracer("auth-service/mfa")
 
-func (s *service) VerifyTOTP(ctx context.Context, secret, code string) error {
+func (s *service) VerifyTOTP(ctx context.Context, secret, code string) (bool, error) {
 	ctx, span := tracer.Start(ctx, "mfaService.verifyTOTP")
 	defer span.End()
 
@@ -46,7 +45,7 @@ func (s *service) VerifyTOTP(ctx context.Context, secret, code string) error {
 		slog.ErrorContext(ctx, "error decrypting", "err", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "error encrypting")
-		return err
+		return false, err
 	}
 
 	valid, err := totp.ValidateCustom(code, string(secretBytes), time.Now(), totp.ValidateOpts{
@@ -58,17 +57,10 @@ func (s *service) VerifyTOTP(ctx context.Context, secret, code string) error {
 		slog.ErrorContext(ctx, "error validating totp", "err", err)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "error validating totp")
-		return err
+		return false, err
 	}
 
-	if !valid {
-		return &apperrors.BadRequestError{
-			Field: "code",
-			Msg:   "invalid code",
-		}
-	}
-
-	return nil
+	return valid, nil
 }
 
 func (s *service) GenerateTOTPKey(email string) (*otp.Key, error) {

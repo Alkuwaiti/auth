@@ -2,6 +2,7 @@
 package password
 
 import (
+	"errors"
 	"unicode"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
@@ -23,8 +24,14 @@ func (p *passwords) Hash(password string) (string, error) {
 	return string(b), err
 }
 
-func (p *passwords) Compare(hash, password string) error {
-	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+func (p *passwords) Compare(hash, password string) (bool, error) {
+	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)); err != nil {
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 func (p *passwords) Validate(password string) error {

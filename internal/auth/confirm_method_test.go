@@ -160,9 +160,8 @@ func TestConfirmMFAMethod_InvalidCode(t *testing.T) {
 	_, err = service.ConfirmMFAMethod(ctx, methodID, "000000")
 	require.Error(t, err)
 
-	var badReq *apperrors.BadRequestError
-	require.ErrorAs(t, err, &badReq)
-	require.Equal(t, "code", badReq.Field)
+	var invalidMFA *apperrors.InvalidMFACodeError
+	require.ErrorAs(t, err, &invalidMFA)
 }
 
 func TestConfirmMFAMethod_ExpiredMethod(t *testing.T) {

@@ -44,10 +44,14 @@ func (s *service) Login(ctx context.Context, email, password string) (LoginResul
 		return LoginResult{}, err
 	}
 
-	if err = s.passwords.Compare(user.PasswordHash, password); err != nil {
+	match, err := s.passwords.Compare(user.PasswordHash, password)
+	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "invalid credentials")
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email)
+		return LoginResult{}, err
+	}
+	if !match {
 		return LoginResult{}, &apperrors.InvalidCredentialsError{}
 	}
 
