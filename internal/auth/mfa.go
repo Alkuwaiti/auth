@@ -178,6 +178,7 @@ func (s *service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 	return backupCodes, nil
 }
 
+// TODO: fix the back up codes bug.
 func (s *service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, code string) (TokenPair, error) {
 	lockedChallenge, err := s.verifyAndConsumeChallenge(ctx, challengeID, code)
 	if err != nil {
@@ -335,6 +336,7 @@ func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 	}, nil
 }
 
+// TODO: add tests
 func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (LockedTOTPChallenge, error) {
 	tx, err := s.repo.beginTx(ctx)
 	if err != nil {
@@ -370,7 +372,6 @@ func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uui
 	if err != nil {
 		return LockedTOTPChallenge{}, err
 	}
-
 	if totpValid {
 		return consumeAndCommit()
 	}
@@ -379,7 +380,6 @@ func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uui
 	if err != nil {
 		return LockedTOTPChallenge{}, err
 	}
-
 	if backupCodeValid {
 		return consumeAndCommit()
 	}

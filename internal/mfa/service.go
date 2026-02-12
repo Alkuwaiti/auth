@@ -40,6 +40,10 @@ func (s *service) VerifyTOTP(ctx context.Context, secret, code string) (bool, er
 	ctx, span := tracer.Start(ctx, "mfaService.verifyTOTP")
 	defer span.End()
 
+	if !isSixDigitCode(code) {
+		return false, nil
+	}
+
 	secretBytes, err := s.crypto.Decrypt([]byte(secret))
 	if err != nil {
 		slog.ErrorContext(ctx, "error decrypting", "err", err)
@@ -75,7 +79,7 @@ func (s *service) GenerateEncryptedSecret(key *otp.Key) ([]byte, error) {
 
 }
 
-func (s *service) GenerateBackupCodes(n int, hash func(string) (string, error)) (plain []string, hashed []string, err error) {
+func (s *service) GenerateBackupCodes(n int, hashFn func(string) (string, error)) (plain []string, hashed []string, err error) {
 	plain = make([]string, 0, n)
 	hashed = make([]string, 0, n)
 
@@ -86,16 +90,14 @@ func (s *service) GenerateBackupCodes(n int, hash func(string) (string, error)) 
 		}
 
 		formatted := formatBackupCode(raw)
-
-		hash, err := hash(formatted)
+		h, err := hashFn(formatted)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		plain = append(plain, formatted)
-		hashed = append(hashed, hash)
+		hashed = append(hashed, h)
 	}
-
 	return plain, hashed, nil
 }
 
@@ -122,4 +124,18 @@ func formatBackupCode(raw string) string {
 		return raw
 	}
 	return raw[:4] + "-" + raw[4:]
+}
+
+func isSixDigitCode(code string) bool {
+	if len(code) != 6 {
+		return false
+	}
+
+	for _, c := range code {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+
+	return true
 }
