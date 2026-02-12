@@ -331,49 +331,56 @@ func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 	}, nil
 }
 
-// TODO: add backup codes here
 func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (LockedTOTPChallenge, error) {
 	tx, err := s.repo.beginTx(ctx)
 	if err != nil {
 		return LockedTOTPChallenge{}, err
 	}
 	defer func() {
-		if err = tx.Rollback(); err != nil && err != sql.ErrTxDone {
-			slog.ErrorContext(ctx, "rollback failed", "err", err)
-		}
+		_ = tx.Rollback()
 	}()
 
-	lockedChallenge, err := s.repo.lockActiveTOTPChallenge(ctx, tx, challengeID)
+	challenge, err := s.repo.lockActiveTOTPChallenge(ctx, tx, challengeID)
 	if err != nil {
 		if errors.Is(err, ErrInvalidMFAChallenge) {
 			return LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
 		}
-		slog.ErrorContext(ctx, "error locking active totp challenge", "err", err)
 		return LockedTOTPChallenge{}, err
 	}
 
-	if lockedChallenge.Attempts >= s.Config.MaxChallengeAttempts {
+	if challenge.Attempts >= s.Config.MaxChallengeAttempts {
 		return LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
 	}
 
-	if err = s.MFAProvider.VerifyTOTP(ctx, string(lockedChallenge.SecretCiphertext), code); err != nil {
-		if incErr := s.repo.incrementChallengeAttempts(ctx, tx, lockedChallenge.ChallengeID); incErr != nil {
-			return LockedTOTPChallenge{}, incErr
+	if err = s.MFAProvider.VerifyTOTP(ctx, string(challenge.SecretCiphertext), code); err == nil {
+		if err = s.repo.consumeChallenge(ctx, tx, challenge.ChallengeID); err != nil {
+			return LockedTOTPChallenge{}, err
 		}
-		return LockedTOTPChallenge{}, err
+		if err = tx.Commit(); err != nil {
+			return LockedTOTPChallenge{}, err
+		}
+		return challenge, nil
 	}
 
-	if err = s.repo.consumeChallenge(ctx, tx, lockedChallenge.ChallengeID); err != nil {
-		slog.ErrorContext(ctx, "error consuming challenge", "err", err)
+	if err = s.verifyBackupCode(ctx, tx, challenge.UserID, code); err == nil {
+		if err = s.repo.consumeChallenge(ctx, tx, challenge.ChallengeID); err != nil {
+			return LockedTOTPChallenge{}, err
+		}
+		if err = tx.Commit(); err != nil {
+			return LockedTOTPChallenge{}, err
+		}
+		return challenge, nil
+	}
+
+	if err = s.repo.incrementChallengeAttempts(ctx, tx, challenge.ChallengeID); err != nil {
 		return LockedTOTPChallenge{}, err
 	}
 
 	if err = tx.Commit(); err != nil {
-		slog.ErrorContext(ctx, "error committing transaction", "err", err)
 		return LockedTOTPChallenge{}, err
 	}
 
-	return lockedChallenge, nil
+	return LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
 }
 
 func (s *service) UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error) {
@@ -383,4 +390,19 @@ func (s *service) UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) 
 	}
 
 	return exists, nil
+}
+
+func (s *service) verifyBackupCode(ctx context.Context, tx *sql.Tx, userID uuid.UUID, input string) error {
+	codes, err := s.repo.getUserBackupCodes(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	for _, c := range codes {
+		if err = s.passwords.Compare(c.CodeHash, input); err == nil {
+			return s.repo.consumeBackupCode(ctx, tx, c.ID)
+		}
+	}
+
+	return &apperrors.InvalidMFACodeError{}
 }

@@ -199,3 +199,13 @@ SELECT $1, unnest($2::text[]);
 -- name: DeleteBackupCodesForUser :exec
 DELETE FROM mfa_backup_codes
 WHERE user_id = $1;
+
+-- name: GetUserBackupCodes :many
+SELECT * FROM mfa_backup_codes
+WHERE user_id = $1 AND consumed_at IS NULL;
+
+-- name: ConsumeBackupCode :exec
+UPDATE mfa_backup_codes
+SET consumed_at = NOW()
+WHERE id = $1
+  AND consumed_at IS NULL;

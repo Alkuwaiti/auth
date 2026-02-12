@@ -43,9 +43,7 @@ type LockedTOTPChallenge struct {
 }
 
 func (r *repo) lockActiveTOTPChallenge(ctx context.Context, tx *sql.Tx, challengeID uuid.UUID) (LockedTOTPChallenge, error) {
-	q := r.queries.WithTx(tx)
-
-	row, err := q.LockActiveTOTPChallenge(ctx, challengeID)
+	row, err := r.queries.WithTx(tx).LockActiveTOTPChallenge(ctx, challengeID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return LockedTOTPChallenge{}, ErrInvalidMFAChallenge

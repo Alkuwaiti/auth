@@ -44,6 +44,18 @@ func (q *Queries) ConfirmUserMFAMethod(ctx context.Context, id uuid.UUID) error 
 	return err
 }
 
+const consumeBackupCode = `-- name: ConsumeBackupCode :exec
+UPDATE mfa_backup_codes
+SET consumed_at = NOW()
+WHERE id = $1
+  AND consumed_at IS NULL
+`
+
+func (q *Queries) ConsumeBackupCode(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, consumeBackupCode, id)
+	return err
+}
+
 const consumeChallenge = `-- name: ConsumeChallenge :exec
 UPDATE mfa_challenges
 SET consumed_at = now()
@@ -433,6 +445,40 @@ func (q *Queries) GetSessionByRefreshToken(ctx context.Context, refreshToken str
 		&i.CompromisedAt,
 	)
 	return i, err
+}
+
+const getUserBackupCodes = `-- name: GetUserBackupCodes :many
+SELECT id, user_id, code_hash, consumed_at, created_at FROM mfa_backup_codes
+WHERE user_id = $1 AND consumed_at IS NULL
+`
+
+func (q *Queries) GetUserBackupCodes(ctx context.Context, userID uuid.UUID) ([]MfaBackupCode, error) {
+	rows, err := q.db.QueryContext(ctx, getUserBackupCodes, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MfaBackupCode
+	for rows.Next() {
+		var i MfaBackupCode
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.CodeHash,
+			&i.ConsumedAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
