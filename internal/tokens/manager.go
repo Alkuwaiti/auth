@@ -75,7 +75,7 @@ func (m *tokens) GenerateRefreshToken() (string, error) {
 	return base64.URLEncoding.EncodeToString(b), nil
 }
 
-func (m *tokens) GenerateStepUpToken(userID, email, scope string) (string, time.Time, error) {
+func (m *tokens) GenerateStepUpToken(userID, email, scope string) (string, int, error) {
 	expiresAt := time.Now().Add(5 * time.Minute)
 	claims := StepUpClaims{
 		Email: email,
@@ -92,7 +92,7 @@ func (m *tokens) GenerateStepUpToken(userID, email, scope string) (string, time.
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(m.config.JWTKey)
-	return tokenString, expiresAt, err
+	return tokenString, int(expiresAt.Unix()), err
 }
 
 func (m *tokens) ValidateStepUpToken(tokenStr string) (*StepUpClaims, error) {

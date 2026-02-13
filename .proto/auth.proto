@@ -115,5 +115,5 @@ message VerifyStepUpChallengeRequest {
 
 message VerifyStepUpChallengeResponse {
   string step_up_token = 1;
-  google.protobuf.Timestamp expires_in = 2;
+  int64 expires_in = 2;
 }

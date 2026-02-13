@@ -63,8 +63,8 @@ func setupUserWithTOTP(t *testing.T, svc *service, ctx context.Context) (userID 
 func TestCompleteLoginMFA_Success(t *testing.T) {
 	service, _, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	userID, challengeID, secret := setupUserWithTOTP(t, service, ctx)
 
@@ -83,8 +83,8 @@ func TestCompleteLoginMFA_Success(t *testing.T) {
 func TestCompleteLoginMFA_InvalidChallenge(t *testing.T) {
 	service, _, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	_, challengeID, _ := setupUserWithTOTP(t, service, ctx)
 
@@ -97,8 +97,8 @@ func TestCompleteLoginMFA_InvalidChallenge(t *testing.T) {
 func TestCompleteLoginMFA_UserDeleted(t *testing.T) {
 	service, db, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	userID, challengeID, secret := setupUserWithTOTP(t, service, ctx)
 

@@ -3,7 +3,6 @@ package auth
 
 import (
 	"context"
-	"time"
 
 	"github.com/alkuwaiti/auth/internal/audit"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
@@ -60,7 +59,7 @@ type featureFlags interface {
 type tokenManager interface {
 	GenerateAccessToken(roles []string, userID, email string) (string, error)
 	GenerateRefreshToken() (string, error)
-	GenerateStepUpToken(userID, email, scope string) (string, time.Time, error)
+	GenerateStepUpToken(userID, email, scope string) (string, int, error)
 }
 
 type MFAProvider interface {

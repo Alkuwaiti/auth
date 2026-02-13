@@ -3,6 +3,7 @@
 package auth
 
 import (
+	"context"
 	"testing"
 
 	"github.com/alkuwaiti/auth/internal/testutil"
@@ -13,8 +14,8 @@ import (
 func TestDeleteUser_Success(t *testing.T) {
 	service, _, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 	ctx = testutil.CtxWithRoles(ctx, []string{"admin"})
 
 	actor, err := service.RegisterUser(ctx, RegisterUserInput{
@@ -45,8 +46,8 @@ func TestDeleteUser_Success(t *testing.T) {
 func TestDeleteUser_AlreadyDeleted(t *testing.T) {
 	service, _, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 	ctx = testutil.CtxWithRoles(ctx, []string{"admin"})
 
 	actor, err := service.RegisterUser(ctx, RegisterUserInput{
@@ -84,8 +85,8 @@ func TestDeleteUser_AlreadyDeleted(t *testing.T) {
 func TestDeleteUser_UserDoesNotExist(t *testing.T) {
 	service, _, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 	ctx = testutil.CtxWithRoles(ctx, []string{"admin"})
 
 	actor, err := service.RegisterUser(ctx, RegisterUserInput{
@@ -109,8 +110,8 @@ func TestDeleteUser_UserDoesNotExist(t *testing.T) {
 func TestDeleteUser_InvalidInput(t *testing.T) {
 	service, _, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	err := service.DeleteUser(ctx, DeleteUserInput{
 		UserID: uuid.Nil, // invalid
@@ -122,8 +123,8 @@ func TestDeleteUser_InvalidInput(t *testing.T) {
 func TestDeleteUser_UserIsSoftDeleted(t *testing.T) {
 	service, _, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 	ctx = testutil.CtxWithRoles(ctx, []string{"admin"})
 
 	user, err := service.RegisterUser(ctx, RegisterUserInput{

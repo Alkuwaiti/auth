@@ -178,7 +178,6 @@ func (s *service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 	return backupCodes, nil
 }
 
-// TODO: fix the back up codes bug.
 func (s *service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, code string) (TokenPair, error) {
 	lockedChallenge, err := s.verifyAndConsumeChallenge(ctx, challengeID, code)
 	if err != nil {
@@ -257,7 +256,7 @@ func (s *service) CreateStepUpChallenge(ctx context.Context, methodType MFAMetho
 
 type VerifyStepUpChallengeResponse struct {
 	StepUpToken string
-	ExpiresIn   time.Time
+	ExpiresIn   int
 }
 
 // TODO: add tests

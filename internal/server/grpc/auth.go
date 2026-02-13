@@ -241,6 +241,6 @@ func (s *server) VerifyStepUpChallenge(ctx context.Context, req *authv1.VerifySt
 
 	return &authv1.VerifyStepUpChallengeResponse{
 		StepUpToken: res.StepUpToken,
-		ExpiresIn:   timestamppb.New(res.ExpiresIn),
+		ExpiresIn:   int64(res.ExpiresIn),
 	}, nil
 }

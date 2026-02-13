@@ -3,6 +3,7 @@
 package auth
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 	"time"
@@ -47,7 +48,8 @@ func TestConfirmMFAMethod_Success(t *testing.T) {
 	service, db, cleanup := setupTestAuthService(t)
 	defer cleanup()
 
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 	userID := uuid.New()
 	ctx = testutil.CtxWithUserID(ctx, uuid.New())
 
@@ -86,8 +88,8 @@ func TestConfirmMFAMethod_Success(t *testing.T) {
 func TestConfirmMFAMethod_NotFound(t *testing.T) {
 	service, _, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	_, err := service.ConfirmMFAMethod(ctx, uuid.New(), "123456")
 	require.Error(t, err)
@@ -96,8 +98,8 @@ func TestConfirmMFAMethod_NotFound(t *testing.T) {
 func TestConfirmMFAMethod_AlreadyConfirmed(t *testing.T) {
 	service, db, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 	userID := uuid.New()
 	ctx = testutil.CtxWithUserID(ctx, uuid.New())
 
@@ -136,8 +138,8 @@ func TestConfirmMFAMethod_AlreadyConfirmed(t *testing.T) {
 func TestConfirmMFAMethod_InvalidCode(t *testing.T) {
 	service, db, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 	userID := uuid.New()
 	ctx = testutil.CtxWithUserID(ctx, uuid.New())
 
@@ -167,8 +169,8 @@ func TestConfirmMFAMethod_InvalidCode(t *testing.T) {
 func TestConfirmMFAMethod_ExpiredMethod(t *testing.T) {
 	service, db, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 	userID := uuid.New()
 	ctx = testutil.CtxWithUserID(ctx, uuid.New())
 
