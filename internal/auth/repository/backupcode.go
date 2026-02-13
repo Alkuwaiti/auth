@@ -24,6 +24,17 @@ func (r *repo) ConsumeBackupCode(ctx context.Context, tx *sql.Tx, codeID uuid.UU
 	return r.queries.WithTx(tx).ConsumeBackupCode(ctx, codeID)
 }
 
+func (r *repo) InsertBackupCodes(ctx context.Context, tx *sql.Tx, userID uuid.UUID, hashedCodes []string) error {
+	return r.queries.WithTx(tx).InsertBackupCodes(ctx, postgres.InsertBackupCodesParams{
+		UserID:  userID,
+		Column2: hashedCodes,
+	})
+}
+
+func (r *repo) DeleteBackupCodesForUser(ctx context.Context, tx *sql.Tx, userID uuid.UUID) error {
+	return r.queries.WithTx(tx).DeleteBackupCodesForUser(ctx, userID)
+}
+
 func toMFABackupCode(postgresCodes []postgres.MfaBackupCode) []domain.MFABackupCode {
 	backupCodes := make([]domain.MFABackupCode, len(postgresCodes))
 
