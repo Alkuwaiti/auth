@@ -139,11 +139,3 @@ type MFAChallenge struct {
 	ConsumedAt    *time.Time
 	Attempts      int
 }
-
-type MFABackupCode struct {
-	ID         uuid.UUID
-	UserID     uuid.UUID
-	CodeHash   string
-	ConsumedAt *time.Time
-	CreatedAt  time.Time
-}

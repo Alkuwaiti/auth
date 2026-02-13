@@ -3,15 +3,19 @@ package auth
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/alkuwaiti/auth/internal/audit"
+	"github.com/alkuwaiti/auth/internal/auth/domain"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
+	"github.com/google/uuid"
 	"github.com/pquerna/otp"
 	"go.opentelemetry.io/otel"
 )
 
 type service struct {
 	repo         *repo
+	repoI        repoI
 	passwords    passwords
 	auditor      auditor
 	authorizer   authorizer
@@ -21,13 +25,16 @@ type service struct {
 	Config       Config
 }
 
+// TODO: i use a sql import somewhere in the service. find it and remove it, it shouldn't know about that implementation.
+
 type Config struct {
 	MaxChallengeAttempts int
 }
 
-func NewService(repo *repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, Config Config) *service {
+func NewService(repo *repo, repoI repoI, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, Config Config) *service {
 	return &service{
 		repo:         repo,
+		repoI:        repoI,
 		passwords:    passwords,
 		auditor:      auditor,
 		authorizer:   authorizer,
@@ -36,6 +43,11 @@ func NewService(repo *repo, passwords passwords, auditor auditor, authorizer aut
 		MFAProvider:  MFAProvider,
 		Config:       Config,
 	}
+}
+
+type repoI interface {
+	GetUserBackupCodes(ctx context.Context, userID uuid.UUID) ([]domain.MFABackupCode, error)
+	ConsumeBackupCode(ctx context.Context, tx *sql.Tx, codeID uuid.UUID) error
 }
 
 type auditor interface {

@@ -405,7 +405,7 @@ func (s *service) verifyBackupCode(ctx context.Context, tx *sql.Tx, userID uuid.
 		return false, nil
 	}
 
-	codes, err := s.repo.getUserBackupCodes(ctx, userID)
+	codes, err := s.repoI.GetUserBackupCodes(ctx, userID)
 	if err != nil {
 		return false, err
 	}
@@ -417,7 +417,7 @@ func (s *service) verifyBackupCode(ctx context.Context, tx *sql.Tx, userID uuid.
 		}
 
 		if ok {
-			if err := s.repo.consumeBackupCode(ctx, tx, c.ID); err != nil {
+			if err := s.repoI.ConsumeBackupCode(ctx, tx, c.ID); err != nil {
 				return false, err
 			}
 			return true, nil

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/alkuwaiti/auth/internal/audit"
+	"github.com/alkuwaiti/auth/internal/auth/repository"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/alkuwaiti/auth/internal/flags"
@@ -46,6 +47,8 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 
 	authRepo := NewRepo(testDB.DB)
 
+	authRepoI := repository.NewRepo(testDB.DB)
+
 	tokenManager := tokens.New(tokens.Config{
 		Issuer:   "auth-service",
 		Audience: "auth-service",
@@ -56,7 +59,7 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 		AppName: "MyApp",
 	})
 
-	service := NewService(authRepo, passwordService, auditService, authorizerService, flagsService, tokenManager, multifactor, Config{
+	service := NewService(authRepo, authRepoI, passwordService, auditService, authorizerService, flagsService, tokenManager, multifactor, Config{
 		MaxChallengeAttempts: 5,
 	})
 
