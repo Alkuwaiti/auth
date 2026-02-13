@@ -3,8 +3,8 @@ package testutil
 import (
 	"context"
 
-	"github.com/alkuwaiti/auth/internal/contextkeys"
 	"github.com/alkuwaiti/auth/internal/observability"
+	"github.com/alkuwaiti/auth/pkg/contextkeys"
 	"github.com/google/uuid"
 )
 

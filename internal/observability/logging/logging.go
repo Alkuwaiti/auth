@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/alkuwaiti/auth/internal/contextkeys"
 	"github.com/alkuwaiti/auth/internal/observability"
+	"github.com/alkuwaiti/auth/pkg/contextkeys"
 )
 
 type ContextHandler struct {
