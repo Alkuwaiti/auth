@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/alkuwaiti/auth/internal/audit"
+	"github.com/alkuwaiti/auth/internal/auth"
+	"github.com/alkuwaiti/auth/internal/auth/repository"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/alkuwaiti/auth/internal/flags"
@@ -19,7 +21,7 @@ import (
 
 // setupTestAuthService spins up a test DB, runs migrations, and returns a ready service.
 // The caller must call cleanup() at the end.
-func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
+func setupTestAuthService(t *testing.T) (*auth.Service, *sql.DB, func()) {
 	t.Helper() // marks this as a helper for better test output
 
 	ctx := context.Background()
@@ -27,7 +29,7 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 	testDB, err := testutil.NewPostgres(ctx)
 	require.NoError(t, err)
 
-	err = testutil.RunMigrations(testDB.DB, "../db/migrations")
+	err = testutil.RunMigrations(testDB.DB, "../../db/migrations")
 	require.NoError(t, err)
 
 	passwordService := password.NewService(12)
@@ -44,7 +46,7 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 		RefreshTokensEnabled: true,
 	})
 
-	authRepo := NewRepo(testDB.DB)
+	authRepo := repository.NewRepo(testDB.DB)
 
 	tokenManager := tokens.New(tokens.Config{
 		Issuer:   "auth-service",
@@ -56,7 +58,7 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 		AppName: "MyApp",
 	})
 
-	service := NewService(authRepo, passwordService, auditService, authorizerService, flagsService, tokenManager, multifactor, Config{
+	service := auth.NewService(authRepo, passwordService, auditService, authorizerService, flagsService, tokenManager, multifactor, auth.Config{
 		MaxChallengeAttempts: 5,
 	})
 

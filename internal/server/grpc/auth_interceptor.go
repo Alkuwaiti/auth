@@ -5,8 +5,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/alkuwaiti/auth/internal/contextkeys"
 	"github.com/alkuwaiti/auth/internal/tokens"
+	"github.com/alkuwaiti/auth/pkg/contextkeys"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"

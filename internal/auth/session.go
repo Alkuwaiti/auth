@@ -8,7 +8,9 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/audit"
-	"github.com/alkuwaiti/auth/internal/contextkeys"
+	"github.com/alkuwaiti/auth/internal/auth/domain"
+	"github.com/alkuwaiti/auth/internal/auth/repository"
+	"github.com/alkuwaiti/auth/pkg/contextkeys"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -20,11 +22,11 @@ type LoginResult struct {
 	Tokens      *TokenPair
 }
 
-func (s *service) Login(ctx context.Context, email, password string) (LoginResult, error) {
+func (s *Service) Login(ctx context.Context, email, password string) (LoginResult, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.Login")
 	defer span.End()
 
-	if !s.flags.RefreshTokensEnabled(ctx) {
+	if !s.Flags.RefreshTokensEnabled(ctx) {
 		span.SetStatus(codes.Error, "Refresh tokenManager disabled")
 		return LoginResult{}, &apperrors.RefreshDisabledError{}
 	}
@@ -33,9 +35,9 @@ func (s *service) Login(ctx context.Context, email, password string) (LoginResul
 		attribute.String("user.email", email),
 	)
 
-	user, err := s.repo.getUserByEmail(ctx, email)
+	user, err := s.Repo.GetUserByEmail(ctx, email)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
+		if errors.Is(err, repository.ErrNotFound) {
 			// Return an invalid credentials here as this is a login endpoint.
 			return LoginResult{}, &apperrors.InvalidCredentialsError{}
 		}
@@ -44,7 +46,7 @@ func (s *service) Login(ctx context.Context, email, password string) (LoginResul
 		return LoginResult{}, err
 	}
 
-	match, err := s.passwords.Compare(user.PasswordHash, password)
+	match, err := s.Passwords.Compare(user.PasswordHash, password)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "invalid credentials")
@@ -69,20 +71,20 @@ func (s *service) Login(ctx context.Context, email, password string) (LoginResul
 		return LoginResult{}, &apperrors.InvalidCredentialsError{}
 	}
 
-	methods, err := s.repo.getMFAMethodsConfirmedByUser(ctx, user.ID)
+	methods, err := s.Repo.GetMFAMethodsConfirmedByUser(ctx, user.ID)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to get confirmed mfa methods by user", "err", err)
 		return LoginResult{}, err
 	}
 
-	var challenge MFAChallenge
+	var challenge domain.MFAChallenge
 	if len(methods) > 0 {
 		// TODO: change the implementation when you have multiple methods.
-		challenge, err = s.repo.createChallenge(ctx, MFAChallenge{
+		challenge, err = s.Repo.CreateChallenge(ctx, domain.MFAChallenge{
 			MethodID:      methods[0].ID,
 			UserID:        user.ID,
-			Scope:         ScopeLogin,
-			ChallengeType: ChallengeLogin,
+			Scope:         domain.ScopeLogin,
+			ChallengeType: domain.ChallengeLogin,
 		})
 		if err != nil {
 			return LoginResult{}, err
@@ -107,20 +109,20 @@ func (s *service) Login(ctx context.Context, email, password string) (LoginResul
 	}, nil
 }
 
-func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenPair, error) {
+func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenPair, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.RefreshToken")
 	defer span.End()
 
-	if !s.flags.RefreshTokensEnabled(ctx) {
+	if !s.Flags.RefreshTokensEnabled(ctx) {
 		span.SetStatus(codes.Error, "Refresh tokenManager disabled")
 		return TokenPair{}, &apperrors.RefreshDisabledError{}
 	}
 
 	meta := contextkeys.RequestMetaFromContext(ctx)
 
-	session, err := s.repo.getSessionByRefreshToken(ctx, refreshToken)
+	session, err := s.Repo.GetSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
-		if errors.Is(err, ErrSessionNotFound) {
+		if errors.Is(err, repository.ErrNotFound) {
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
 		}
 
@@ -155,7 +157,7 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 			"revocation_reason", session.RevocationReason,
 		)
 
-		if err = s.repo.revokeAndMarkSessionsCompromised(ctx, session.UserID, RevocationSessionCompromised); err != nil {
+		if err = s.Repo.RevokeAndMarkSessionsCompromised(ctx, session.UserID, domain.RevocationSessionCompromised); err != nil {
 			slog.ErrorContext(ctx, "failed to mark sessions as compromised", "err", err)
 		}
 
@@ -171,11 +173,11 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
-	user, err := s.repo.getUserByID(ctx, session.UserID)
+	user, err := s.Repo.GetUserByID(ctx, session.UserID)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to get user by id", "err", err)
 
-		if errors.Is(err, ErrUserNotFound) {
+		if errors.Is(err, repository.ErrNotFound) {
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
 		}
 		return TokenPair{}, err
@@ -196,16 +198,16 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 		return TokenPair{}, err
 	}
 
-	if err = s.repo.rotateSession(
+	if err = s.Repo.RotateSession(
 		ctx,
-		RotateSessionInput{
-			oldSessionID:     session.ID,
-			userID:           session.UserID,
-			expiry:           session.ExpiresAt,
-			revocationReason: RevocationSessionRotation,
-			refreshToken:     newRefreshToken,
-			ipAddress:        meta.IPAddress,
-			userAgent:        meta.UserAgent,
+		domain.RotateSessionInput{
+			OldSessionID:     session.ID,
+			UserID:           session.UserID,
+			Expiry:           session.ExpiresAt,
+			RevocationReason: domain.RevocationSessionRotation,
+			RefreshToken:     newRefreshToken,
+			IPAddress:        meta.IPAddress,
+			UserAgent:        meta.UserAgent,
 		},
 	); err != nil {
 		slog.ErrorContext(ctx, "session rotation failed", "err", err)
@@ -233,20 +235,20 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 	}, nil
 }
 
-func (s *service) Logout(ctx context.Context, refreshToken string) error {
+func (s *Service) Logout(ctx context.Context, refreshToken string) error {
 	ctx, span := tracer.Start(ctx, "AuthService.Logout")
 	defer span.End()
 
 	meta := contextkeys.RequestMetaFromContext(ctx)
 
-	session, err := s.repo.getSessionByRefreshToken(ctx, refreshToken)
+	session, err := s.Repo.GetSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
 		// already logged out / invalid token → success
 		slog.ErrorContext(ctx, "failed to get session by refresh token", "err", err)
 		return nil
 	}
 
-	if err = s.repo.revokeSession(ctx, session.ID, RevocationLogout); err != nil {
+	if err = s.Repo.RevokeSession(ctx, session.ID, domain.RevocationLogout); err != nil {
 		slog.ErrorContext(ctx, "failed to revoke session", "err", err)
 	}
 
@@ -264,7 +266,7 @@ func (s *service) Logout(ctx context.Context, refreshToken string) error {
 	return nil
 }
 
-func (s *service) finalizeLogin(ctx context.Context, user User, action audit.AuditAction) (TokenPair, error) {
+func (s *Service) finalizeLogin(ctx context.Context, user domain.User, action audit.AuditAction) (TokenPair, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.finalizeLogin")
 	defer span.End()
 
@@ -287,7 +289,7 @@ func (s *service) finalizeLogin(ctx context.Context, user User, action audit.Aud
 	meta := contextkeys.RequestMetaFromContext(ctx)
 
 	expiresAt := time.Now().Add(7 * 24 * time.Hour)
-	if _, err = s.repo.createSession(
+	if _, err = s.Repo.CreateSession(
 		ctx,
 		user.ID,
 		expiresAt,

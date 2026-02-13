@@ -33,7 +33,7 @@ func TestVerifyStepUpChallenge_Success(t *testing.T) {
 	require.NotEmpty(t, resp.StepUpToken)
 	require.Greater(t, resp.ExpiresIn, 0)
 
-	dbChallenge, err := svc.repo.getChallengeByID(ctx, challengeID)
+	dbChallenge, err := svc.Repo.GetChallengeByID(ctx, challengeID)
 	require.NoError(t, err)
 	require.NotNil(t, dbChallenge.ConsumedAt)
 }
@@ -54,7 +54,7 @@ func TestVerifyStepUpChallenge_InvalidCode(t *testing.T) {
 	require.IsType(t, &apperrors.InvalidMFACodeError{}, err)
 
 	// Ensure challenge NOT consumed
-	dbChallenge, err := svc.repo.getChallengeByID(ctx, challengeID)
+	dbChallenge, err := svc.Repo.GetChallengeByID(ctx, challengeID)
 	require.NoError(t, err)
 	require.Nil(t, dbChallenge.ConsumedAt)
 }

@@ -3,17 +3,20 @@ package auth
 import (
 	"context"
 	"errors"
-	authz "github.com/alkuwaiti/auth/internal/authorization"
 	"log/slog"
+
+	"github.com/alkuwaiti/auth/internal/auth/domain"
+	"github.com/alkuwaiti/auth/internal/auth/repository"
+	authz "github.com/alkuwaiti/auth/internal/authorization"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/audit"
-	"github.com/alkuwaiti/auth/internal/contextkeys"
+	"github.com/alkuwaiti/auth/pkg/contextkeys"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 )
 
-func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (User, error) {
+func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (domain.User, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.RegisterUser")
 	defer span.End()
 
@@ -27,37 +30,37 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 	if err := input.validate(); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "validation failed")
-		return User{}, err
+		return domain.User{}, err
 	}
 
-	exists, err := s.repo.userExists(ctx, input.Username, input.Email)
+	exists, err := s.Repo.UserExists(ctx, input.Username, input.Email)
 	if err != nil {
 		slog.WarnContext(ctx, "failed to check if user exists", "email", input.Email, "username", input.Username)
-		return User{}, &apperrors.InternalError{
+		return domain.User{}, &apperrors.InternalError{
 			Msg: "failed to check username or email uniqueness",
 			Err: err,
 		}
 	}
 	if exists {
 		span.SetStatus(codes.Error, "user already exists")
-		return User{}, &apperrors.BadRequestError{
+		return domain.User{}, &apperrors.BadRequestError{
 			Field: "user",
 			Msg:   "user already exists",
 		}
 	}
 
-	if err = s.passwords.Validate(input.Password); err != nil {
-		return User{}, err
+	if err = s.Passwords.Validate(input.Password); err != nil {
+		return domain.User{}, err
 	}
 
-	newPasswordHash, err := s.passwords.Hash(input.Password)
+	newPasswordHash, err := s.Passwords.Hash(input.Password)
 	if err != nil {
-		return User{}, err
+		return domain.User{}, err
 	}
 
-	user, err := s.repo.createUser(ctx, input.Username, input.Email, newPasswordHash)
+	user, err := s.Repo.CreateUser(ctx, input.Username, input.Email, newPasswordHash)
 	if err != nil {
-		return User{}, &apperrors.InternalError{
+		return domain.User{}, &apperrors.InternalError{
 			Msg: "failed to register a user",
 			Err: err,
 		}
@@ -70,7 +73,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 		UserAgent: &meta.UserAgent,
 	}); err != nil {
 		slog.WarnContext(ctx, "failed to create audit log", "err", err)
-		return User{}, err
+		return domain.User{}, err
 	}
 
 	span.SetAttributes(
@@ -81,7 +84,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (Us
 	return user, nil
 }
 
-func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
+func (s *Service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 	ctx, span := tracer.Start(ctx, "AuthService.DeleteUser")
 	defer span.End()
 
@@ -110,8 +113,8 @@ func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 
 	meta := contextkeys.RequestMetaFromContext(ctx)
 
-	if err := s.repo.deleteUserAndRevokeSessions(ctx, input.UserID, input.DeletionReason, RevocationUserDeleted); err != nil {
-		if errors.Is(err, ErrUserNotFoundOrAlreadyDeleted) {
+	if err := s.Repo.DeleteUserAndRevokeSessions(ctx, input.UserID, input.DeletionReason, domain.RevocationUserDeleted); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
 			return &apperrors.BadRequestError{
 				Field: "user uuid",
 				Msg:   "User not found or already deleted",

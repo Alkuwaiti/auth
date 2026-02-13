@@ -7,6 +7,8 @@ import (
 	"database/sql"
 	"testing"
 
+	"github.com/alkuwaiti/auth/internal/auth"
+	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -15,20 +17,20 @@ import (
 func TestEnrollMFAMethod(t *testing.T) {
 	tests := []struct {
 		name    string
-		method  MFAMethodType
-		seed    func(t *testing.T, svc *service, db *sql.DB, userID uuid.UUID, ctx context.Context)
+		method  domain.MFAMethodType
+		seed    func(t *testing.T, svc *auth.Service, db *sql.DB, userID uuid.UUID, ctx context.Context)
 		wantErr bool
 		wantURI bool
 	}{
 		{
 			name:    "invalid method type",
-			method:  MFAMethodType("invalid"),
+			method:  domain.MFAMethodType("invalid"),
 			wantErr: true,
 		},
 		{
 			name:   "method already exists",
-			method: MFAMethodTOTP,
-			seed: func(t *testing.T, svc *service, db *sql.DB, userID uuid.UUID, ctx context.Context) {
+			method: domain.MFAMethodTOTP,
+			seed: func(t *testing.T, svc *auth.Service, db *sql.DB, userID uuid.UUID, ctx context.Context) {
 
 				_, err := db.ExecContext(ctx, `
 						INSERT INTO user_mfa_methods (
@@ -42,7 +44,7 @@ func TestEnrollMFAMethod(t *testing.T) {
 					`,
 					uuid.New(),
 					userID,
-					MFAMethodTOTP,
+					domain.MFAMethodTOTP,
 					[]byte("encrypted-secret"),
 				)
 				require.NoError(t, err)
@@ -51,7 +53,7 @@ func TestEnrollMFAMethod(t *testing.T) {
 		},
 		{
 			name:    "successful enrollment",
-			method:  MFAMethodTOTP,
+			method:  domain.MFAMethodTOTP,
 			wantURI: true,
 		},
 	}

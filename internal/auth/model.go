@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
+	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/google/uuid"
 )
 
@@ -14,23 +15,6 @@ type TokenPair struct {
 	RefreshToken     string
 	RefreshExpiresAt time.Time
 	UserID           uuid.UUID
-}
-
-type Session struct {
-	ID               uuid.UUID
-	UserID           uuid.UUID
-	RefreshToken     string
-	UserAgent        string
-	IPAddress        string
-	CreatedAt        time.Time
-	ExpiresAt        time.Time
-	RevokedAt        *time.Time
-	RevocationReason RevocationReason
-	CompromisedAt    *time.Time
-}
-
-func (s *Session) IsExpired() bool {
-	return s.ExpiresAt.Before(time.Now())
 }
 
 type RegisterUserInput struct {
@@ -91,59 +75,19 @@ func (r *RegisterUserInput) validatePassword() error {
 
 type DeleteUserInput struct {
 	UserID         uuid.UUID
-	DeletionReason DeletionReason
+	DeletionReason domain.DeletionReason
 	ActorID        uuid.UUID
 	Note           string
 }
 
 func (d *DeleteUserInput) validate() error {
-	if err := d.DeletionReason.validate(); err != nil {
-		return err
+	if !d.DeletionReason.IsValid() {
+		return &apperrors.ValidationError{
+			Field: "deletion reason",
+			Msg:   "invalid deletion reason",
+		}
+
 	}
 
 	return nil
-}
-
-type User struct {
-	ID              uuid.UUID       `json:"id"`
-	Email           string          `json:"email"`
-	Username        string          `json:"Username"`
-	PasswordHash    string          `json:"Password_hash"`
-	IsEmailVerified bool            `json:"is_email_verified"`
-	IsActive        bool            `json:"is_active"`
-	CreatedAt       time.Time       `json:"created_at"`
-	UpdatedAt       time.Time       `json:"updated_at"`
-	DeletedAt       *time.Time      `json:"deleted_at"`
-	DeletionReason  *DeletionReason `json:"deletion_reason"`
-	Roles           []string        `json:"roles"`
-	MFAEnabled      bool            `json:"mfa_enabled"`
-}
-
-type MFAMethod struct {
-	ID              uuid.UUID
-	UserID          uuid.UUID
-	Type            MFAMethodType
-	ConfirmedAt     *time.Time
-	EncryptedSecret string
-	CreatedAt       time.Time
-	ExpiresAt       *time.Time
-}
-
-type MFAChallenge struct {
-	ID            uuid.UUID
-	UserID        uuid.UUID
-	MethodID      uuid.UUID
-	Scope         ChallengeScope
-	ChallengeType ChallengeType
-	ExpiresAt     time.Time
-	ConsumedAt    *time.Time
-	Attempts      int
-}
-
-type MFABackupCode struct {
-	ID         uuid.UUID
-	UserID     uuid.UUID
-	CodeHash   string
-	ConsumedAt *time.Time
-	CreatedAt  time.Time
 }

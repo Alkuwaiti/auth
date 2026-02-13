@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/alkuwaiti/auth/internal/auth"
+	"github.com/alkuwaiti/auth/internal/auth/domain"
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
@@ -128,7 +129,7 @@ func (s *server) DeleteUser(ctx context.Context, req *authv1.DeleteUserRequest) 
 
 	err = s.authService.DeleteUser(ctx, auth.DeleteUserInput{
 		UserID:         userID,
-		DeletionReason: auth.DeletionReason(req.Reason),
+		DeletionReason: domain.DeletionReason(req.Reason),
 		Note:           req.Note,
 	})
 	if err != nil {
@@ -144,7 +145,7 @@ func (s *server) EnrollMFAMethod(ctx context.Context, req *authv1.EnrollMFAMetho
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	res, err := s.authService.EnrollMFAMethod(ctx, auth.MFAMethodType(req.Method))
+	res, err := s.authService.EnrollMFAMethod(ctx, domain.MFAMethodType(req.Method))
 	if err != nil {
 		return nil, MapError(err)
 	}
@@ -211,7 +212,7 @@ func (s *server) CreateStepUpChallenge(ctx context.Context, req *authv1.CreateSt
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	res, err := s.authService.CreateStepUpChallenge(ctx, auth.MFAMethodType(req.MethodType), auth.ChallengeScope(req.Scope))
+	res, err := s.authService.CreateStepUpChallenge(ctx, domain.MFAMethodType(req.MethodType), domain.ChallengeScope(req.Scope))
 	if err != nil {
 		return nil, MapError(err)
 	}
