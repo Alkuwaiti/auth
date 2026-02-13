@@ -137,6 +137,7 @@ type MFAChallenge struct {
 	ChallengeType ChallengeType
 	ExpiresAt     time.Time
 	ConsumedAt    *time.Time
+	Attempts      int
 }
 
 type MFABackupCode struct {

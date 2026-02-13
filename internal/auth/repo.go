@@ -331,7 +331,7 @@ func toSessionModel(session postgres.Session) Session {
 	}
 }
 
-func (r *repo) InsertBackupCodes(ctx context.Context, tx *sql.Tx, userID uuid.UUID, hashedCodes []string) error {
+func (r *repo) insertBackupCodes(ctx context.Context, tx *sql.Tx, userID uuid.UUID, hashedCodes []string) error {
 	return r.queries.WithTx(tx).InsertBackupCodes(ctx, postgres.InsertBackupCodesParams{
 		UserID:  userID,
 		Column2: hashedCodes,

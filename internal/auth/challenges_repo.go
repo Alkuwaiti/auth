@@ -81,5 +81,6 @@ func toMFAChallenge(row postgres.MfaChallenge) MFAChallenge {
 		ExpiresAt:  row.ExpiresAt,
 		Scope:      ChallengeScope(row.Scope),
 		ConsumedAt: consumedAt,
+		Attempts:   int(row.Attempts),
 	}
 }

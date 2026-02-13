@@ -154,7 +154,7 @@ func (s *service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 
 	slog.DebugContext(ctx, "where are my backup codes? ", "backupCodes", backupCodes)
 
-	if err = s.repo.InsertBackupCodes(ctx, tx, method.UserID, hashed); err != nil {
+	if err = s.repo.insertBackupCodes(ctx, tx, method.UserID, hashed); err != nil {
 		return nil, err
 	}
 
@@ -259,7 +259,6 @@ type VerifyStepUpChallengeResponse struct {
 	ExpiresIn   int
 }
 
-// TODO: add tests
 func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UUID, code string) (VerifyStepUpChallengeResponse, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.VerifyStepUpChallenge")
 	defer span.End()
