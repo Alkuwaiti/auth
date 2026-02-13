@@ -348,7 +348,7 @@ func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uui
 
 	challenge, err := s.repo.LockActiveTOTPChallenge(ctx, tx, challengeID)
 	if err != nil {
-		if errors.Is(err, ErrInvalidMFAChallenge) {
+		if errors.Is(err, repository.ErrNotFound) {
 			return domain.LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
 		}
 		return domain.LockedTOTPChallenge{}, err
