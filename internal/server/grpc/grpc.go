@@ -29,7 +29,7 @@ type authService interface {
 	RefreshToken(ctx context.Context, refreshToken string) (auth.TokenPair, error)
 	Logout(ctx context.Context, refreshToken string) error
 	ChangePassword(ctx context.Context, oldPassword, newPassword string) error
-	RegisterUser(context.Context, auth.RegisterUserInput) (auth.User, error)
+	RegisterUser(context.Context, auth.RegisterUserInput) (domain.User, error)
 	DeleteUser(ctx context.Context, input auth.DeleteUserInput) error
 	EnrollMFAMethod(ctx context.Context, methodType domain.MFAMethodType) (auth.EnrollmentResult, error)
 	ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code string) ([]string, error)

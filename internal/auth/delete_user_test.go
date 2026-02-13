@@ -6,6 +6,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -36,7 +37,7 @@ func TestDeleteUser_Success(t *testing.T) {
 
 	err = service.DeleteUser(ctx, DeleteUserInput{
 		UserID:         user.ID,
-		DeletionReason: DeletionReason("USER_IS_BOT"),
+		DeletionReason: domain.DeletionReason("USER_IS_BOT"),
 		Note:           "Some note",
 	})
 
@@ -68,14 +69,14 @@ func TestDeleteUser_AlreadyDeleted(t *testing.T) {
 
 	err = service.DeleteUser(ctx, DeleteUserInput{
 		UserID:         user.ID,
-		DeletionReason: DeletionReason("USER_REQUEST"),
+		DeletionReason: domain.DeletionReason("USER_REQUEST"),
 	})
 	require.NoError(t, err)
 
 	// second delete
 	err = service.DeleteUser(ctx, DeleteUserInput{
 		UserID:         user.ID,
-		DeletionReason: DeletionReason("USER_REQUEST"),
+		DeletionReason: domain.DeletionReason("USER_REQUEST"),
 	})
 
 	require.Error(t, err)
@@ -100,7 +101,7 @@ func TestDeleteUser_UserDoesNotExist(t *testing.T) {
 
 	err = service.DeleteUser(ctx, DeleteUserInput{
 		UserID:         uuid.New(),
-		DeletionReason: DeletionReason("ADMIN_ACTION"),
+		DeletionReason: domain.DeletionReason("ADMIN_ACTION"),
 	})
 
 	require.Error(t, err)
@@ -145,12 +146,12 @@ func TestDeleteUser_UserIsSoftDeleted(t *testing.T) {
 
 	err = service.DeleteUser(ctx, DeleteUserInput{
 		UserID:         user.ID,
-		DeletionReason: DeletionReason("USER_REQUEST"),
+		DeletionReason: domain.DeletionReason("USER_REQUEST"),
 	})
 	require.NoError(t, err)
 
-	deletedUser, err := service.repo.getUserByID(ctx, user.ID)
+	deletedUser, err := service.repo.GetUserByID(ctx, user.ID)
 	require.NoError(t, err)
 	require.NotNil(t, deletedUser.DeletedAt)
-	require.Equal(t, DeletionUserRequest, *deletedUser.DeletionReason)
+	require.Equal(t, domain.DeletionUserRequest, *deletedUser.DeletionReason)
 }

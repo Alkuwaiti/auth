@@ -1,4 +1,4 @@
-package auth
+package repository
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/google/uuid"
 )
@@ -22,11 +23,11 @@ func NewRepo(db *sql.DB) *repo {
 	}
 }
 
-func (r *repo) beginTx(ctx context.Context) (*sql.Tx, error) {
+func (r *repo) BeginTx(ctx context.Context) (*sql.Tx, error) {
 	return r.db.BeginTx(ctx, nil)
 }
 
-func (r *repo) execTx(ctx context.Context, fn func(*postgres.Queries) error) error {
+func (r *repo) ExecTx(ctx context.Context, fn func(*postgres.Queries) error) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -42,7 +43,7 @@ func (r *repo) execTx(ctx context.Context, fn func(*postgres.Queries) error) err
 	return tx.Commit()
 }
 
-func (r *repo) createSession(ctx context.Context, userID uuid.UUID, expiry time.Time, refreshToken, IPAddress, userAgent string) (Session, error) {
+func (r *repo) CreateSession(ctx context.Context, userID uuid.UUID, expiry time.Time, refreshToken, IPAddress, userAgent string) (domain.Session, error) {
 	session, err := r.queries.CreateSession(ctx, postgres.CreateSessionParams{
 		UserID:       userID,
 		RefreshToken: refreshToken,
@@ -57,25 +58,25 @@ func (r *repo) createSession(ctx context.Context, userID uuid.UUID, expiry time.
 		ExpiresAt: expiry,
 	})
 	if err != nil {
-		return Session{}, err
+		return domain.Session{}, err
 	}
 
 	return toSessionModel(session), nil
 }
 
-func (r *repo) getSessionByRefreshToken(ctx context.Context, refreshToken string) (Session, error) {
+func (r *repo) GetSessionByRefreshToken(ctx context.Context, refreshToken string) (domain.Session, error) {
 	session, err := r.queries.GetSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return Session{}, ErrSessionNotFound
+			return domain.Session{}, ErrNotFound
 		}
-		return Session{}, err
+		return domain.Session{}, err
 	}
 
 	return toSessionModel(session), err
 }
 
-func (r *repo) revokeSession(ctx context.Context, SessionID uuid.UUID, revocationReason RevocationReason) error {
+func (r *repo) RevokeSession(ctx context.Context, SessionID uuid.UUID, revocationReason domain.RevocationReason) error {
 	return r.queries.RevokeSession(ctx, postgres.RevokeSessionParams{
 		ID: SessionID,
 		RevocationReason: sql.NullString{
@@ -85,13 +86,8 @@ func (r *repo) revokeSession(ctx context.Context, SessionID uuid.UUID, revocatio
 	})
 }
 
-func (r *repo) updatePasswordAndRevokeSessions(
-	ctx context.Context,
-	userID uuid.UUID,
-	newPasswordHash string,
-	reason RevocationReason,
-) error {
-	return r.execTx(ctx, func(q *postgres.Queries) error {
+func (r *repo) UpdatePasswordAndRevokeSessions(ctx context.Context, userID uuid.UUID, newPasswordHash string, reason domain.RevocationReason) error {
+	return r.ExecTx(ctx, func(q *postgres.Queries) error {
 		if err := q.UpdatePassword(ctx, postgres.UpdatePasswordParams{
 			ID:           userID,
 			PasswordHash: newPasswordHash,
@@ -113,43 +109,30 @@ func (r *repo) updatePasswordAndRevokeSessions(
 	})
 }
 
-type RotateSessionInput struct {
-	oldSessionID     uuid.UUID
-	userID           uuid.UUID
-	expiry           time.Time
-	revocationReason RevocationReason
-	refreshToken     string
-	ipAddress        string
-	userAgent        string
-}
-
-func (r *repo) rotateSession(
-	ctx context.Context,
-	input RotateSessionInput,
-) error {
-	return r.execTx(ctx, func(queries *postgres.Queries) error {
+func (r *repo) RotateSession(ctx context.Context, input domain.RotateSessionInput) error {
+	return r.ExecTx(ctx, func(queries *postgres.Queries) error {
 		if err := queries.RevokeSession(ctx, postgres.RevokeSessionParams{
-			ID: input.oldSessionID,
+			ID: input.OldSessionID,
 			RevocationReason: sql.NullString{
-				String: string(input.revocationReason),
-				Valid:  input.revocationReason != "",
+				String: string(input.RevocationReason),
+				Valid:  input.RevocationReason != "",
 			},
 		}); err != nil {
 			return err
 		}
 
 		_, err := queries.CreateSession(ctx, postgres.CreateSessionParams{
-			UserID:       input.userID,
-			RefreshToken: input.refreshToken,
+			UserID:       input.UserID,
+			RefreshToken: input.RefreshToken,
 			UserAgent: sql.NullString{
-				String: input.userAgent,
-				Valid:  input.userAgent != "",
+				String: input.UserAgent,
+				Valid:  input.UserAgent != "",
 			},
 			IpAddress: sql.NullString{
-				String: input.ipAddress,
-				Valid:  input.ipAddress != "",
+				String: input.IPAddress,
+				Valid:  input.IPAddress != "",
 			},
-			ExpiresAt: input.expiry,
+			ExpiresAt: input.Expiry,
 		})
 		if err != nil {
 			return err
@@ -159,12 +142,8 @@ func (r *repo) rotateSession(
 	})
 }
 
-func (r *repo) revokeAndMarkSessionsCompromised(
-	ctx context.Context,
-	userID uuid.UUID,
-	reason RevocationReason,
-) error {
-	return r.execTx(ctx, func(q *postgres.Queries) error {
+func (r *repo) RevokeAndMarkSessionsCompromised(ctx context.Context, userID uuid.UUID, reason domain.RevocationReason) error {
+	return r.ExecTx(ctx, func(q *postgres.Queries) error {
 		if err := q.RevokeAllUserSessions(ctx, postgres.RevokeAllUserSessionsParams{
 			UserID: userID,
 			RevocationReason: sql.NullString{
@@ -183,13 +162,8 @@ func (r *repo) revokeAndMarkSessionsCompromised(
 	})
 }
 
-func (r *repo) deleteUserAndRevokeSessions(
-	ctx context.Context,
-	userID uuid.UUID,
-	deletionReason DeletionReason,
-	revocationReason RevocationReason,
-) error {
-	return r.execTx(ctx, func(q *postgres.Queries) error {
+func (r *repo) DeleteUserAndRevokeSessions(ctx context.Context, userID uuid.UUID, deletionReason domain.DeletionReason, revocationReason domain.RevocationReason) error {
+	return r.ExecTx(ctx, func(q *postgres.Queries) error {
 		rows, err := q.DeleteUser(ctx, postgres.DeleteUserParams{
 			ID: userID,
 			DeletionReason: sql.NullString{
@@ -202,7 +176,7 @@ func (r *repo) deleteUserAndRevokeSessions(
 		}
 
 		if rows == 0 {
-			return ErrUserNotFoundOrAlreadyDeleted
+			return ErrNotFound
 		}
 
 		if err := q.RevokeAllUserSessions(ctx, postgres.RevokeAllUserSessionsParams{
@@ -219,7 +193,7 @@ func (r *repo) deleteUserAndRevokeSessions(
 	})
 }
 
-func (r *repo) userExists(ctx context.Context, username, email string) (bool, error) {
+func (r *repo) UserExists(ctx context.Context, username, email string) (bool, error) {
 	exists, err := r.queries.UserExists(ctx, postgres.UserExistsParams{
 		Username: username,
 		Email:    email,
@@ -231,47 +205,43 @@ func (r *repo) userExists(ctx context.Context, username, email string) (bool, er
 	return exists, nil
 }
 
-func (r *repo) getUserByEmail(ctx context.Context, email string) (User, error) {
+func (r *repo) GetUserByEmail(ctx context.Context, email string) (domain.User, error) {
 	user, err := r.queries.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return User{}, ErrUserNotFound
+			return domain.User{}, ErrNotFound
 		}
-		return User{}, err
+		return domain.User{}, err
 	}
 
 	return toUserModelFromEmailRow(user), nil
 }
 
-func (r *repo) getUserByID(ctx context.Context, userID uuid.UUID) (User, error) {
+func (r *repo) GetUserByID(ctx context.Context, userID uuid.UUID) (domain.User, error) {
 	user, err := r.queries.GetUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return User{}, ErrUserNotFound
+			return domain.User{}, ErrNotFound
 		}
-		return User{}, err
+		return domain.User{}, err
 	}
 
 	return toUserModelFromIDRow(user), nil
 }
 
-func (r *repo) createUser(
-	ctx context.Context,
-	username, email, passwordHash string,
-) (User, error) {
-
+func (r *repo) CreateUser(ctx context.Context, username, email, passwordHash string) (domain.User, error) {
 	userID, err := uuid.NewV7()
 	if err != nil {
-		return User{}, err
+		return domain.User{}, err
 	}
 
 	var (
-		user   User
+		user   domain.User
 		dbUser postgres.User
 		roleID uuid.UUID
 	)
 
-	err = r.execTx(ctx, func(q *postgres.Queries) error {
+	err = r.ExecTx(ctx, func(q *postgres.Queries) error {
 		dbUser, err = q.CreateUser(ctx, postgres.CreateUserParams{
 			ID:           userID,
 			Username:     username,
@@ -300,13 +270,13 @@ func (r *repo) createUser(
 	})
 
 	if err != nil {
-		return User{}, err
+		return domain.User{}, err
 	}
 
 	return user, nil
 }
 
-func toSessionModel(session postgres.Session) Session {
+func toSessionModel(session postgres.Session) domain.Session {
 	var revokedAt *time.Time
 	if session.RevokedAt.Valid {
 		revokedAt = &session.RevokedAt.Time
@@ -317,7 +287,7 @@ func toSessionModel(session postgres.Session) Session {
 		compromisedAt = &session.CompromisedAt.Time
 	}
 
-	return Session{
+	return domain.Session{
 		ID:               session.ID,
 		UserID:           session.UserID,
 		RefreshToken:     session.RefreshToken,
@@ -326,12 +296,12 @@ func toSessionModel(session postgres.Session) Session {
 		CreatedAt:        session.CreatedAt.Time,
 		ExpiresAt:        session.ExpiresAt,
 		RevokedAt:        revokedAt,
-		RevocationReason: RevocationReason(session.RevocationReason.String),
+		RevocationReason: domain.RevocationReason(session.RevocationReason.String),
 		CompromisedAt:    compromisedAt,
 	}
 }
 
-func (r *repo) insertBackupCodes(ctx context.Context, tx *sql.Tx, userID uuid.UUID, hashedCodes []string) error {
+func (r *repo) InsertBackupCodes(ctx context.Context, tx *sql.Tx, userID uuid.UUID, hashedCodes []string) error {
 	return r.queries.WithTx(tx).InsertBackupCodes(ctx, postgres.InsertBackupCodesParams{
 		UserID:  userID,
 		Column2: hashedCodes,
@@ -342,19 +312,19 @@ func (r *repo) DeleteBackupCodesForUser(ctx context.Context, tx *sql.Tx, userID 
 	return r.queries.WithTx(tx).DeleteBackupCodesForUser(ctx, userID)
 }
 
-func toUserModel(user postgres.User) User {
+func toUserModel(user postgres.User) domain.User {
 	var deletedAt *time.Time
 	if user.DeletedAt.Valid {
 		deletedAt = &user.DeletedAt.Time
 	}
 
-	var deletionReason *DeletionReason
+	var deletionReason *domain.DeletionReason
 	if user.DeletionReason.Valid {
-		dr := DeletionReason(user.DeletionReason.String)
+		dr := domain.DeletionReason(user.DeletionReason.String)
 		deletionReason = &dr
 	}
 
-	return User{
+	return domain.User{
 		ID:              user.ID,
 		Email:           user.Email,
 		Username:        user.Username,
@@ -369,19 +339,19 @@ func toUserModel(user postgres.User) User {
 	}
 }
 
-func toUserModelFromEmailRow(row postgres.GetUserByEmailRow) User {
+func toUserModelFromEmailRow(row postgres.GetUserByEmailRow) domain.User {
 	var deletedAt *time.Time
 	if row.DeletedAt.Valid {
 		deletedAt = &row.DeletedAt.Time
 	}
 
-	var deletionReason *DeletionReason
+	var deletionReason *domain.DeletionReason
 	if row.DeletionReason.Valid {
-		dr := DeletionReason(row.DeletionReason.String)
+		dr := domain.DeletionReason(row.DeletionReason.String)
 		deletionReason = &dr
 	}
 
-	return User{
+	return domain.User{
 		ID:              row.ID,
 		Email:           row.Email,
 		Username:        row.Username,
@@ -397,19 +367,19 @@ func toUserModelFromEmailRow(row postgres.GetUserByEmailRow) User {
 	}
 }
 
-func toUserModelFromIDRow(row postgres.GetUserByIDRow) User {
+func toUserModelFromIDRow(row postgres.GetUserByIDRow) domain.User {
 	var deletedAt *time.Time
 	if row.DeletedAt.Valid {
 		deletedAt = &row.DeletedAt.Time
 	}
 
-	var deletionReason *DeletionReason
+	var deletionReason *domain.DeletionReason
 	if row.DeletionReason.Valid {
-		dr := DeletionReason(row.DeletionReason.String)
+		dr := domain.DeletionReason(row.DeletionReason.String)
 		deletionReason = &dr
 	}
 
-	return User{
+	return domain.User{
 		ID:              row.ID,
 		Email:           row.Email,
 		Username:        row.Username,

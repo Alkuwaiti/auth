@@ -40,7 +40,7 @@ func (r *repo) LockActiveTOTPChallenge(ctx context.Context, tx *sql.Tx, challeng
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			// TODO: figure out what to do with this err
-			return domain.LockedTOTPChallenge{}, err // ErrInvalidMFAChallenge
+			return domain.LockedTOTPChallenge{}, ErrNotFound
 		}
 		return domain.LockedTOTPChallenge{}, err
 	}

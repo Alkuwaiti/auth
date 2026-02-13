@@ -114,11 +114,9 @@ func main() {
 		AppName: cfg.AppName,
 	})
 
-	authRepo := auth.NewRepo(dbConn)
+	authRepo := repository.NewRepo(dbConn)
 
-	authRepoI := repository.NewRepo(dbConn)
-
-	authService := auth.NewService(authRepo, authRepoI, passwords, auditor, authorizer, flags, tokens, multifactor, auth.Config{
+	authService := auth.NewService(authRepo, passwords, auditor, authorizer, flags, tokens, multifactor, auth.Config{
 		MaxChallengeAttempts: cfg.MaxChallengeAttempts,
 	})
 

@@ -4,18 +4,19 @@ package auth
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
+	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/google/uuid"
 	"github.com/pquerna/otp"
 	"go.opentelemetry.io/otel"
 )
 
 type service struct {
-	repo         *repo
-	repoI        repoI
+	repo         repo
 	passwords    passwords
 	auditor      auditor
 	authorizer   authorizer
@@ -25,16 +26,13 @@ type service struct {
 	Config       Config
 }
 
-// TODO: i use a sql import somewhere in the service. find it and remove it, it shouldn't know about that implementation.
-
 type Config struct {
 	MaxChallengeAttempts int
 }
 
-func NewService(repo *repo, repoI repoI, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, Config Config) *service {
+func NewService(repoI repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, Config Config) *service {
 	return &service{
-		repo:         repo,
-		repoI:        repoI,
+		repo:         repoI,
 		passwords:    passwords,
 		auditor:      auditor,
 		authorizer:   authorizer,
@@ -45,7 +43,7 @@ func NewService(repo *repo, repoI repoI, passwords passwords, auditor auditor, a
 	}
 }
 
-type repoI interface {
+type repo interface {
 	GetUserBackupCodes(ctx context.Context, userID uuid.UUID) ([]domain.MFABackupCode, error)
 	ConsumeBackupCode(ctx context.Context, tx *sql.Tx, codeID uuid.UUID) error
 	CreateChallenge(ctx context.Context, challenge domain.MFAChallenge) (domain.MFAChallenge, error)
@@ -61,6 +59,21 @@ type repoI interface {
 	GetMFAMethodsConfirmedByUser(ctx context.Context, userID uuid.UUID) ([]domain.MFAMethod, error)
 	GetConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) (domain.MFAMethod, error)
 	UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error)
+	BeginTx(ctx context.Context) (*sql.Tx, error)
+	ExecTx(ctx context.Context, fn func(*postgres.Queries) error) error
+	CreateSession(ctx context.Context, userID uuid.UUID, expiry time.Time, refreshToken, IPAddress, userAgent string) (domain.Session, error)
+	GetSessionByRefreshToken(ctx context.Context, refreshToken string) (domain.Session, error)
+	RevokeSession(ctx context.Context, SessionID uuid.UUID, revocationReason domain.RevocationReason) error
+	UpdatePasswordAndRevokeSessions(ctx context.Context, userID uuid.UUID, newPasswordHash string, reason domain.RevocationReason) error
+	RotateSession(ctx context.Context, input domain.RotateSessionInput) error
+	RevokeAndMarkSessionsCompromised(ctx context.Context, userID uuid.UUID, reason domain.RevocationReason) error
+	DeleteUserAndRevokeSessions(ctx context.Context, userID uuid.UUID, deletionReason domain.DeletionReason, revocationReason domain.RevocationReason) error
+	UserExists(ctx context.Context, username, email string) (bool, error)
+	GetUserByEmail(ctx context.Context, email string) (domain.User, error)
+	GetUserByID(ctx context.Context, userID uuid.UUID) (domain.User, error)
+	CreateUser(ctx context.Context, username, email, passwordHash string) (domain.User, error)
+	InsertBackupCodes(ctx context.Context, tx *sql.Tx, userID uuid.UUID, hashedCodes []string) error
+	DeleteBackupCodesForUser(ctx context.Context, tx *sql.Tx, userID uuid.UUID) error
 }
 
 type auditor interface {

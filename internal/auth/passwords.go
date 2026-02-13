@@ -7,6 +7,8 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/audit"
+	"github.com/alkuwaiti/auth/internal/auth/domain"
+	"github.com/alkuwaiti/auth/internal/auth/repository"
 	"github.com/alkuwaiti/auth/internal/contextkeys"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -31,9 +33,9 @@ func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 		return err
 	}
 
-	user, err := s.repo.getUserByID(ctx, userID)
+	user, err := s.repo.GetUserByID(ctx, userID)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
+		if errors.Is(err, repository.ErrNotFound) {
 			_, _ = s.passwords.Compare(dummyBcryptHash, oldPassword)
 			return &apperrors.InvalidCredentialsError{}
 		}
@@ -82,7 +84,7 @@ func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 		return err
 	}
 
-	if err = s.repo.updatePasswordAndRevokeSessions(ctx, userID, newPasswordHash, RevocationPasswordChange); err != nil {
+	if err = s.repo.UpdatePasswordAndRevokeSessions(ctx, userID, newPasswordHash, domain.RevocationPasswordChange); err != nil {
 		slog.ErrorContext(ctx, "failed to update password and revoke sessions", "err", err)
 		return err
 	}

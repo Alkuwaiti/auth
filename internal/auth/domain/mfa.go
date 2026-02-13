@@ -2,7 +2,6 @@
 package domain
 
 import (
-	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -64,17 +63,12 @@ const (
 	MFAMethodTOTP MFAMethodType = "totp"
 )
 
-func (t MFAMethodType) Validate() error {
+func (t MFAMethodType) IsValid() bool {
 	switch t {
 	case MFAMethodTOTP:
-		return nil
+		return true
 	default:
-		// TODO: change this err
-		// return &apperrors.ValidationError{
-		// 	Field: "method type",
-		// 	Msg:   "invalid method type",
-		// }
-		return errors.New("err")
+		return false
 	}
 }
 

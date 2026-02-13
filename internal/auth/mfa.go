@@ -11,6 +11,7 @@ import (
 	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
+	"github.com/alkuwaiti/auth/internal/auth/repository"
 	"github.com/alkuwaiti/auth/internal/contextkeys"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
@@ -38,14 +39,14 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType domain.MFAMeth
 		return EnrollmentResult{}, err
 	}
 
-	if err = methodType.Validate(); err != nil {
+	if !methodType.IsValid() {
 		return EnrollmentResult{}, &apperrors.ValidationError{
 			Field: "method type",
 			Msg:   "invalid MFA method type",
 		}
 	}
 
-	exists, err := s.repoI.UserHasActiveMFAMethodByType(ctx, userID, methodType)
+	exists, err := s.repo.UserHasActiveMFAMethodByType(ctx, userID, methodType)
 	if err != nil {
 		slog.ErrorContext(ctx, "error when checking if user has an active MFA method", "user_id", userID, "method_type", methodType, "err", err)
 		return EnrollmentResult{}, err
@@ -57,7 +58,7 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType domain.MFAMeth
 		}
 	}
 
-	if err = s.repoI.DeleteExpiredUnconfirmedMethods(ctx, userID, methodType); err != nil {
+	if err = s.repo.DeleteExpiredUnconfirmedMethods(ctx, userID, methodType); err != nil {
 		return EnrollmentResult{}, err
 	}
 
@@ -79,7 +80,7 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType domain.MFAMeth
 		return EnrollmentResult{}, err
 	}
 
-	method, err := s.repoI.CreateUserMFAMethod(ctx, userID, encryptedSecret, methodType)
+	method, err := s.repo.CreateUserMFAMethod(ctx, userID, encryptedSecret, methodType)
 	if err != nil {
 		slog.ErrorContext(ctx, "error when creating a user mfa method", "err", err)
 		return EnrollmentResult{}, err
@@ -101,7 +102,7 @@ func (s *service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 
 	code = strings.TrimSpace(code)
 
-	method, err := s.repoI.GetMFAMethodByID(ctx, methodID)
+	method, err := s.repo.GetMFAMethodByID(ctx, methodID)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +121,7 @@ func (s *service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 		}
 	}
 
-	tx, err := s.repo.beginTx(ctx)
+	tx, err := s.repo.BeginTx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +141,7 @@ func (s *service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 		return nil, &apperrors.InvalidMFACodeError{}
 	}
 
-	if err = s.repoI.ConfirmUserMFAMethod(ctx, tx, methodID); err != nil {
+	if err = s.repo.ConfirmUserMFAMethod(ctx, tx, methodID); err != nil {
 		return nil, err
 	}
 
@@ -155,7 +156,7 @@ func (s *service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 
 	slog.DebugContext(ctx, "where are my backup codes? ", "backupCodes", backupCodes)
 
-	if err = s.repo.insertBackupCodes(ctx, tx, method.UserID, hashed); err != nil {
+	if err = s.repo.InsertBackupCodes(ctx, tx, method.UserID, hashed); err != nil {
 		return nil, err
 	}
 
@@ -185,9 +186,9 @@ func (s *service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, c
 		return TokenPair{}, err
 	}
 
-	user, err := s.repo.getUserByID(ctx, lockedChallenge.UserID)
+	user, err := s.repo.GetUserByID(ctx, lockedChallenge.UserID)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
+		if errors.Is(err, repository.ErrNotFound) {
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
 		}
 
@@ -227,12 +228,12 @@ func (s *service) CreateStepUpChallenge(ctx context.Context, methodType domain.M
 		return CreateStepUpChallengeResponse{}, err
 	}
 
-	method, err := s.repoI.GetConfirmedMFAMethodByType(ctx, userID, methodType)
+	method, err := s.repo.GetConfirmedMFAMethodByType(ctx, userID, methodType)
 	if err != nil {
 		return CreateStepUpChallengeResponse{}, err
 	}
 
-	challenge, err := s.repoI.CreateChallenge(ctx, domain.MFAChallenge{
+	challenge, err := s.repo.CreateChallenge(ctx, domain.MFAChallenge{
 		MethodID:      method.ID,
 		UserID:        userID,
 		Scope:         domain.ScopeLogin,
@@ -274,7 +275,7 @@ func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 		return VerifyStepUpChallengeResponse{}, err
 	}
 
-	challenge, err := s.repoI.GetChallengeByID(ctx, challengeID)
+	challenge, err := s.repo.GetChallengeByID(ctx, challengeID)
 	if err != nil {
 		return VerifyStepUpChallengeResponse{}, err
 	}
@@ -337,7 +338,7 @@ func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 
 // TODO: probably need to still break this up.
 func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (domain.LockedTOTPChallenge, error) {
-	tx, err := s.repo.beginTx(ctx)
+	tx, err := s.repo.BeginTx(ctx)
 	if err != nil {
 		return domain.LockedTOTPChallenge{}, err
 	}
@@ -345,7 +346,7 @@ func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uui
 		_ = tx.Rollback()
 	}()
 
-	challenge, err := s.repoI.LockActiveTOTPChallenge(ctx, tx, challengeID)
+	challenge, err := s.repo.LockActiveTOTPChallenge(ctx, tx, challengeID)
 	if err != nil {
 		if errors.Is(err, ErrInvalidMFAChallenge) {
 			return domain.LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
@@ -368,7 +369,7 @@ func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uui
 	}
 
 	if !totpValid && !backupCodeValid {
-		if err = s.repoI.IncrementChallengeAttempts(ctx, tx, challenge.ChallengeID); err != nil {
+		if err = s.repo.IncrementChallengeAttempts(ctx, tx, challenge.ChallengeID); err != nil {
 			return domain.LockedTOTPChallenge{}, err
 		}
 
@@ -379,7 +380,7 @@ func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uui
 		return domain.LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
 	}
 
-	if err = s.repoI.ConsumeChallenge(ctx, tx, challenge.ChallengeID); err != nil {
+	if err = s.repo.ConsumeChallenge(ctx, tx, challenge.ChallengeID); err != nil {
 		return domain.LockedTOTPChallenge{}, err
 	}
 
@@ -391,7 +392,7 @@ func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uui
 }
 
 func (s *service) UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error) {
-	exists, err := s.repoI.UserHasActiveMFAMethod(ctx, userID)
+	exists, err := s.repo.UserHasActiveMFAMethod(ctx, userID)
 	if err != nil {
 		return false, err
 	}
@@ -406,7 +407,7 @@ func (s *service) verifyBackupCode(ctx context.Context, tx *sql.Tx, userID uuid.
 		return false, nil
 	}
 
-	codes, err := s.repoI.GetUserBackupCodes(ctx, userID)
+	codes, err := s.repo.GetUserBackupCodes(ctx, userID)
 	if err != nil {
 		return false, err
 	}
@@ -418,7 +419,7 @@ func (s *service) verifyBackupCode(ctx context.Context, tx *sql.Tx, userID uuid.
 		}
 
 		if ok {
-			if err := s.repoI.ConsumeBackupCode(ctx, tx, c.ID); err != nil {
+			if err := s.repo.ConsumeBackupCode(ctx, tx, c.ID); err != nil {
 				return false, err
 			}
 			return true, nil

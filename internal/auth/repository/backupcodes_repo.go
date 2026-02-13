@@ -11,18 +11,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type repo struct {
-	db      *sql.DB
-	queries *postgres.Queries
-}
-
-func NewRepo(db *sql.DB) *repo {
-	return &repo{
-		db:      db,
-		queries: postgres.New(db),
-	}
-}
-
 func (r *repo) GetUserBackupCodes(ctx context.Context, userID uuid.UUID) ([]domain.MFABackupCode, error) {
 	postgresCodes, err := r.queries.GetUserBackupCodes(ctx, userID)
 	if err != nil {

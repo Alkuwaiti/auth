@@ -45,9 +45,7 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 		RefreshTokensEnabled: true,
 	})
 
-	authRepo := NewRepo(testDB.DB)
-
-	authRepoI := repository.NewRepo(testDB.DB)
+	authRepo := repository.NewRepo(testDB.DB)
 
 	tokenManager := tokens.New(tokens.Config{
 		Issuer:   "auth-service",
@@ -59,7 +57,7 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 		AppName: "MyApp",
 	})
 
-	service := NewService(authRepo, authRepoI, passwordService, auditService, authorizerService, flagsService, tokenManager, multifactor, Config{
+	service := NewService(authRepo, passwordService, auditService, authorizerService, flagsService, tokenManager, multifactor, Config{
 		MaxChallengeAttempts: 5,
 	})
 

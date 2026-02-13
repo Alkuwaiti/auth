@@ -129,7 +129,7 @@ func (s *server) DeleteUser(ctx context.Context, req *authv1.DeleteUserRequest) 
 
 	err = s.authService.DeleteUser(ctx, auth.DeleteUserInput{
 		UserID:         userID,
-		DeletionReason: auth.DeletionReason(req.Reason),
+		DeletionReason: domain.DeletionReason(req.Reason),
 		Note:           req.Note,
 	})
 	if err != nil {
