@@ -358,33 +358,29 @@ func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uui
 		return LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
 	}
 
-	consumeAndCommit := func() (LockedTOTPChallenge, error) {
-		if err = s.repo.consumeChallenge(ctx, tx, challenge.ChallengeID); err != nil {
-			return LockedTOTPChallenge{}, err
-		}
-		if err = tx.Commit(); err != nil {
-			return LockedTOTPChallenge{}, err
-		}
-		return challenge, nil
-	}
-
 	totpValid, err := s.MFAProvider.VerifyTOTP(ctx, string(challenge.SecretCiphertext), code)
 	if err != nil {
 		return LockedTOTPChallenge{}, err
-	}
-	if totpValid {
-		return consumeAndCommit()
 	}
 
 	backupCodeValid, err := s.verifyBackupCode(ctx, tx, challenge.UserID, code)
 	if err != nil {
 		return LockedTOTPChallenge{}, err
 	}
-	if backupCodeValid {
-		return consumeAndCommit()
+
+	if !totpValid && !backupCodeValid {
+		if err = s.repo.incrementChallengeAttempts(ctx, tx, challenge.ChallengeID); err != nil {
+			return LockedTOTPChallenge{}, err
+		}
+
+		if err = tx.Commit(); err != nil {
+			return LockedTOTPChallenge{}, err
+		}
+
+		return LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
 	}
 
-	if err = s.repo.incrementChallengeAttempts(ctx, tx, challenge.ChallengeID); err != nil {
+	if err = s.repo.consumeChallenge(ctx, tx, challenge.ChallengeID); err != nil {
 		return LockedTOTPChallenge{}, err
 	}
 
@@ -392,7 +388,7 @@ func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uui
 		return LockedTOTPChallenge{}, err
 	}
 
-	return LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
+	return challenge, nil
 }
 
 func (s *service) UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error) {
@@ -405,6 +401,12 @@ func (s *service) UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) 
 }
 
 func (s *service) verifyBackupCode(ctx context.Context, tx *sql.Tx, userID uuid.UUID, code string) (bool, error) {
+	code = strings.ToUpper(strings.TrimSpace(code))
+
+	if len(code) != 9 || code[4] != '-' {
+		return false, nil
+	}
+
 	codes, err := s.repo.getUserBackupCodes(ctx, userID)
 	if err != nil {
 		return false, err
