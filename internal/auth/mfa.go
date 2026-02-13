@@ -351,6 +351,7 @@ func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uui
 		if errors.Is(err, repository.ErrNotFound) {
 			return domain.LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
 		}
+		slog.ErrorContext(ctx, "error locking active totp challenge", "err", err)
 		return domain.LockedTOTPChallenge{}, err
 	}
 
@@ -370,10 +371,12 @@ func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uui
 
 	if !totpValid && !backupCodeValid {
 		if err = s.repo.IncrementChallengeAttempts(ctx, tx, challenge.ChallengeID); err != nil {
+			slog.ErrorContext(ctx, "error incrementing challenge attempts", "err", err)
 			return domain.LockedTOTPChallenge{}, err
 		}
 
 		if err = tx.Commit(); err != nil {
+			slog.ErrorContext(ctx, "error committing transaction", "err", err)
 			return domain.LockedTOTPChallenge{}, err
 		}
 
@@ -381,10 +384,12 @@ func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uui
 	}
 
 	if err = s.repo.ConsumeChallenge(ctx, tx, challenge.ChallengeID); err != nil {
+		slog.ErrorContext(ctx, "error consuming challenge", "err", err)
 		return domain.LockedTOTPChallenge{}, err
 	}
 
 	if err = tx.Commit(); err != nil {
+		slog.ErrorContext(ctx, "error committing transaction", "err", err)
 		return domain.LockedTOTPChallenge{}, err
 	}
 
@@ -394,6 +399,7 @@ func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uui
 func (s *service) UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error) {
 	exists, err := s.repo.UserHasActiveMFAMethod(ctx, userID)
 	if err != nil {
+		slog.ErrorContext(ctx, "error checking if user has active mfa method", "err", err)
 		return false, err
 	}
 
@@ -409,17 +415,20 @@ func (s *service) verifyBackupCode(ctx context.Context, tx *sql.Tx, userID uuid.
 
 	codes, err := s.repo.GetUserBackupCodes(ctx, userID)
 	if err != nil {
+		slog.ErrorContext(ctx, "error getting user backup codes", "err", err)
 		return false, err
 	}
 
 	for _, c := range codes {
 		ok, err := s.passwords.Compare(c.CodeHash, code)
 		if err != nil {
+			slog.ErrorContext(ctx, "error comparing hashes", "err", err)
 			return false, err
 		}
 
 		if ok {
 			if err := s.repo.ConsumeBackupCode(ctx, tx, c.ID); err != nil {
+				slog.ErrorContext(ctx, "error consuming backup code", "err", err, "challenge_id", c.ID)
 				return false, err
 			}
 			return true, nil
