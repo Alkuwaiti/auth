@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"testing"
 
+	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/google/uuid"
@@ -17,7 +18,7 @@ func TestEnrollMFAMethod(t *testing.T) {
 	tests := []struct {
 		name    string
 		method  domain.MFAMethodType
-		seed    func(t *testing.T, svc *service, db *sql.DB, userID uuid.UUID, ctx context.Context)
+		seed    func(t *testing.T, svc *auth.Service, db *sql.DB, userID uuid.UUID, ctx context.Context)
 		wantErr bool
 		wantURI bool
 	}{
@@ -29,7 +30,7 @@ func TestEnrollMFAMethod(t *testing.T) {
 		{
 			name:   "method already exists",
 			method: domain.MFAMethodTOTP,
-			seed: func(t *testing.T, svc *service, db *sql.DB, userID uuid.UUID, ctx context.Context) {
+			seed: func(t *testing.T, svc *auth.Service, db *sql.DB, userID uuid.UUID, ctx context.Context) {
 
 				_, err := db.ExecContext(ctx, `
 						INSERT INTO user_mfa_methods (

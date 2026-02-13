@@ -16,7 +16,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (domain.User, error) {
+func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (domain.User, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.RegisterUser")
 	defer span.End()
 
@@ -33,7 +33,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 		return domain.User{}, err
 	}
 
-	exists, err := s.repo.UserExists(ctx, input.Username, input.Email)
+	exists, err := s.Repo.UserExists(ctx, input.Username, input.Email)
 	if err != nil {
 		slog.WarnContext(ctx, "failed to check if user exists", "email", input.Email, "username", input.Username)
 		return domain.User{}, &apperrors.InternalError{
@@ -49,16 +49,16 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 		}
 	}
 
-	if err = s.passwords.Validate(input.Password); err != nil {
+	if err = s.Passwords.Validate(input.Password); err != nil {
 		return domain.User{}, err
 	}
 
-	newPasswordHash, err := s.passwords.Hash(input.Password)
+	newPasswordHash, err := s.Passwords.Hash(input.Password)
 	if err != nil {
 		return domain.User{}, err
 	}
 
-	user, err := s.repo.CreateUser(ctx, input.Username, input.Email, newPasswordHash)
+	user, err := s.Repo.CreateUser(ctx, input.Username, input.Email, newPasswordHash)
 	if err != nil {
 		return domain.User{}, &apperrors.InternalError{
 			Msg: "failed to register a user",
@@ -84,7 +84,7 @@ func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 	return user, nil
 }
 
-func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
+func (s *Service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 	ctx, span := tracer.Start(ctx, "AuthService.DeleteUser")
 	defer span.End()
 
@@ -113,7 +113,7 @@ func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 
 	meta := contextkeys.RequestMetaFromContext(ctx)
 
-	if err := s.repo.DeleteUserAndRevokeSessions(ctx, input.UserID, input.DeletionReason, domain.RevocationUserDeleted); err != nil {
+	if err := s.Repo.DeleteUserAndRevokeSessions(ctx, input.UserID, input.DeletionReason, domain.RevocationUserDeleted); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return &apperrors.BadRequestError{
 				Field: "user uuid",

@@ -15,12 +15,12 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
-type service struct {
-	repo         repo
-	passwords    passwords
+type Service struct {
+	Repo         repo
+	Passwords    passwords
 	auditor      auditor
 	authorizer   authorizer
-	flags        featureFlags
+	Flags        featureFlags
 	tokenManager tokenManager
 	MFAProvider  MFAProvider
 	Config       Config
@@ -30,13 +30,13 @@ type Config struct {
 	MaxChallengeAttempts int
 }
 
-func NewService(repoI repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, Config Config) *service {
-	return &service{
-		repo:         repoI,
-		passwords:    passwords,
+func NewService(repoI repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, Config Config) *Service {
+	return &Service{
+		Repo:         repoI,
+		Passwords:    passwords,
 		auditor:      auditor,
 		authorizer:   authorizer,
-		flags:        flags,
+		Flags:        flags,
 		tokenManager: tokenManager,
 		MFAProvider:  MFAProvider,
 		Config:       Config,

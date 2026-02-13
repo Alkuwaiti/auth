@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
+	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
@@ -18,7 +19,7 @@ func TestLogout_Success(t *testing.T) {
 	ctx := context.Background()
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
-	_, err := service.RegisterUser(ctx, RegisterUserInput{
+	_, err := service.RegisterUser(ctx, auth.RegisterUserInput{
 		Username: "test",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
@@ -58,7 +59,7 @@ func TestLogout_PreventsRefreshReuse(t *testing.T) {
 	ctx := context.Background()
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
-	_, err := service.RegisterUser(ctx, RegisterUserInput{
+	_, err := service.RegisterUser(ctx, auth.RegisterUserInput{
 		Username: "test",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
@@ -82,7 +83,7 @@ func TestLogout_CreatesAuditLog(t *testing.T) {
 	ctx := context.Background()
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
-	_, err := service.RegisterUser(ctx, RegisterUserInput{
+	_, err := service.RegisterUser(ctx, auth.RegisterUserInput{
 		Username: "test",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
@@ -115,7 +116,7 @@ func TestLogout_MultiDeviceIsolation(t *testing.T) {
 	ctx1 := testutil.CtxWithRequestMeta(ctx)
 	ctx2 := testutil.CtxWithRequestMeta(ctx)
 
-	_, err := service.RegisterUser(ctx1, RegisterUserInput{
+	_, err := service.RegisterUser(ctx1, auth.RegisterUserInput{
 		Username: "test",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",

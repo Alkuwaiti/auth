@@ -9,6 +9,7 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/audit"
+	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -16,15 +17,15 @@ import (
 func TestRegisterUser(t *testing.T) {
 	tests := []struct {
 		name          string
-		input         RegisterUserInput
-		setupExisting *RegisterUserInput
+		input         auth.RegisterUserInput
+		setupExisting *auth.RegisterUserInput
 		expectError   bool
 		expectedError error
 		checkDB       bool
 	}{
 		{
 			name: "Success",
-			input: RegisterUserInput{
+			input: auth.RegisterUserInput{
 				Username: "testUser",
 				Email:    "test@example.com",
 				Password: "StrongPassword123!",
@@ -34,12 +35,12 @@ func TestRegisterUser(t *testing.T) {
 		},
 		{
 			name: "DuplicateEmail",
-			input: RegisterUserInput{
+			input: auth.RegisterUserInput{
 				Username: "anotherUser",
 				Email:    "test@example.com",
 				Password: "StrongPassword123!",
 			},
-			setupExisting: &RegisterUserInput{
+			setupExisting: &auth.RegisterUserInput{
 				Username: "testUser",
 				Email:    "test@example.com",
 				Password: "StrongPassword123!",
@@ -49,12 +50,12 @@ func TestRegisterUser(t *testing.T) {
 		},
 		{
 			name: "DuplicateUsername",
-			input: RegisterUserInput{
+			input: auth.RegisterUserInput{
 				Username: "testUser",
 				Email:    "anothermail@example.com",
 				Password: "StrongPassword123!",
 			},
-			setupExisting: &RegisterUserInput{
+			setupExisting: &auth.RegisterUserInput{
 				Username: "testUser",
 				Email:    "test@example.com",
 				Password: "StrongPassword123!",
@@ -111,7 +112,7 @@ func TestRegisterUser_AuditTrail(t *testing.T) {
 
 	ctx := context.Background()
 
-	user, err := service.RegisterUser(ctx, RegisterUserInput{
+	user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
 		Username: "testUser",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",

@@ -28,11 +28,11 @@ func TestVerifyAndConsumeChallenge_SuccessTOTP(t *testing.T) {
 	ctx = testutil.CtxWithEmail(ctx, "email@email.com")
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
-	challenge, err := svc.verifyAndConsumeChallenge(ctx, challengeID, code)
+	challenge, err := svc.VerifyAndConsumeChallenge(ctx, challengeID, code)
 	require.NoError(t, err)
 	require.Equal(t, challengeID, challenge.ChallengeID)
 
-	dbChallenge, err := svc.repo.GetChallengeByID(ctx, challengeID)
+	dbChallenge, err := svc.Repo.GetChallengeByID(ctx, challengeID)
 	require.NoError(t, err)
 	require.NotNil(t, dbChallenge.ConsumedAt)
 }
@@ -48,11 +48,11 @@ func TestVerifyAndConsumeChallenge_InvalidTOTP(t *testing.T) {
 	ctx = testutil.CtxWithEmail(ctx, "email@email.com")
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
-	_, err := svc.verifyAndConsumeChallenge(ctx, challengeID, "000000")
+	_, err := svc.VerifyAndConsumeChallenge(ctx, challengeID, "000000")
 	require.Error(t, err)
 	require.IsType(t, &apperrors.InvalidMFACodeError{}, err)
 
-	dbChallenge, err := svc.repo.GetChallengeByID(ctx, challengeID)
+	dbChallenge, err := svc.Repo.GetChallengeByID(ctx, challengeID)
 	require.NoError(t, err)
 	require.Equal(t, 1, dbChallenge.Attempts)
 	require.Nil(t, dbChallenge.ConsumedAt)
@@ -78,7 +78,7 @@ func TestVerifyAndConsumeChallenge_MaxAttemptsExceeded(t *testing.T) {
 	ctx = testutil.CtxWithEmail(ctx, "email@email.com")
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
-	_, err = svc.verifyAndConsumeChallenge(ctx, challengeID, "000000")
+	_, err = svc.VerifyAndConsumeChallenge(ctx, challengeID, "000000")
 	require.Error(t, err)
 	require.IsType(t, &apperrors.InvalidMFACodeError{}, err)
 }
@@ -101,7 +101,7 @@ func TestVerifyAndConsumeChallenge_AlreadyConsumed(t *testing.T) {
 	ctx = testutil.CtxWithEmail(ctx, "email@email.com")
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
-	_, err = svc.verifyAndConsumeChallenge(ctx, challengeID, "000000")
+	_, err = svc.VerifyAndConsumeChallenge(ctx, challengeID, "000000")
 	require.Error(t, err)
 	require.IsType(t, &apperrors.InvalidMFACodeError{}, err)
 }
@@ -115,7 +115,7 @@ func TestVerifyAndConsumeChallenge_SuccessWithBackupCode(t *testing.T) {
 
 	rawBackupCode := "ABCD-1234"
 
-	hashedCode, err := svc.passwords.Hash(rawBackupCode)
+	hashedCode, err := svc.Passwords.Hash(rawBackupCode)
 	require.NoError(t, err)
 
 	var backupCodeID uuid.UUID
@@ -130,7 +130,7 @@ func TestVerifyAndConsumeChallenge_SuccessWithBackupCode(t *testing.T) {
 	ctx = testutil.CtxWithEmail(ctx, "email@email.com")
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
-	challenge, err := svc.verifyAndConsumeChallenge(ctx, challengeID, rawBackupCode)
+	challenge, err := svc.VerifyAndConsumeChallenge(ctx, challengeID, rawBackupCode)
 
 	require.NoError(t, err)
 	require.Equal(t, challengeID, challenge.ChallengeID)

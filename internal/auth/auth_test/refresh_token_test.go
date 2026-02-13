@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
+	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/flags"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/stretchr/testify/require"
@@ -21,7 +22,7 @@ func TestRefreshToken_Success(t *testing.T) {
 	ctx := context.Background()
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
-	_, err := service.RegisterUser(ctx, RegisterUserInput{
+	_, err := service.RegisterUser(ctx, auth.RegisterUserInput{
 		Username: "testUser",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
@@ -77,7 +78,7 @@ func TestRefreshToken_ExpiredSession(t *testing.T) {
 	ctx := context.Background()
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
-	_, err := service.RegisterUser(ctx, RegisterUserInput{
+	_, err := service.RegisterUser(ctx, auth.RegisterUserInput{
 		Username: "testUser",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
@@ -105,7 +106,7 @@ func TestRefreshToken_RevokedTokenReuse(t *testing.T) {
 	ctx := context.Background()
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
-	_, err := service.RegisterUser(ctx, RegisterUserInput{
+	_, err := service.RegisterUser(ctx, auth.RegisterUserInput{
 		Username: "testUser",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
@@ -144,7 +145,7 @@ func TestRefreshToken_AlreadyCompromised(t *testing.T) {
 	ctx := context.Background()
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
-	_, err := service.RegisterUser(ctx, RegisterUserInput{
+	_, err := service.RegisterUser(ctx, auth.RegisterUserInput{
 		Username: "testUser",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
@@ -172,7 +173,7 @@ func TestRefreshToken_ConcurrentRace(t *testing.T) {
 	ctx := context.Background()
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
-	_, err := service.RegisterUser(ctx, RegisterUserInput{
+	_, err := service.RegisterUser(ctx, auth.RegisterUserInput{
 		Username: "test",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
@@ -217,7 +218,7 @@ func TestRefreshToken_AfterPasswordChange(t *testing.T) {
 	ctx := context.Background()
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
-	user, err := service.RegisterUser(ctx, RegisterUserInput{
+	user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
 		Username: "test",
 		Email:    "test@example.com",
 		Password: "OldPassword123!",
@@ -243,7 +244,7 @@ func TestRefreshToken_AfterLogout(t *testing.T) {
 	ctx := context.Background()
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
-	_, err := service.RegisterUser(ctx, RegisterUserInput{
+	_, err := service.RegisterUser(ctx, auth.RegisterUserInput{
 		Username: "test",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
@@ -267,7 +268,7 @@ func TestRefreshToken_LogoutThenReplay(t *testing.T) {
 	ctx := context.Background()
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
-	_, err := service.RegisterUser(ctx, RegisterUserInput{
+	_, err := service.RegisterUser(ctx, auth.RegisterUserInput{
 		Username: "test",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
@@ -296,7 +297,7 @@ func TestRefreshToken_MultiDeviceIsolation(t *testing.T) {
 	ctx1 := testutil.CtxWithRequestMeta(ctx)
 	ctx2 := testutil.CtxWithRequestMeta(ctx)
 
-	_, err := service.RegisterUser(ctx1, RegisterUserInput{
+	_, err := service.RegisterUser(ctx1, auth.RegisterUserInput{
 		Username: "test",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
@@ -324,7 +325,7 @@ func TestRefreshToken_DeletedUser(t *testing.T) {
 	ctx := context.Background()
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
-	user, err := service.RegisterUser(ctx, RegisterUserInput{
+	user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
 		Username: "testUser",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
@@ -357,8 +358,8 @@ func TestRefreshToken_Disabled(t *testing.T) {
 		RefreshTokensEnabled: false,
 	})
 
-	svc := &service{
-		flags: flagsService,
+	svc := &auth.Service{
+		Flags: flagsService,
 	}
 
 	_, err := svc.RefreshToken(ctx, "some-refresh-token")

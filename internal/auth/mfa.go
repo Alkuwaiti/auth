@@ -25,7 +25,8 @@ type EnrollmentResult struct {
 
 // TODO: enroll other methods.
 // TODO: make sure to reference the completionist's MFA guide.
-func (s *service) EnrollMFAMethod(ctx context.Context, methodType domain.MFAMethodType) (EnrollmentResult, error) {
+
+func (s *Service) EnrollMFAMethod(ctx context.Context, methodType domain.MFAMethodType) (EnrollmentResult, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.EnrollMethod")
 	defer span.End()
 
@@ -46,7 +47,7 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType domain.MFAMeth
 		}
 	}
 
-	exists, err := s.repo.UserHasActiveMFAMethodByType(ctx, userID, methodType)
+	exists, err := s.Repo.UserHasActiveMFAMethodByType(ctx, userID, methodType)
 	if err != nil {
 		slog.ErrorContext(ctx, "error when checking if user has an active MFA method", "user_id", userID, "method_type", methodType, "err", err)
 		return EnrollmentResult{}, err
@@ -58,7 +59,7 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType domain.MFAMeth
 		}
 	}
 
-	if err = s.repo.DeleteExpiredUnconfirmedMethods(ctx, userID, methodType); err != nil {
+	if err = s.Repo.DeleteExpiredUnconfirmedMethods(ctx, userID, methodType); err != nil {
 		return EnrollmentResult{}, err
 	}
 
@@ -80,7 +81,7 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType domain.MFAMeth
 		return EnrollmentResult{}, err
 	}
 
-	method, err := s.repo.CreateUserMFAMethod(ctx, userID, encryptedSecret, methodType)
+	method, err := s.Repo.CreateUserMFAMethod(ctx, userID, encryptedSecret, methodType)
 	if err != nil {
 		slog.ErrorContext(ctx, "error when creating a user mfa method", "err", err)
 		return EnrollmentResult{}, err
@@ -96,13 +97,13 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType domain.MFAMeth
 	}, nil
 }
 
-func (s *service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code string) (backupCodes []string, err error) {
+func (s *Service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code string) (backupCodes []string, err error) {
 	ctx, span := tracer.Start(ctx, "AuthService.ConfirmMFAMethod")
 	defer span.End()
 
 	code = strings.TrimSpace(code)
 
-	method, err := s.repo.GetMFAMethodByID(ctx, methodID)
+	method, err := s.Repo.GetMFAMethodByID(ctx, methodID)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +122,7 @@ func (s *service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 		}
 	}
 
-	tx, err := s.repo.BeginTx(ctx)
+	tx, err := s.Repo.BeginTx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -141,22 +142,22 @@ func (s *service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 		return nil, &apperrors.InvalidMFACodeError{}
 	}
 
-	if err = s.repo.ConfirmUserMFAMethod(ctx, tx, methodID); err != nil {
+	if err = s.Repo.ConfirmUserMFAMethod(ctx, tx, methodID); err != nil {
 		return nil, err
 	}
 
-	if err = s.repo.DeleteBackupCodesForUser(ctx, tx, method.UserID); err != nil {
+	if err = s.Repo.DeleteBackupCodesForUser(ctx, tx, method.UserID); err != nil {
 		return nil, err
 	}
 
-	backupCodes, hashed, err := s.MFAProvider.GenerateBackupCodes(10, s.passwords.Hash)
+	backupCodes, hashed, err := s.MFAProvider.GenerateBackupCodes(10, s.Passwords.Hash)
 	if err != nil {
 		return nil, err
 	}
 
 	slog.DebugContext(ctx, "where are my backup codes? ", "backupCodes", backupCodes)
 
-	if err = s.repo.InsertBackupCodes(ctx, tx, method.UserID, hashed); err != nil {
+	if err = s.Repo.InsertBackupCodes(ctx, tx, method.UserID, hashed); err != nil {
 		return nil, err
 	}
 
@@ -180,13 +181,13 @@ func (s *service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 	return backupCodes, nil
 }
 
-func (s *service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, code string) (TokenPair, error) {
-	lockedChallenge, err := s.verifyAndConsumeChallenge(ctx, challengeID, code)
+func (s *Service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, code string) (TokenPair, error) {
+	lockedChallenge, err := s.VerifyAndConsumeChallenge(ctx, challengeID, code)
 	if err != nil {
 		return TokenPair{}, err
 	}
 
-	user, err := s.repo.GetUserByID(ctx, lockedChallenge.UserID)
+	user, err := s.Repo.GetUserByID(ctx, lockedChallenge.UserID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return TokenPair{}, &apperrors.InvalidCredentialsError{}
@@ -219,7 +220,7 @@ type CreateStepUpChallengeResponse struct {
 	ExpiresAt     time.Time
 }
 
-func (s *service) CreateStepUpChallenge(ctx context.Context, methodType domain.MFAMethodType, scope domain.ChallengeScope) (CreateStepUpChallengeResponse, error) {
+func (s *Service) CreateStepUpChallenge(ctx context.Context, methodType domain.MFAMethodType, scope domain.ChallengeScope) (CreateStepUpChallengeResponse, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.CreateStepUpChallenge")
 	defer span.End()
 
@@ -228,12 +229,12 @@ func (s *service) CreateStepUpChallenge(ctx context.Context, methodType domain.M
 		return CreateStepUpChallengeResponse{}, err
 	}
 
-	method, err := s.repo.GetConfirmedMFAMethodByType(ctx, userID, methodType)
+	method, err := s.Repo.GetConfirmedMFAMethodByType(ctx, userID, methodType)
 	if err != nil {
 		return CreateStepUpChallengeResponse{}, err
 	}
 
-	challenge, err := s.repo.CreateChallenge(ctx, domain.MFAChallenge{
+	challenge, err := s.Repo.CreateChallenge(ctx, domain.MFAChallenge{
 		MethodID:      method.ID,
 		UserID:        userID,
 		Scope:         domain.ScopeLogin,
@@ -261,7 +262,7 @@ type VerifyStepUpChallengeResponse struct {
 	ExpiresIn   int
 }
 
-func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UUID, code string) (VerifyStepUpChallengeResponse, error) {
+func (s *Service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UUID, code string) (VerifyStepUpChallengeResponse, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.VerifyStepUpChallenge")
 	defer span.End()
 
@@ -275,7 +276,7 @@ func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 		return VerifyStepUpChallengeResponse{}, err
 	}
 
-	challenge, err := s.repo.GetChallengeByID(ctx, challengeID)
+	challenge, err := s.Repo.GetChallengeByID(ctx, challengeID)
 	if err != nil {
 		return VerifyStepUpChallengeResponse{}, err
 	}
@@ -299,7 +300,7 @@ func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 		}
 	}
 
-	_, err = s.verifyAndConsumeChallenge(ctx, challengeID, code)
+	_, err = s.VerifyAndConsumeChallenge(ctx, challengeID, code)
 	if err != nil {
 		return VerifyStepUpChallengeResponse{}, err
 	}
@@ -337,8 +338,9 @@ func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 }
 
 // TODO: probably need to still break this up.
-func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (domain.LockedTOTPChallenge, error) {
-	tx, err := s.repo.BeginTx(ctx)
+
+func (s *Service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (domain.LockedTOTPChallenge, error) {
+	tx, err := s.Repo.BeginTx(ctx)
 	if err != nil {
 		return domain.LockedTOTPChallenge{}, err
 	}
@@ -346,7 +348,7 @@ func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uui
 		_ = tx.Rollback()
 	}()
 
-	challenge, err := s.repo.LockActiveTOTPChallenge(ctx, tx, challengeID)
+	challenge, err := s.Repo.LockActiveTOTPChallenge(ctx, tx, challengeID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return domain.LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
@@ -364,13 +366,13 @@ func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uui
 		return domain.LockedTOTPChallenge{}, err
 	}
 
-	backupCodeValid, err := s.verifyBackupCode(ctx, tx, challenge.UserID, code)
+	backupCodeValid, err := s.VerifyBackupCode(ctx, tx, challenge.UserID, code)
 	if err != nil {
 		return domain.LockedTOTPChallenge{}, err
 	}
 
 	if !totpValid && !backupCodeValid {
-		if err = s.repo.IncrementChallengeAttempts(ctx, tx, challenge.ChallengeID); err != nil {
+		if err = s.Repo.IncrementChallengeAttempts(ctx, tx, challenge.ChallengeID); err != nil {
 			slog.ErrorContext(ctx, "error incrementing challenge attempts", "err", err)
 			return domain.LockedTOTPChallenge{}, err
 		}
@@ -383,7 +385,7 @@ func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uui
 		return domain.LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
 	}
 
-	if err = s.repo.ConsumeChallenge(ctx, tx, challenge.ChallengeID); err != nil {
+	if err = s.Repo.ConsumeChallenge(ctx, tx, challenge.ChallengeID); err != nil {
 		slog.ErrorContext(ctx, "error consuming challenge", "err", err)
 		return domain.LockedTOTPChallenge{}, err
 	}
@@ -396,8 +398,8 @@ func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uui
 	return challenge, nil
 }
 
-func (s *service) UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error) {
-	exists, err := s.repo.UserHasActiveMFAMethod(ctx, userID)
+func (s *Service) UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error) {
+	exists, err := s.Repo.UserHasActiveMFAMethod(ctx, userID)
 	if err != nil {
 		slog.ErrorContext(ctx, "error checking if user has active mfa method", "err", err)
 		return false, err
@@ -406,28 +408,28 @@ func (s *service) UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) 
 	return exists, nil
 }
 
-func (s *service) verifyBackupCode(ctx context.Context, tx *sql.Tx, userID uuid.UUID, code string) (bool, error) {
+func (s *Service) VerifyBackupCode(ctx context.Context, tx *sql.Tx, userID uuid.UUID, code string) (bool, error) {
 	code = strings.ToUpper(strings.TrimSpace(code))
 
 	if len(code) != 9 || code[4] != '-' {
 		return false, nil
 	}
 
-	codes, err := s.repo.GetUserBackupCodes(ctx, userID)
+	codes, err := s.Repo.GetUserBackupCodes(ctx, userID)
 	if err != nil {
 		slog.ErrorContext(ctx, "error getting user backup codes", "err", err)
 		return false, err
 	}
 
 	for _, c := range codes {
-		ok, err := s.passwords.Compare(c.CodeHash, code)
+		ok, err := s.Passwords.Compare(c.CodeHash, code)
 		if err != nil {
 			slog.ErrorContext(ctx, "error comparing hashes", "err", err)
 			return false, err
 		}
 
 		if ok {
-			if err := s.repo.ConsumeBackupCode(ctx, tx, c.ID); err != nil {
+			if err := s.Repo.ConsumeBackupCode(ctx, tx, c.ID); err != nil {
 				slog.ErrorContext(ctx, "error consuming backup code", "err", err, "challenge_id", c.ID)
 				return false, err
 			}

@@ -6,6 +6,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/google/uuid"
@@ -19,7 +20,7 @@ func TestDeleteUser_Success(t *testing.T) {
 	ctx = testutil.CtxWithRequestMeta(ctx)
 	ctx = testutil.CtxWithRoles(ctx, []string{"admin"})
 
-	actor, err := service.RegisterUser(ctx, RegisterUserInput{
+	actor, err := service.RegisterUser(ctx, auth.RegisterUserInput{
 		Username: "actorUser",
 		Email:    "actor@example.com",
 		Password: "Password123!",
@@ -28,14 +29,14 @@ func TestDeleteUser_Success(t *testing.T) {
 
 	ctx = testutil.CtxWithUserID(ctx, actor.ID)
 
-	user, err := service.RegisterUser(ctx, RegisterUserInput{
+	user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
 		Username: "testUser",
 		Email:    "test@example.com",
 		Password: "OldPassword123!",
 	})
 	require.NoError(t, err)
 
-	err = service.DeleteUser(ctx, DeleteUserInput{
+	err = service.DeleteUser(ctx, auth.DeleteUserInput{
 		UserID:         user.ID,
 		DeletionReason: domain.DeletionReason("USER_IS_BOT"),
 		Note:           "Some note",
@@ -51,7 +52,7 @@ func TestDeleteUser_AlreadyDeleted(t *testing.T) {
 	ctx = testutil.CtxWithRequestMeta(ctx)
 	ctx = testutil.CtxWithRoles(ctx, []string{"admin"})
 
-	actor, err := service.RegisterUser(ctx, RegisterUserInput{
+	actor, err := service.RegisterUser(ctx, auth.RegisterUserInput{
 		Username: "actorUser",
 		Email:    "actor@example.com",
 		Password: "Password123!",
@@ -60,21 +61,21 @@ func TestDeleteUser_AlreadyDeleted(t *testing.T) {
 
 	ctx = testutil.CtxWithUserID(ctx, actor.ID)
 
-	user, err := service.RegisterUser(ctx, RegisterUserInput{
+	user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
 		Username: "testUser",
 		Email:    "test@example.com",
 		Password: "Password123!",
 	})
 	require.NoError(t, err)
 
-	err = service.DeleteUser(ctx, DeleteUserInput{
+	err = service.DeleteUser(ctx, auth.DeleteUserInput{
 		UserID:         user.ID,
 		DeletionReason: domain.DeletionReason("USER_REQUEST"),
 	})
 	require.NoError(t, err)
 
 	// second delete
-	err = service.DeleteUser(ctx, DeleteUserInput{
+	err = service.DeleteUser(ctx, auth.DeleteUserInput{
 		UserID:         user.ID,
 		DeletionReason: domain.DeletionReason("USER_REQUEST"),
 	})
@@ -90,7 +91,7 @@ func TestDeleteUser_UserDoesNotExist(t *testing.T) {
 	ctx = testutil.CtxWithRequestMeta(ctx)
 	ctx = testutil.CtxWithRoles(ctx, []string{"admin"})
 
-	actor, err := service.RegisterUser(ctx, RegisterUserInput{
+	actor, err := service.RegisterUser(ctx, auth.RegisterUserInput{
 		Username: "actorUser",
 		Email:    "actor@example.com",
 		Password: "Password123!",
@@ -99,7 +100,7 @@ func TestDeleteUser_UserDoesNotExist(t *testing.T) {
 
 	ctx = testutil.CtxWithUserID(ctx, actor.ID)
 
-	err = service.DeleteUser(ctx, DeleteUserInput{
+	err = service.DeleteUser(ctx, auth.DeleteUserInput{
 		UserID:         uuid.New(),
 		DeletionReason: domain.DeletionReason("ADMIN_ACTION"),
 	})
@@ -114,7 +115,7 @@ func TestDeleteUser_InvalidInput(t *testing.T) {
 	ctx := context.Background()
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
-	err := service.DeleteUser(ctx, DeleteUserInput{
+	err := service.DeleteUser(ctx, auth.DeleteUserInput{
 		UserID: uuid.Nil, // invalid
 	})
 
@@ -128,14 +129,14 @@ func TestDeleteUser_UserIsSoftDeleted(t *testing.T) {
 	ctx = testutil.CtxWithRequestMeta(ctx)
 	ctx = testutil.CtxWithRoles(ctx, []string{"admin"})
 
-	user, err := service.RegisterUser(ctx, RegisterUserInput{
+	user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
 		Username: "softDeleteUser",
 		Email:    "soft@delete.com",
 		Password: "Password123!",
 	})
 	require.NoError(t, err)
 
-	actor, err := service.RegisterUser(ctx, RegisterUserInput{
+	actor, err := service.RegisterUser(ctx, auth.RegisterUserInput{
 		Username: "actorUser",
 		Email:    "actor@example.com",
 		Password: "Password123!",
@@ -144,13 +145,13 @@ func TestDeleteUser_UserIsSoftDeleted(t *testing.T) {
 
 	ctx = testutil.CtxWithUserID(ctx, actor.ID)
 
-	err = service.DeleteUser(ctx, DeleteUserInput{
+	err = service.DeleteUser(ctx, auth.DeleteUserInput{
 		UserID:         user.ID,
 		DeletionReason: domain.DeletionReason("USER_REQUEST"),
 	})
 	require.NoError(t, err)
 
-	deletedUser, err := service.repo.GetUserByID(ctx, user.ID)
+	deletedUser, err := service.Repo.GetUserByID(ctx, user.ID)
 	require.NoError(t, err)
 	require.NotNil(t, deletedUser.DeletedAt)
 	require.Equal(t, domain.DeletionUserRequest, *deletedUser.DeletionReason)

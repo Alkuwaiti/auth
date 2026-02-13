@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/google/uuid"
@@ -13,11 +14,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupUserWithTOTP(t *testing.T, svc *service, ctx context.Context) (userID uuid.UUID, challengeID uuid.UUID, secret string) {
+func setupUserWithTOTP(t *testing.T, svc *auth.Service, ctx context.Context) (userID uuid.UUID, challengeID uuid.UUID, secret string) {
 	t.Helper()
 
 	// register user
-	user, err := svc.RegisterUser(ctx, RegisterUserInput{
+	user, err := svc.RegisterUser(ctx, auth.RegisterUserInput{
 		Username: "testuser",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
@@ -48,7 +49,7 @@ func setupUserWithTOTP(t *testing.T, svc *service, ctx context.Context) (userID 
 	require.NoError(t, err)
 
 	// create MFA challenge
-	challenge, err := svc.repo.CreateChallenge(ctx, domain.MFAChallenge{
+	challenge, err := svc.Repo.CreateChallenge(ctx, domain.MFAChallenge{
 		MethodID:      enrollment.Method.ID,
 		UserID:        user.ID,
 		Scope:         domain.ScopeLogin,

@@ -16,7 +16,7 @@ import (
 
 var dummyBcryptHash = "$2b$12$C6UzMDM.H6dfI/f/IKcEeOe2x7yZ0pniS3pSDOMkMt2rt7V6F2i4G"
 
-func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword string) error {
+func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword string) error {
 	ctx, span := tracer.Start(ctx, "AuthService.ChangePassword")
 	defer span.End()
 
@@ -27,16 +27,16 @@ func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 
 	meta := contextkeys.RequestMetaFromContext(ctx)
 
-	if err = s.passwords.Validate(newPassword); err != nil {
+	if err = s.Passwords.Validate(newPassword); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to validate password")
 		return err
 	}
 
-	user, err := s.repo.GetUserByID(ctx, userID)
+	user, err := s.Repo.GetUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			_, _ = s.passwords.Compare(dummyBcryptHash, oldPassword)
+			_, _ = s.Passwords.Compare(dummyBcryptHash, oldPassword)
 			return &apperrors.InvalidCredentialsError{}
 		}
 
@@ -52,7 +52,7 @@ func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 		return &apperrors.InvalidCredentialsError{}
 	}
 
-	match, err := s.passwords.Compare(user.PasswordHash, oldPassword)
+	match, err := s.Passwords.Compare(user.PasswordHash, oldPassword)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to compare passwords")
@@ -64,7 +64,7 @@ func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 		return &apperrors.InvalidCredentialsError{}
 	}
 
-	match, err = s.passwords.Compare(user.PasswordHash, newPassword)
+	match, err = s.Passwords.Compare(user.PasswordHash, newPassword)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to compare passwords")
@@ -76,7 +76,7 @@ func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 		return &apperrors.PasswordReuseError{}
 	}
 
-	newPasswordHash, err := s.passwords.Hash(newPassword)
+	newPasswordHash, err := s.Passwords.Hash(newPassword)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to hash new password")
@@ -84,7 +84,7 @@ func (s *service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 		return err
 	}
 
-	if err = s.repo.UpdatePasswordAndRevokeSessions(ctx, userID, newPasswordHash, domain.RevocationPasswordChange); err != nil {
+	if err = s.Repo.UpdatePasswordAndRevokeSessions(ctx, userID, newPasswordHash, domain.RevocationPasswordChange); err != nil {
 		slog.ErrorContext(ctx, "failed to update password and revoke sessions", "err", err)
 		return err
 	}
