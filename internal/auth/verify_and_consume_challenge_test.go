@@ -9,6 +9,7 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/testutil"
+	"github.com/google/uuid"
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/require"
 )
@@ -103,4 +104,44 @@ func TestVerifyAndConsumeChallenge_AlreadyConsumed(t *testing.T) {
 	_, err = svc.verifyAndConsumeChallenge(ctx, challengeID, "000000")
 	require.Error(t, err)
 	require.IsType(t, &apperrors.InvalidMFACodeError{}, err)
+}
+
+func TestVerifyAndConsumeChallenge_SuccessWithBackupCode(t *testing.T) {
+	ctx := context.Background()
+	svc, db, cleanup := setupTestAuthService(t)
+	defer cleanup()
+
+	userID, challengeID, _ := setupUserWithTOTP(t, svc, ctx)
+
+	rawBackupCode := "ABCD-1234"
+
+	hashedCode, err := svc.passwords.Hash(rawBackupCode)
+	require.NoError(t, err)
+
+	var backupCodeID uuid.UUID
+	err = db.QueryRowContext(ctx, `
+		INSERT INTO mfa_backup_codes (user_id, code_hash)
+		VALUES ($1, $2)
+		RETURNING id
+	`, userID, hashedCode).Scan(&backupCodeID)
+	require.NoError(t, err)
+
+	ctx = testutil.CtxWithUserID(ctx, userID)
+	ctx = testutil.CtxWithEmail(ctx, "email@email.com")
+	ctx = testutil.CtxWithRequestMeta(ctx)
+
+	challenge, err := svc.verifyAndConsumeChallenge(ctx, challengeID, rawBackupCode)
+
+	require.NoError(t, err)
+	require.Equal(t, challengeID, challenge.ChallengeID)
+
+	var challengeConsumedAt *time.Time
+	err = db.QueryRowContext(ctx, "SELECT consumed_at FROM mfa_challenges WHERE id = $1", challengeID).Scan(&challengeConsumedAt)
+	require.NoError(t, err)
+	require.NotNil(t, challengeConsumedAt)
+
+	var codeConsumed time.Time
+	err = db.QueryRowContext(ctx, "SELECT consumed_at FROM mfa_backup_codes WHERE id = $1", backupCodeID).Scan(&codeConsumed)
+	require.NoError(t, err)
+	require.NotNil(t, codeConsumed, "The specific backup code used should be marked as consumed")
 }
