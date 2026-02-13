@@ -70,7 +70,7 @@ func (s *service) Login(ctx context.Context, email, password string) (LoginResul
 		return LoginResult{}, &apperrors.InvalidCredentialsError{}
 	}
 
-	methods, err := s.repo.getMFAMethodsConfirmedByUser(ctx, user.ID)
+	methods, err := s.repoI.GetMFAMethodsConfirmedByUser(ctx, user.ID)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to get confirmed mfa methods by user", "err", err)
 		return LoginResult{}, err

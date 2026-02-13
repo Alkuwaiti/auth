@@ -39,25 +39,3 @@ func (d DeletionReason) validate() error {
 func (d DeletionReason) String() string {
 	return string(d)
 }
-
-type MFAMethodType string
-
-const (
-	MFAMethodTOTP MFAMethodType = "totp"
-)
-
-func (t MFAMethodType) validate() error {
-	switch t {
-	case MFAMethodTOTP:
-		return nil
-	default:
-		return &apperrors.ValidationError{
-			Field: "method type",
-			Msg:   "invalid method type",
-		}
-	}
-}
-
-func (t MFAMethodType) String() string {
-	return string(t)
-}

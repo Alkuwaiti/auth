@@ -145,7 +145,7 @@ func (s *server) EnrollMFAMethod(ctx context.Context, req *authv1.EnrollMFAMetho
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	res, err := s.authService.EnrollMFAMethod(ctx, auth.MFAMethodType(req.Method))
+	res, err := s.authService.EnrollMFAMethod(ctx, domain.MFAMethodType(req.Method))
 	if err != nil {
 		return nil, MapError(err)
 	}
@@ -212,7 +212,7 @@ func (s *server) CreateStepUpChallenge(ctx context.Context, req *authv1.CreateSt
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	res, err := s.authService.CreateStepUpChallenge(ctx, auth.MFAMethodType(req.MethodType), domain.ChallengeScope(req.Scope))
+	res, err := s.authService.CreateStepUpChallenge(ctx, domain.MFAMethodType(req.MethodType), domain.ChallengeScope(req.Scope))
 	if err != nil {
 		return nil, MapError(err)
 	}

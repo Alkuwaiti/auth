@@ -118,13 +118,3 @@ type User struct {
 	Roles           []string        `json:"roles"`
 	MFAEnabled      bool            `json:"mfa_enabled"`
 }
-
-type MFAMethod struct {
-	ID              uuid.UUID
-	UserID          uuid.UUID
-	Type            MFAMethodType
-	ConfirmedAt     *time.Time
-	EncryptedSecret string
-	CreatedAt       time.Time
-	ExpiresAt       *time.Time
-}

@@ -53,6 +53,14 @@ type repoI interface {
 	LockActiveTOTPChallenge(ctx context.Context, tx *sql.Tx, challengeID uuid.UUID) (domain.LockedTOTPChallenge, error)
 	IncrementChallengeAttempts(ctx context.Context, tx *sql.Tx, challengeID uuid.UUID) error
 	ConsumeChallenge(ctx context.Context, tx *sql.Tx, challengeID uuid.UUID) error
+	UserHasActiveMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) (bool, error)
+	DeleteExpiredUnconfirmedMethods(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) error
+	CreateUserMFAMethod(ctx context.Context, userID uuid.UUID, secret []byte, methodType domain.MFAMethodType) (domain.MFAMethod, error)
+	GetMFAMethodByID(ctx context.Context, methodID uuid.UUID) (domain.MFAMethod, error)
+	ConfirmUserMFAMethod(ctx context.Context, tx *sql.Tx, methodID uuid.UUID) error
+	GetMFAMethodsConfirmedByUser(ctx context.Context, userID uuid.UUID) ([]domain.MFAMethod, error)
+	GetConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) (domain.MFAMethod, error)
+	UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error)
 }
 
 type auditor interface {

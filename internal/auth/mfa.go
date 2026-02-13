@@ -18,13 +18,13 @@ import (
 )
 
 type EnrollmentResult struct {
-	Method   MFAMethod
+	Method   domain.MFAMethod
 	SetupURI string
 }
 
 // TODO: enroll other methods.
 // TODO: make sure to reference the completionist's MFA guide.
-func (s *service) EnrollMFAMethod(ctx context.Context, methodType MFAMethodType) (EnrollmentResult, error) {
+func (s *service) EnrollMFAMethod(ctx context.Context, methodType domain.MFAMethodType) (EnrollmentResult, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.EnrollMethod")
 	defer span.End()
 
@@ -38,14 +38,14 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType MFAMethodType)
 		return EnrollmentResult{}, err
 	}
 
-	if err = methodType.validate(); err != nil {
+	if err = methodType.Validate(); err != nil {
 		return EnrollmentResult{}, &apperrors.ValidationError{
 			Field: "method type",
 			Msg:   "invalid MFA method type",
 		}
 	}
 
-	exists, err := s.repo.userHasActiveMFAMethodByType(ctx, userID, methodType)
+	exists, err := s.repoI.UserHasActiveMFAMethodByType(ctx, userID, methodType)
 	if err != nil {
 		slog.ErrorContext(ctx, "error when checking if user has an active MFA method", "user_id", userID, "method_type", methodType, "err", err)
 		return EnrollmentResult{}, err
@@ -57,7 +57,7 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType MFAMethodType)
 		}
 	}
 
-	if err = s.repo.deleteExpiredUnconfirmedMethods(ctx, userID, methodType); err != nil {
+	if err = s.repoI.DeleteExpiredUnconfirmedMethods(ctx, userID, methodType); err != nil {
 		return EnrollmentResult{}, err
 	}
 
@@ -79,14 +79,14 @@ func (s *service) EnrollMFAMethod(ctx context.Context, methodType MFAMethodType)
 		return EnrollmentResult{}, err
 	}
 
-	method, err := s.repo.createUserMFAMethod(ctx, userID, encryptedSecret, methodType)
+	method, err := s.repoI.CreateUserMFAMethod(ctx, userID, encryptedSecret, methodType)
 	if err != nil {
 		slog.ErrorContext(ctx, "error when creating a user mfa method", "err", err)
 		return EnrollmentResult{}, err
 	}
 
 	return EnrollmentResult{
-		Method: MFAMethod{
+		Method: domain.MFAMethod{
 			ID:        method.ID,
 			Type:      method.Type,
 			CreatedAt: method.CreatedAt,
@@ -101,7 +101,7 @@ func (s *service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 
 	code = strings.TrimSpace(code)
 
-	method, err := s.repo.getMFAMethodByID(ctx, methodID)
+	method, err := s.repoI.GetMFAMethodByID(ctx, methodID)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +140,7 @@ func (s *service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 		return nil, &apperrors.InvalidMFACodeError{}
 	}
 
-	if err = s.repo.confirmUserMFAMethod(ctx, tx, methodID); err != nil {
+	if err = s.repoI.ConfirmUserMFAMethod(ctx, tx, methodID); err != nil {
 		return nil, err
 	}
 
@@ -214,11 +214,11 @@ func (s *service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, c
 
 type CreateStepUpChallengeResponse struct {
 	ChallengeID   uuid.UUID
-	MFAMethodType MFAMethodType
+	MFAMethodType domain.MFAMethodType
 	ExpiresAt     time.Time
 }
 
-func (s *service) CreateStepUpChallenge(ctx context.Context, methodType MFAMethodType, scope domain.ChallengeScope) (CreateStepUpChallengeResponse, error) {
+func (s *service) CreateStepUpChallenge(ctx context.Context, methodType domain.MFAMethodType, scope domain.ChallengeScope) (CreateStepUpChallengeResponse, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.CreateStepUpChallenge")
 	defer span.End()
 
@@ -227,7 +227,7 @@ func (s *service) CreateStepUpChallenge(ctx context.Context, methodType MFAMetho
 		return CreateStepUpChallengeResponse{}, err
 	}
 
-	method, err := s.repo.getConfirmedMFAMethodByType(ctx, userID, methodType)
+	method, err := s.repoI.GetConfirmedMFAMethodByType(ctx, userID, methodType)
 	if err != nil {
 		return CreateStepUpChallengeResponse{}, err
 	}
@@ -391,7 +391,7 @@ func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uui
 }
 
 func (s *service) UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error) {
-	exists, err := s.repo.userHasActiveMFAMethod(ctx, userID)
+	exists, err := s.repoI.UserHasActiveMFAMethod(ctx, userID)
 	if err != nil {
 		return false, err
 	}

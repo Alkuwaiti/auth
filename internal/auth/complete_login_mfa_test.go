@@ -31,7 +31,7 @@ func setupUserWithTOTP(t *testing.T, svc *service, ctx context.Context) (userID 
 	// enroll TOTP
 	enrollment, err := svc.EnrollMFAMethod(
 		ctx,
-		MFAMethodTOTP,
+		domain.MFAMethodTOTP,
 	)
 	require.NoError(t, err)
 
