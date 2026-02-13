@@ -31,7 +31,7 @@ func TestVerifyAndConsumeChallenge_SuccessTOTP(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, challengeID, challenge.ChallengeID)
 
-	dbChallenge, err := svc.repo.getChallengeByID(ctx, challengeID)
+	dbChallenge, err := svc.repoI.GetChallengeByID(ctx, challengeID)
 	require.NoError(t, err)
 	require.NotNil(t, dbChallenge.ConsumedAt)
 }
@@ -51,7 +51,7 @@ func TestVerifyAndConsumeChallenge_InvalidTOTP(t *testing.T) {
 	require.Error(t, err)
 	require.IsType(t, &apperrors.InvalidMFACodeError{}, err)
 
-	dbChallenge, err := svc.repo.getChallengeByID(ctx, challengeID)
+	dbChallenge, err := svc.repoI.GetChallengeByID(ctx, challengeID)
 	require.NoError(t, err)
 	require.Equal(t, 1, dbChallenge.Attempts)
 	require.Nil(t, dbChallenge.ConsumedAt)

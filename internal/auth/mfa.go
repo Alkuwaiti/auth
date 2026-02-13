@@ -10,6 +10,7 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/audit"
+	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/contextkeys"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
@@ -217,7 +218,7 @@ type CreateStepUpChallengeResponse struct {
 	ExpiresAt     time.Time
 }
 
-func (s *service) CreateStepUpChallenge(ctx context.Context, methodType MFAMethodType, scope ChallengeScope) (CreateStepUpChallengeResponse, error) {
+func (s *service) CreateStepUpChallenge(ctx context.Context, methodType MFAMethodType, scope domain.ChallengeScope) (CreateStepUpChallengeResponse, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.CreateStepUpChallenge")
 	defer span.End()
 
@@ -231,11 +232,11 @@ func (s *service) CreateStepUpChallenge(ctx context.Context, methodType MFAMetho
 		return CreateStepUpChallengeResponse{}, err
 	}
 
-	challenge, err := s.repo.createChallenge(ctx, MFAChallenge{
+	challenge, err := s.repoI.CreateChallenge(ctx, domain.MFAChallenge{
 		MethodID:      method.ID,
 		UserID:        userID,
-		Scope:         ScopeLogin,
-		ChallengeType: ChallengeStepUp,
+		Scope:         domain.ScopeLogin,
+		ChallengeType: domain.ChallengeStepUp,
 	})
 	if err != nil {
 		return CreateStepUpChallengeResponse{}, err
@@ -273,7 +274,7 @@ func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 		return VerifyStepUpChallengeResponse{}, err
 	}
 
-	challenge, err := s.repo.getChallengeByID(ctx, challengeID)
+	challenge, err := s.repoI.GetChallengeByID(ctx, challengeID)
 	if err != nil {
 		return VerifyStepUpChallengeResponse{}, err
 	}
@@ -334,56 +335,56 @@ func (s *service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 	}, nil
 }
 
-// TODO: add tests
-func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (LockedTOTPChallenge, error) {
+// TODO: probably need to still break this up.
+func (s *service) verifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (domain.LockedTOTPChallenge, error) {
 	tx, err := s.repo.beginTx(ctx)
 	if err != nil {
-		return LockedTOTPChallenge{}, err
+		return domain.LockedTOTPChallenge{}, err
 	}
 	defer func() {
 		_ = tx.Rollback()
 	}()
 
-	challenge, err := s.repo.lockActiveTOTPChallenge(ctx, tx, challengeID)
+	challenge, err := s.repoI.LockActiveTOTPChallenge(ctx, tx, challengeID)
 	if err != nil {
 		if errors.Is(err, ErrInvalidMFAChallenge) {
-			return LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
+			return domain.LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
 		}
-		return LockedTOTPChallenge{}, err
+		return domain.LockedTOTPChallenge{}, err
 	}
 
 	if challenge.Attempts >= s.Config.MaxChallengeAttempts {
-		return LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
+		return domain.LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
 	}
 
 	totpValid, err := s.MFAProvider.VerifyTOTP(ctx, string(challenge.SecretCiphertext), code)
 	if err != nil {
-		return LockedTOTPChallenge{}, err
+		return domain.LockedTOTPChallenge{}, err
 	}
 
 	backupCodeValid, err := s.verifyBackupCode(ctx, tx, challenge.UserID, code)
 	if err != nil {
-		return LockedTOTPChallenge{}, err
+		return domain.LockedTOTPChallenge{}, err
 	}
 
 	if !totpValid && !backupCodeValid {
-		if err = s.repo.incrementChallengeAttempts(ctx, tx, challenge.ChallengeID); err != nil {
-			return LockedTOTPChallenge{}, err
+		if err = s.repoI.IncrementChallengeAttempts(ctx, tx, challenge.ChallengeID); err != nil {
+			return domain.LockedTOTPChallenge{}, err
 		}
 
 		if err = tx.Commit(); err != nil {
-			return LockedTOTPChallenge{}, err
+			return domain.LockedTOTPChallenge{}, err
 		}
 
-		return LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
+		return domain.LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
 	}
 
-	if err = s.repo.consumeChallenge(ctx, tx, challenge.ChallengeID); err != nil {
-		return LockedTOTPChallenge{}, err
+	if err = s.repoI.ConsumeChallenge(ctx, tx, challenge.ChallengeID); err != nil {
+		return domain.LockedTOTPChallenge{}, err
 	}
 
 	if err = tx.Commit(); err != nil {
-		return LockedTOTPChallenge{}, err
+		return domain.LockedTOTPChallenge{}, err
 	}
 
 	return challenge, nil

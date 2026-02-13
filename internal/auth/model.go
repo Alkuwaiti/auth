@@ -128,14 +128,3 @@ type MFAMethod struct {
 	CreatedAt       time.Time
 	ExpiresAt       *time.Time
 }
-
-type MFAChallenge struct {
-	ID            uuid.UUID
-	UserID        uuid.UUID
-	MethodID      uuid.UUID
-	Scope         ChallengeScope
-	ChallengeType ChallengeType
-	ExpiresAt     time.Time
-	ConsumedAt    *time.Time
-	Attempts      int
-}

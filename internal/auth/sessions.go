@@ -8,6 +8,7 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/audit"
+	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/contextkeys"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
@@ -75,14 +76,14 @@ func (s *service) Login(ctx context.Context, email, password string) (LoginResul
 		return LoginResult{}, err
 	}
 
-	var challenge MFAChallenge
+	var challenge domain.MFAChallenge
 	if len(methods) > 0 {
 		// TODO: change the implementation when you have multiple methods.
-		challenge, err = s.repo.createChallenge(ctx, MFAChallenge{
+		challenge, err = s.repoI.CreateChallenge(ctx, domain.MFAChallenge{
 			MethodID:      methods[0].ID,
 			UserID:        user.ID,
-			Scope:         ScopeLogin,
-			ChallengeType: ChallengeLogin,
+			Scope:         domain.ScopeLogin,
+			ChallengeType: domain.ChallengeLogin,
 		})
 		if err != nil {
 			return LoginResult{}, err

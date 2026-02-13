@@ -61,26 +61,3 @@ func (t MFAMethodType) validate() error {
 func (t MFAMethodType) String() string {
 	return string(t)
 }
-
-type ChallengeType string
-
-const (
-	ChallengeLogin  ChallengeType = "login"
-	ChallengeStepUp ChallengeType = "step_up"
-)
-
-func (c ChallengeType) String() string {
-	return string(c)
-}
-
-type ChallengeScope string
-
-const (
-	ScopeLogin          ChallengeScope = "login"
-	ScopeDeleteAccount  ChallengeScope = "delete_account"
-	ScopeChangePassword ChallengeScope = "change_password"
-)
-
-func (c ChallengeScope) String() string {
-	return string(c)
-}

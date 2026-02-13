@@ -15,6 +15,7 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth"
+	"github.com/alkuwaiti/auth/internal/auth/repository"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
 	"github.com/alkuwaiti/auth/internal/config"
 	"github.com/alkuwaiti/auth/internal/crypto"
@@ -115,7 +116,9 @@ func main() {
 
 	authRepo := auth.NewRepo(dbConn)
 
-	authService := auth.NewService(authRepo, passwords, auditor, authorizer, flags, tokens, multifactor, auth.Config{
+	authRepoI := repository.NewRepo(dbConn)
+
+	authService := auth.NewService(authRepo, authRepoI, passwords, auditor, authorizer, flags, tokens, multifactor, auth.Config{
 		MaxChallengeAttempts: cfg.MaxChallengeAttempts,
 	})
 

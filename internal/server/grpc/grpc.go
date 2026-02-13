@@ -8,6 +8,7 @@ import (
 	"net"
 
 	"github.com/alkuwaiti/auth/internal/auth"
+	"github.com/alkuwaiti/auth/internal/auth/domain"
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
@@ -33,7 +34,7 @@ type authService interface {
 	EnrollMFAMethod(ctx context.Context, methodType auth.MFAMethodType) (auth.EnrollmentResult, error)
 	ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code string) ([]string, error)
 	CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, code string) (auth.TokenPair, error)
-	CreateStepUpChallenge(ctx context.Context, methodType auth.MFAMethodType, scope auth.ChallengeScope) (auth.CreateStepUpChallengeResponse, error)
+	CreateStepUpChallenge(ctx context.Context, methodType auth.MFAMethodType, scope domain.ChallengeScope) (auth.CreateStepUpChallengeResponse, error)
 	VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UUID, code string) (auth.VerifyStepUpChallengeResponse, error)
 }
 

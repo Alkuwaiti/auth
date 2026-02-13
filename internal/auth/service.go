@@ -48,6 +48,11 @@ func NewService(repo *repo, repoI repoI, passwords passwords, auditor auditor, a
 type repoI interface {
 	GetUserBackupCodes(ctx context.Context, userID uuid.UUID) ([]domain.MFABackupCode, error)
 	ConsumeBackupCode(ctx context.Context, tx *sql.Tx, codeID uuid.UUID) error
+	CreateChallenge(ctx context.Context, challenge domain.MFAChallenge) (domain.MFAChallenge, error)
+	GetChallengeByID(ctx context.Context, challengeID uuid.UUID) (domain.MFAChallenge, error)
+	LockActiveTOTPChallenge(ctx context.Context, tx *sql.Tx, challengeID uuid.UUID) (domain.LockedTOTPChallenge, error)
+	IncrementChallengeAttempts(ctx context.Context, tx *sql.Tx, challengeID uuid.UUID) error
+	ConsumeChallenge(ctx context.Context, tx *sql.Tx, challengeID uuid.UUID) error
 }
 
 type auditor interface {

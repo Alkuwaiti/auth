@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/google/uuid"
 	"github.com/pquerna/otp"
@@ -47,11 +48,11 @@ func setupUserWithTOTP(t *testing.T, svc *service, ctx context.Context) (userID 
 	require.NoError(t, err)
 
 	// create MFA challenge
-	challenge, err := svc.repo.createChallenge(ctx, MFAChallenge{
+	challenge, err := svc.repoI.CreateChallenge(ctx, domain.MFAChallenge{
 		MethodID:      enrollment.Method.ID,
 		UserID:        user.ID,
-		Scope:         ScopeLogin,
-		ChallengeType: ChallengeLogin,
+		Scope:         domain.ScopeLogin,
+		ChallengeType: domain.ChallengeLogin,
 	})
 	require.NoError(t, err)
 

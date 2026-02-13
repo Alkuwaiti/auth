@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/alkuwaiti/auth/internal/auth"
+	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/contextkeys"
 	"github.com/alkuwaiti/auth/internal/tokens"
 	"github.com/google/uuid"
@@ -14,9 +14,9 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var StepUpMethods = map[string]auth.ChallengeScope{
-	"/auth.v1.AuthService/DeleteAccount":  auth.ScopeDeleteAccount,
-	"/auth.v1.AuthService/ChangePassword": auth.ScopeChangePassword,
+var StepUpMethods = map[string]domain.ChallengeScope{
+	"/auth.v1.AuthService/DeleteAccount":  domain.ScopeDeleteAccount,
+	"/auth.v1.AuthService/ChangePassword": domain.ScopeChangePassword,
 }
 
 type StepUpInterceptor struct {
