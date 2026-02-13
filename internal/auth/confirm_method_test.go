@@ -3,12 +3,12 @@
 package auth
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
-	"github.com/alkuwaiti/auth/internal/mfa"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/google/uuid"
 	"github.com/pquerna/otp/totp"
@@ -36,7 +36,7 @@ func seedUserWithUnconfirmedTOTP(
 	`,
 		methodID,
 		userID,
-		mfa.MFAMethodTOTP,
+		MFAMethodTOTP,
 		encryptedSecret,
 	)
 	require.NoError(t, err)
@@ -48,7 +48,8 @@ func TestConfirmMFAMethod_Success(t *testing.T) {
 	service, db, cleanup := setupTestAuthService(t)
 	defer cleanup()
 
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 	userID := uuid.New()
 	ctx = testutil.CtxWithUserID(ctx, uuid.New())
 
@@ -71,7 +72,7 @@ func TestConfirmMFAMethod_Success(t *testing.T) {
 	code, err := totp.GenerateCode(key.Secret(), time.Now())
 	require.NoError(t, err)
 
-	err = service.MFAService.ConfirmMethod(ctx, methodID, code)
+	_, err = service.ConfirmMFAMethod(ctx, methodID, code)
 	require.NoError(t, err)
 
 	var confirmedAt *time.Time
@@ -87,18 +88,18 @@ func TestConfirmMFAMethod_Success(t *testing.T) {
 func TestConfirmMFAMethod_NotFound(t *testing.T) {
 	service, _, cleanup := setupTestAuthService(t)
 	defer cleanup()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 
-	ctx := testutil.CtxWithRequestMeta()
-
-	err := service.MFAService.ConfirmMethod(ctx, uuid.New(), "123456")
+	_, err := service.ConfirmMFAMethod(ctx, uuid.New(), "123456")
 	require.Error(t, err)
 }
 
 func TestConfirmMFAMethod_AlreadyConfirmed(t *testing.T) {
 	service, db, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 	userID := uuid.New()
 	ctx = testutil.CtxWithUserID(ctx, uuid.New())
 
@@ -121,12 +122,12 @@ func TestConfirmMFAMethod_AlreadyConfirmed(t *testing.T) {
 	`,
 		methodID,
 		userID,
-		mfa.MFAMethodTOTP,
+		MFAMethodTOTP,
 		[]byte("irrelevant"),
 	)
 	require.NoError(t, err)
 
-	err = service.MFAService.ConfirmMethod(ctx, methodID, "123456")
+	_, err = service.ConfirmMFAMethod(ctx, methodID, "123456")
 	require.Error(t, err)
 
 	var badReq *apperrors.BadRequestError
@@ -137,8 +138,8 @@ func TestConfirmMFAMethod_AlreadyConfirmed(t *testing.T) {
 func TestConfirmMFAMethod_InvalidCode(t *testing.T) {
 	service, db, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 	userID := uuid.New()
 	ctx = testutil.CtxWithUserID(ctx, uuid.New())
 
@@ -158,19 +159,18 @@ func TestConfirmMFAMethod_InvalidCode(t *testing.T) {
 
 	methodID := seedUserWithUnconfirmedTOTP(t, db, userID, encryptedSecret)
 
-	err = service.MFAService.ConfirmMethod(ctx, methodID, "000000")
+	_, err = service.ConfirmMFAMethod(ctx, methodID, "000000")
 	require.Error(t, err)
 
-	var badReq *apperrors.BadRequestError
-	require.ErrorAs(t, err, &badReq)
-	require.Equal(t, "code", badReq.Field)
+	var invalidMFA *apperrors.InvalidMFACodeError
+	require.ErrorAs(t, err, &invalidMFA)
 }
 
 func TestConfirmMFAMethod_ExpiredMethod(t *testing.T) {
 	service, db, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 	userID := uuid.New()
 	ctx = testutil.CtxWithUserID(ctx, uuid.New())
 
@@ -200,7 +200,7 @@ func TestConfirmMFAMethod_ExpiredMethod(t *testing.T) {
 		`, methodID)
 	require.NoError(t, err)
 
-	err = service.MFAService.ConfirmMethod(ctx, methodID, code)
+	_, err = service.ConfirmMFAMethod(ctx, methodID, code)
 	require.Error(t, err)
 
 	var badReq *apperrors.BadRequestError

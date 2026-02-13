@@ -8,9 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func CtxWithRequestMeta() context.Context {
-	ctx := context.Background()
-
+func CtxWithRequestMeta(ctx context.Context) context.Context {
 	return context.WithValue(ctx, contextkeys.RequestMetaKeyType{}, observability.RequestMeta{
 		IPAddress: "127.0.0.1",
 		UserAgent: "test-agent",

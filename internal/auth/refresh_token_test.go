@@ -18,8 +18,8 @@ import (
 func TestRefreshToken_Success(t *testing.T) {
 	service, db, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	_, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "testUser",
@@ -63,8 +63,8 @@ func TestRefreshToken_Success(t *testing.T) {
 func TestRefreshToken_InvalidToken(t *testing.T) {
 	service, _, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	_, err := service.RefreshToken(ctx, "non-existent-token")
 	require.Error(t, err)
@@ -74,8 +74,8 @@ func TestRefreshToken_InvalidToken(t *testing.T) {
 func TestRefreshToken_ExpiredSession(t *testing.T) {
 	service, db, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	_, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "testUser",
@@ -102,8 +102,8 @@ func TestRefreshToken_ExpiredSession(t *testing.T) {
 func TestRefreshToken_RevokedTokenReuse(t *testing.T) {
 	service, db, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	_, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "testUser",
@@ -141,8 +141,8 @@ func TestRefreshToken_RevokedTokenReuse(t *testing.T) {
 func TestRefreshToken_AlreadyCompromised(t *testing.T) {
 	service, db, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	_, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "testUser",
@@ -169,8 +169,8 @@ func TestRefreshToken_AlreadyCompromised(t *testing.T) {
 func TestRefreshToken_ConcurrentRace(t *testing.T) {
 	service, _, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	_, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "test",
@@ -214,8 +214,8 @@ func TestRefreshToken_ConcurrentRace(t *testing.T) {
 func TestRefreshToken_AfterPasswordChange(t *testing.T) {
 	service, _, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	user, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "test",
@@ -240,8 +240,8 @@ func TestRefreshToken_AfterPasswordChange(t *testing.T) {
 func TestRefreshToken_AfterLogout(t *testing.T) {
 	service, _, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	_, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "test",
@@ -264,8 +264,8 @@ func TestRefreshToken_AfterLogout(t *testing.T) {
 func TestRefreshToken_LogoutThenReplay(t *testing.T) {
 	service, _, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	_, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "test",
@@ -292,8 +292,9 @@ func TestRefreshToken_MultiDeviceIsolation(t *testing.T) {
 	service, _, cleanup := setupTestAuthService(t)
 	defer cleanup()
 
-	ctx1 := testutil.CtxWithRequestMeta()
-	ctx2 := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx1 := testutil.CtxWithRequestMeta(ctx)
+	ctx2 := testutil.CtxWithRequestMeta(ctx)
 
 	_, err := service.RegisterUser(ctx1, RegisterUserInput{
 		Username: "test",
@@ -320,8 +321,8 @@ func TestRefreshToken_MultiDeviceIsolation(t *testing.T) {
 func TestRefreshToken_DeletedUser(t *testing.T) {
 	service, db, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	user, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "testUser",

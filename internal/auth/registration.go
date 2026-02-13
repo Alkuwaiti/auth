@@ -1,0 +1,144 @@
+package auth
+
+import (
+	"context"
+	"errors"
+	authz "github.com/alkuwaiti/auth/internal/authorization"
+	"log/slog"
+
+	"github.com/alkuwaiti/auth/internal/apperrors"
+	"github.com/alkuwaiti/auth/internal/audit"
+	"github.com/alkuwaiti/auth/internal/contextkeys"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+)
+
+func (s *service) RegisterUser(ctx context.Context, input RegisterUserInput) (User, error) {
+	ctx, span := tracer.Start(ctx, "AuthService.RegisterUser")
+	defer span.End()
+
+	meta := contextkeys.RequestMetaFromContext(ctx)
+
+	span.SetAttributes(
+		attribute.String("user.username", input.Username),
+		attribute.String("user.email", input.Email),
+	)
+
+	if err := input.validate(); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "validation failed")
+		return User{}, err
+	}
+
+	exists, err := s.repo.userExists(ctx, input.Username, input.Email)
+	if err != nil {
+		slog.WarnContext(ctx, "failed to check if user exists", "email", input.Email, "username", input.Username)
+		return User{}, &apperrors.InternalError{
+			Msg: "failed to check username or email uniqueness",
+			Err: err,
+		}
+	}
+	if exists {
+		span.SetStatus(codes.Error, "user already exists")
+		return User{}, &apperrors.BadRequestError{
+			Field: "user",
+			Msg:   "user already exists",
+		}
+	}
+
+	if err = s.passwords.Validate(input.Password); err != nil {
+		return User{}, err
+	}
+
+	newPasswordHash, err := s.passwords.Hash(input.Password)
+	if err != nil {
+		return User{}, err
+	}
+
+	user, err := s.repo.createUser(ctx, input.Username, input.Email, newPasswordHash)
+	if err != nil {
+		return User{}, &apperrors.InternalError{
+			Msg: "failed to register a user",
+			Err: err,
+		}
+	}
+
+	if err = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+		UserID:    &user.ID,
+		Action:    audit.ActionCreateUser,
+		IPAddress: &meta.IPAddress,
+		UserAgent: &meta.UserAgent,
+	}); err != nil {
+		slog.WarnContext(ctx, "failed to create audit log", "err", err)
+		return User{}, err
+	}
+
+	span.SetAttributes(
+		attribute.String("user.id", user.ID.String()),
+	)
+
+	span.SetStatus(codes.Ok, "user registered")
+	return user, nil
+}
+
+func (s *service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
+	ctx, span := tracer.Start(ctx, "AuthService.DeleteUser")
+	defer span.End()
+
+	actorID, err := contextkeys.UserIDFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	roles, err := contextkeys.UserRolesFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	if !s.authorizer.CanWithRoles(roles, authz.CanDeleteUser) {
+		userID, _ := contextkeys.UserIDFromContext(ctx)
+		slog.ErrorContext(ctx, "forbidden user attempt", "user_id", userID)
+		return &apperrors.ForbiddenError{}
+	}
+
+	if err := input.validate(); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to validate deletion reason")
+		slog.ErrorContext(ctx, "failed to validate deletion reason", "err", err)
+		return err
+	}
+
+	meta := contextkeys.RequestMetaFromContext(ctx)
+
+	if err := s.repo.deleteUserAndRevokeSessions(ctx, input.UserID, input.DeletionReason, RevocationUserDeleted); err != nil {
+		if errors.Is(err, ErrUserNotFoundOrAlreadyDeleted) {
+			return &apperrors.BadRequestError{
+				Field: "user uuid",
+				Msg:   "User not found or already deleted",
+			}
+		}
+		slog.ErrorContext(ctx, "failed to delete user and revoke sessions", "err", err)
+		return err
+	}
+
+	if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+		UserID:    &input.UserID,
+		ActorID:   &actorID,
+		Action:    audit.ActionDeleteUser,
+		IPAddress: &meta.IPAddress,
+		UserAgent: &meta.UserAgent,
+		Context: audit.AuditContext{
+			"deletion": map[string]any{
+				"reason": string(input.DeletionReason),
+				"note":   input.Note,
+			},
+		},
+	}); err != nil {
+		slog.ErrorContext(ctx, "failed to create audit log", "err", err)
+		return err
+	}
+
+	span.SetStatus(codes.Ok, "user deleted and sessions revoked")
+
+	return nil
+}

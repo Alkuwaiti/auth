@@ -102,8 +102,6 @@ func main() {
 		Audience: name,
 	})
 
-	mfaRepo := mfa.NewMFARepo(dbConn)
-
 	keyBytes, err := hex.DecodeString(cfg.AESKey)
 	if err != nil {
 		panic("error decoding the AES key")
@@ -111,14 +109,15 @@ func main() {
 
 	c := crypto.NewAESCrypto(keyBytes)
 
-	multifactor := mfa.NewService(*mfaRepo, c, mfa.Config{
-		AppName:              cfg.AppName,
-		MaxChallengeAttempts: cfg.MaxChallengeAttempts,
+	multifactor := mfa.NewService(c, mfa.Config{
+		AppName: cfg.AppName,
 	})
 
 	authRepo := auth.NewRepo(dbConn)
 
-	authService := auth.NewService(authRepo, passwords, auditor, authorizer, flags, tokens, multifactor)
+	authService := auth.NewService(authRepo, passwords, auditor, authorizer, flags, tokens, multifactor, auth.Config{
+		MaxChallengeAttempts: cfg.MaxChallengeAttempts,
+	})
 
 	port := 8081
 
@@ -126,7 +125,7 @@ func main() {
 
 	requestMetaInterceptor := grpc.NewRequestMetaInterceptor()
 
-	stepUpInterceptor := grpc.NewStepUpInterceptor(tokens, multifactor)
+	stepUpInterceptor := grpc.NewStepUpInterceptor(tokens, authService)
 
 	srv := grpc.NewServer(authService, grpc.Config{
 		Host: "", // listen on all interfaces ":8081"

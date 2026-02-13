@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
-	"github.com/alkuwaiti/auth/internal/mfa"
 	"github.com/google/uuid"
 )
 
@@ -98,7 +97,7 @@ type DeleteUserInput struct {
 }
 
 func (d *DeleteUserInput) validate() error {
-	if err := d.DeletionReason.Validate(); err != nil {
+	if err := d.DeletionReason.validate(); err != nil {
 		return err
 	}
 
@@ -120,19 +119,31 @@ type User struct {
 	MFAEnabled      bool            `json:"mfa_enabled"`
 }
 
-type LoginResult struct {
-	RequiresMFA bool
-	ChallengeID *uuid.UUID
-	Tokens      *TokenPair
+type MFAMethod struct {
+	ID              uuid.UUID
+	UserID          uuid.UUID
+	Type            MFAMethodType
+	ConfirmedAt     *time.Time
+	EncryptedSecret string
+	CreatedAt       time.Time
+	ExpiresAt       *time.Time
 }
 
-type CreateStepUpChallengeResponse struct {
-	ChallengeID   uuid.UUID
-	MFAMethodType mfa.MFAMethodType
+type MFAChallenge struct {
+	ID            uuid.UUID
+	UserID        uuid.UUID
+	MethodID      uuid.UUID
+	Scope         ChallengeScope
+	ChallengeType ChallengeType
 	ExpiresAt     time.Time
+	ConsumedAt    *time.Time
+	Attempts      int
 }
 
-type VerifyStepUpChallengeResponse struct {
-	StepUpToken string
-	ExpiresIn   time.Time
+type MFABackupCode struct {
+	ID         uuid.UUID
+	UserID     uuid.UUID
+	CodeHash   string
+	ConsumedAt *time.Time
+	CreatedAt  time.Time
 }

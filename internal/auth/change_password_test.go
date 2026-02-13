@@ -3,6 +3,7 @@
 package auth
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -73,7 +74,8 @@ func TestChangePassword(t *testing.T) {
 			service, db, cleanup := setupTestAuthService(t)
 			defer cleanup()
 
-			ctx := testutil.CtxWithRequestMeta()
+			ctx := context.Background()
+			ctx = testutil.CtxWithRequestMeta(ctx)
 
 			var userID uuid.UUID
 			if tt.setupUser {
@@ -123,8 +125,8 @@ func TestChangePassword(t *testing.T) {
 func TestChangePassword_CreatesAuditLog(t *testing.T) {
 	service, db, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	user, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "testUser",
@@ -151,8 +153,8 @@ func TestChangePassword_CreatesAuditLog(t *testing.T) {
 func TestChangePassword_RevokesSessions(t *testing.T) {
 	service, db, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	user, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "testUser",

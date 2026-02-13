@@ -52,14 +52,13 @@ func setupTestAuthService(t *testing.T) (*service, *sql.DB, func()) {
 		JWTKey:   []byte("any random jwt key doesn't really matter or at least i think it doesn't matter"),
 	})
 
-	mfaRepo := mfa.NewMFARepo(testDB.DB)
-
-	multifactor := mfa.NewService(*mfaRepo, &noopCrypto{}, mfa.Config{
-		AppName:              "MyApp",
-		MaxChallengeAttempts: 5,
+	multifactor := mfa.NewService(&noopCrypto{}, mfa.Config{
+		AppName: "MyApp",
 	})
 
-	service := NewService(authRepo, passwordService, auditService, authorizerService, flagsService, tokenManager, multifactor)
+	service := NewService(authRepo, passwordService, auditService, authorizerService, flagsService, tokenManager, multifactor, Config{
+		MaxChallengeAttempts: 5,
+	})
 
 	cleanup := func() {
 		_ = testDB.DB.Close()

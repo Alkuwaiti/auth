@@ -44,6 +44,18 @@ func (q *Queries) ConfirmUserMFAMethod(ctx context.Context, id uuid.UUID) error 
 	return err
 }
 
+const consumeBackupCode = `-- name: ConsumeBackupCode :exec
+UPDATE mfa_backup_codes
+SET consumed_at = NOW()
+WHERE id = $1
+  AND consumed_at IS NULL
+`
+
+func (q *Queries) ConsumeBackupCode(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, consumeBackupCode, id)
+	return err
+}
+
 const consumeChallenge = `-- name: ConsumeChallenge :exec
 UPDATE mfa_challenges
 SET consumed_at = now()
@@ -229,6 +241,16 @@ func (q *Queries) CreateUserMFAMethod(ctx context.Context, arg CreateUserMFAMeth
 		&i.ExpiresAt,
 	)
 	return i, err
+}
+
+const deleteBackupCodesForUser = `-- name: DeleteBackupCodesForUser :exec
+DELETE FROM mfa_backup_codes
+WHERE user_id = $1
+`
+
+func (q *Queries) DeleteBackupCodesForUser(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteBackupCodesForUser, userID)
+	return err
 }
 
 const deleteExpiredUnconfirmedMethods = `-- name: DeleteExpiredUnconfirmedMethods :exec
@@ -425,6 +447,40 @@ func (q *Queries) GetSessionByRefreshToken(ctx context.Context, refreshToken str
 	return i, err
 }
 
+const getUserBackupCodes = `-- name: GetUserBackupCodes :many
+SELECT id, user_id, code_hash, consumed_at, created_at FROM mfa_backup_codes
+WHERE user_id = $1 AND consumed_at IS NULL
+`
+
+func (q *Queries) GetUserBackupCodes(ctx context.Context, userID uuid.UUID) ([]MfaBackupCode, error) {
+	rows, err := q.db.QueryContext(ctx, getUserBackupCodes, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MfaBackupCode
+	for rows.Next() {
+		var i MfaBackupCode
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.CodeHash,
+			&i.ConsumedAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT
   u.id, u.email, u.username, u.password_hash, u.is_email_verified, u.is_active, u.created_at, u.updated_at, u.deleted_at, u.deletion_reason, u.mfa_enabled,
@@ -525,6 +581,21 @@ WHERE id = $1
 
 func (q *Queries) IncrementChallengeAttempts(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, incrementChallengeAttempts, id)
+	return err
+}
+
+const insertBackupCodes = `-- name: InsertBackupCodes :exec
+INSERT INTO mfa_backup_codes (user_id, code_hash)
+SELECT $1, unnest($2::text[])
+`
+
+type InsertBackupCodesParams struct {
+	UserID  uuid.UUID
+	Column2 []string
+}
+
+func (q *Queries) InsertBackupCodes(ctx context.Context, arg InsertBackupCodesParams) error {
+	_, err := q.db.ExecContext(ctx, insertBackupCodes, arg.UserID, pq.Array(arg.Column2))
 	return err
 }
 

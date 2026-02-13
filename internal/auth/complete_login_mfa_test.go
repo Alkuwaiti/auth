@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/mfa"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/google/uuid"
 	"github.com/pquerna/otp"
@@ -26,13 +25,12 @@ func setupUserWithTOTP(t *testing.T, svc *service, ctx context.Context) (userID 
 
 	userID = user.ID
 	ctx = testutil.CtxWithUserID(ctx, userID)
+	ctx = testutil.CtxWithEmail(ctx, user.Email)
 
 	// enroll TOTP
-	enrollment, err := svc.MFAService.EnrollMethod(
+	enrollment, err := svc.EnrollMFAMethod(
 		ctx,
-		userID,
-		"test@example.com",
-		mfa.MFAMethodTOTP,
+		MFAMethodTOTP,
 	)
 	require.NoError(t, err)
 
@@ -45,17 +43,16 @@ func setupUserWithTOTP(t *testing.T, svc *service, ctx context.Context) (userID 
 	code, err := totp.GenerateCode(secret, time.Now())
 	require.NoError(t, err)
 
-	err = svc.MFAService.ConfirmMethod(ctx, enrollment.Method.ID, code)
+	_, err = svc.ConfirmMFAMethod(ctx, enrollment.Method.ID, code)
 	require.NoError(t, err)
 
 	// create MFA challenge
-	challenge, err := svc.MFAService.CreateChallenge(
-		ctx,
-		userID,
-		enrollment.Method.ID,
-		mfa.ChallengeLogin,
-		mfa.ScopeLogin,
-	)
+	challenge, err := svc.repo.createChallenge(ctx, MFAChallenge{
+		MethodID:      enrollment.Method.ID,
+		UserID:        user.ID,
+		Scope:         ScopeLogin,
+		ChallengeType: ChallengeLogin,
+	})
 	require.NoError(t, err)
 
 	challengeID = challenge.ID
@@ -66,8 +63,8 @@ func setupUserWithTOTP(t *testing.T, svc *service, ctx context.Context) (userID 
 func TestCompleteLoginMFA_Success(t *testing.T) {
 	service, _, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	userID, challengeID, secret := setupUserWithTOTP(t, service, ctx)
 
@@ -86,8 +83,8 @@ func TestCompleteLoginMFA_Success(t *testing.T) {
 func TestCompleteLoginMFA_InvalidChallenge(t *testing.T) {
 	service, _, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	_, challengeID, _ := setupUserWithTOTP(t, service, ctx)
 
@@ -100,8 +97,8 @@ func TestCompleteLoginMFA_InvalidChallenge(t *testing.T) {
 func TestCompleteLoginMFA_UserDeleted(t *testing.T) {
 	service, db, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	userID, challengeID, secret := setupUserWithTOTP(t, service, ctx)
 

@@ -3,6 +3,7 @@
 package auth
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -14,8 +15,8 @@ import (
 func TestLogout_Success(t *testing.T) {
 	service, db, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	_, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "test",
@@ -44,8 +45,8 @@ func TestLogout_Success(t *testing.T) {
 func TestLogout_Idempotent(t *testing.T) {
 	service, _, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	err := service.Logout(ctx, "non-existent-refresh-token")
 	require.NoError(t, err)
@@ -54,8 +55,8 @@ func TestLogout_Idempotent(t *testing.T) {
 func TestLogout_PreventsRefreshReuse(t *testing.T) {
 	service, _, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	_, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "test",
@@ -78,8 +79,8 @@ func TestLogout_PreventsRefreshReuse(t *testing.T) {
 func TestLogout_CreatesAuditLog(t *testing.T) {
 	service, db, cleanup := setupTestAuthService(t)
 	defer cleanup()
-
-	ctx := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	_, err := service.RegisterUser(ctx, RegisterUserInput{
 		Username: "test",
@@ -109,8 +110,10 @@ func TestLogout_MultiDeviceIsolation(t *testing.T) {
 	service, db, cleanup := setupTestAuthService(t)
 	defer cleanup()
 
-	ctx1 := testutil.CtxWithRequestMeta()
-	ctx2 := testutil.CtxWithRequestMeta()
+	ctx := context.Background()
+
+	ctx1 := testutil.CtxWithRequestMeta(ctx)
+	ctx2 := testutil.CtxWithRequestMeta(ctx)
 
 	_, err := service.RegisterUser(ctx1, RegisterUserInput{
 		Username: "test",

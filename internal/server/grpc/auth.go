@@ -5,7 +5,6 @@ import (
 	"log/slog"
 
 	"github.com/alkuwaiti/auth/internal/auth"
-	"github.com/alkuwaiti/auth/internal/mfa"
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
@@ -145,7 +144,7 @@ func (s *server) EnrollMFAMethod(ctx context.Context, req *authv1.EnrollMFAMetho
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	res, err := s.authService.EnrollMFAMethod(ctx, mfa.MFAMethodType(req.Method))
+	res, err := s.authService.EnrollMFAMethod(ctx, auth.MFAMethodType(req.Method))
 	if err != nil {
 		return nil, MapError(err)
 	}
@@ -160,7 +159,7 @@ func (s *server) EnrollMFAMethod(ctx context.Context, req *authv1.EnrollMFAMetho
 	}, nil
 }
 
-func (s *server) ConfirmMFAMethod(ctx context.Context, req *authv1.ConfirmMFAMethodRequest) (*emptypb.Empty, error) {
+func (s *server) ConfirmMFAMethod(ctx context.Context, req *authv1.ConfirmMFAMethodRequest) (*authv1.ConfirmMFAMethodResponse, error) {
 	if req == nil {
 		slog.ErrorContext(ctx, "Invalid request: request is nil")
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
@@ -171,12 +170,14 @@ func (s *server) ConfirmMFAMethod(ctx context.Context, req *authv1.ConfirmMFAMet
 		return nil, status.Error(codes.InvalidArgument, "user id is not a uuid")
 	}
 
-	err = s.authService.ConfirmMethod(ctx, methodID, req.Code)
+	backupCodes, err := s.authService.ConfirmMFAMethod(ctx, methodID, req.Code)
 	if err != nil {
 		return nil, MapError(err)
 	}
 
-	return &emptypb.Empty{}, nil
+	return &authv1.ConfirmMFAMethodResponse{
+		BackupCodes: backupCodes,
+	}, nil
 }
 
 func (s *server) CompleteLoginMFA(ctx context.Context, req *authv1.CompleteLoginMFARequest) (*authv1.TokenPair, error) {
@@ -210,7 +211,7 @@ func (s *server) CreateStepUpChallenge(ctx context.Context, req *authv1.CreateSt
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	res, err := s.authService.CreateStepUpChallenge(ctx, mfa.MFAMethodType(req.MethodType), mfa.ChallengeScope(req.Scope))
+	res, err := s.authService.CreateStepUpChallenge(ctx, auth.MFAMethodType(req.MethodType), auth.ChallengeScope(req.Scope))
 	if err != nil {
 		return nil, MapError(err)
 	}
@@ -240,6 +241,6 @@ func (s *server) VerifyStepUpChallenge(ctx context.Context, req *authv1.VerifySt
 
 	return &authv1.VerifyStepUpChallengeResponse{
 		StepUpToken: res.StepUpToken,
-		ExpiresIn:   timestamppb.New(res.ExpiresIn),
+		ExpiresIn:   int64(res.ExpiresIn),
 	}, nil
 }
