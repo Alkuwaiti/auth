@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/google/uuid"
@@ -23,13 +24,19 @@ func (r *repo) consumeBackupCode(ctx context.Context, tx *sql.Tx, codeID uuid.UU
 
 func toMFABackupCode(postgresCodes []postgres.MfaBackupCode) []MFABackupCode {
 	backupCodes := make([]MFABackupCode, len(postgresCodes))
-	for i, backupCode := range backupCodes {
+
+	var consumedAt *time.Time
+	for i, pg := range postgresCodes {
+		if pg.ConsumedAt.Valid {
+			consumedAt = &pg.ConsumedAt.Time
+		}
+
 		backupCodes[i] = MFABackupCode{
-			ID:         backupCode.ID,
-			UserID:     backupCode.UserID,
-			CodeHash:   backupCode.CodeHash,
-			ConsumedAt: backupCode.ConsumedAt,
-			CreatedAt:  backupCode.CreatedAt,
+			ID:         pg.ID,
+			UserID:     pg.UserID,
+			CodeHash:   pg.CodeHash,
+			ConsumedAt: consumedAt,
+			CreatedAt:  pg.CreatedAt,
 		}
 	}
 
