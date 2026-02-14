@@ -34,13 +34,7 @@ It is designed to be used in a microservices architecture.
 
 ## Database Design
 
-Core tables:
-
-- users
-- mfa_methods
-- mfa_challenges
-- sessions
-- refresh_tokens
+![Database Diagram](./docs/db/authdb.erd.png)
 
 ## First Time Setup
 
