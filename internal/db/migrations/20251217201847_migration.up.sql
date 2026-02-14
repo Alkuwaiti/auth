@@ -45,26 +45,6 @@ CREATE TABLE sessions (
   revoked_at TIMESTAMPTZ
 );
 
-CREATE TABLE auth_tokens (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
-  user_id UUID REFERENCES users (id) ON DELETE CASCADE,
-  token_hash VARCHAR(255) NOT NULL,
-  type VARCHAR(50) NOT NULL, -- e.g., 'password_reset', 'email_verify'
-  expires_at TIMESTAMPTZ NOT NULL,
-  used BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT NOW ()
-);
-
-CREATE TABLE social_accounts (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
-  user_id UUID REFERENCES users (id) ON DELETE CASCADE,
-  provider VARCHAR(50) NOT NULL, -- 'google', 'github', 'facebook'
-  provider_user_id VARCHAR(255) NOT NULL,
-  access_token TEXT,
-  refresh_token TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW ()
-);
-
 CREATE TABLE auth_audit_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
   user_id UUID REFERENCES users (id),
