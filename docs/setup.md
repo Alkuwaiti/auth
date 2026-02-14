@@ -1,29 +1,35 @@
 ## First Time Setup
 
-1. install dependencies
+1. install tools
 
 ```bash
 make tools
 ```
-2. Start dependencies:
+
+2. install dependencies
+
+```bash
+go get
+```
+3. Start dependencies:
 
 ```bash
 docker-compose up -d
 ```
 
-3. Run migrations:
+4. Run migrations:
 
 ```bash
 make run-migrations
 ```
 
-4. shut down dependencies:
+5. shut down dependencies:
 
 ```bash
 docker-compose down
 ```
 
-## Run Locally
+## Run Locally (starts dependencies)
 
 ```bash
 make run

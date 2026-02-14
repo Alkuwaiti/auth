@@ -8,7 +8,7 @@ It turned out better than I expected — and the journey is far from over.
 
 The idea evolved into creating a plug-and-play authentication core that I can drop into any future SaaS product I build — a dedicated service responsible for identity, security, and trust. Instead of baking auth logic into every application, this service stands on its own: orchestrating authentication flows, emitting Kafka events (soon), and integrating cleanly with other services in a distributed system (also soon).
 
-From the start, I approached this project with ambition. I wanted it to feel production-ready — not just a fun little thing (although it continues to be so). That meant embracing strong engineering practices: gRPC for service-to-service communication, structured observability, containerization, CI pipelines, and clean architectural boundaries in code. The goal was to explore cutting-edge tools — ideally without getting cut in the process.
+From the start, I approached this project with ambition. I wanted it to feel production-ready — not just a fun little thing (although it continues to be so). That meant embracing strong engineering practices: gRPC for service-to-service communication (shoutout 🌧️), structured observability, containerization, CI pipelines, and clean architectural boundaries in code. The goal was to explore cutting-edge tools — ideally without getting cut in the process.
 
 I plan to keep building on this, adding features gradually while continuously hardening the architectural integrity of the system. Right now, the feature set may look small for two months of work, but that’s intentional. A lot of effort went into handling edge cases properly and making sure the foundation is solid before expanding further.
 
@@ -18,6 +18,7 @@ The only major architectural “if” at the moment is transport exposure. Since
 - [Setup](docs/setup.md)
 - [Architecture](docs/architecture.md)
 - [Configuration](docs/configuration.md)
+- [Future Improvements](docs/future.md)
 - [Features](docs/features/overview.md)
   - [Registration](docs/features/registration.md)
   - [sessions](docs/features/session.md)
