@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS auth_audit_logs;
+DROP TABLE IF EXISTS audit_logs;
 
 DROP TABLE IF EXISTS social_accounts;
 

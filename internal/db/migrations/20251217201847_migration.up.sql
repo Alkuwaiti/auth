@@ -45,7 +45,7 @@ CREATE TABLE sessions (
   revoked_at TIMESTAMPTZ
 );
 
-CREATE TABLE auth_audit_logs (
+CREATE TABLE audit_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
   user_id UUID REFERENCES users (id),
   action VARCHAR(100), -- login, logout, password_change, token_refresh

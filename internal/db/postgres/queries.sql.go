@@ -70,7 +70,7 @@ func (q *Queries) ConsumeChallenge(ctx context.Context, id uuid.UUID) error {
 
 const createAuditLog = `-- name: CreateAuditLog :exec
 
-INSERT INTO auth_audit_logs (user_id, action, ip_address, user_agent, actor_id, context)
+INSERT INTO audit_logs (user_id, action, ip_address, user_agent, actor_id, context)
 VALUES ($1, $2, $3, $4, $5, $6)
 `
 

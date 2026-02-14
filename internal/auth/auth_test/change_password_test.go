@@ -144,7 +144,7 @@ func TestChangePassword_CreatesAuditLog(t *testing.T) {
 	var count int
 	err = db.QueryRow(`
 		SELECT COUNT(*)
-		FROM auth_audit_logs
+		FROM audit_logs
 		WHERE action = 'password_change' AND user_id = $1
 	`, user.ID).Scan(&count)
 	require.NoError(t, err)
