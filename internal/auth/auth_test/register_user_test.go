@@ -126,7 +126,7 @@ func TestRegisterUser_AuditTrail(t *testing.T) {
 	}
 	err = db.QueryRow(`
 		SELECT action, user_id, created_at
-		FROM auth_audit_logs
+		FROM audit_logs
 		WHERE action = $1 AND user_id = $2
 	`, audit.ActionCreateUser, user.ID).
 		Scan(&auditLog.Action, &auditLog.UserID, &auditLog.CreatedAt)

@@ -16,7 +16,7 @@ func main() {
 	ctx := context.Background()
 
 	md := metadata.New(map[string]string{
-		"authorization":       "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InFhc2ltbUBnbWFpbC5jb20iLCJyb2xlcyI6WyJ1c2VyIl0sInR5cGUiOiJhY2Nlc3MiLCJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiIwMTljMzdmZC04MTA5LTc0YjctYWU3My03ZWYxYTZiNWRhNmYiLCJhdWQiOlsiYXV0aC1zZXJ2aWNlIl0sImV4cCI6MTc3MDQ3MDcyMSwiaWF0IjoxNzcwNDY5ODIxfQ.LxpVzTx1hy0m8QznsKobu7wdIZXDiMLsqdBhS4hOqKs",
+		"authorization":       "Bearer ",
 		"x-forwarded-for":     "203.0.113.10",
 		"x-client-user-agent": "auth-cli/1.0",
 		"request-id":          "req-123456",

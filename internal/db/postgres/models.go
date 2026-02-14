@@ -12,7 +12,7 @@ import (
 	"github.com/sqlc-dev/pqtype"
 )
 
-type AuthAuditLog struct {
+type AuditLog struct {
 	ID        uuid.UUID
 	UserID    uuid.NullUUID
 	Action    string
@@ -21,16 +21,6 @@ type AuthAuditLog struct {
 	CreatedAt sql.NullTime
 	ActorID   uuid.NullUUID
 	Context   pqtype.NullRawMessage
-}
-
-type AuthToken struct {
-	ID        uuid.UUID
-	UserID    uuid.NullUUID
-	TokenHash string
-	Type      string
-	ExpiresAt time.Time
-	Used      sql.NullBool
-	CreatedAt sql.NullTime
 }
 
 type MfaBackupCode struct {
@@ -70,16 +60,6 @@ type Session struct {
 	RevokedAt        sql.NullTime
 	RevocationReason sql.NullString
 	CompromisedAt    sql.NullTime
-}
-
-type SocialAccount struct {
-	ID             uuid.UUID
-	UserID         uuid.NullUUID
-	Provider       string
-	ProviderUserID string
-	AccessToken    sql.NullString
-	RefreshToken   sql.NullString
-	CreatedAt      sql.NullTime
 }
 
 type User struct {

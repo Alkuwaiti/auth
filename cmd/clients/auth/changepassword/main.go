@@ -16,12 +16,12 @@ func main() {
 	ctx := context.Background()
 
 	md := metadata.New(map[string]string{
-		"authorization":       "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InFhc2ltbUBnbWFpbC5jb20iLCJyb2xlcyI6WyJ1c2VyIl0sInR5cGUiOiJhY2Nlc3MiLCJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiIwMTljMzdmZC04MTA5LTc0YjctYWU3My03ZWYxYTZiNWRhNmYiLCJhdWQiOlsiYXV0aC1zZXJ2aWNlIl0sImV4cCI6MTc3MDQ3MDcyMSwiaWF0IjoxNzcwNDY5ODIxfQ.LxpVzTx1hy0m8QznsKobu7wdIZXDiMLsqdBhS4hOqKs",
+		"authorization":       "Bearer ",
 		"x-forwarded-for":     "203.0.113.10",
 		"x-client-user-agent": "auth-cli/1.0",
 		"request-id":          "req-123456",
 		"x-client-ip":         "2.2.2.2",
-		"X-Step-Up-Token":     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InFhc2ltbUBnbWFpbC5jb20iLCJzY29wZSI6ImNoYW5nZV9wYXNzd29yZCIsInR5cGUiOiJzdGVwX3VwIiwiaXNzIjoiYXV0aC1zZXJ2aWNlIiwic3ViIjoiMDE5YzM3ZmQtODEwOS03NGI3LWFlNzMtN2VmMWE2YjVkYTZmIiwiYXVkIjpbImF1dGgtc2VydmljZSJdLCJleHAiOjE3NzA0NzA0MTUsImlhdCI6MTc3MDQ3MDExNX0.OLW6rqIa7uPt_jcLz1P0_a15ryiJPDzYOo-OiYFfuzE",
+		"X-Step-Up-Token":     "",
 	})
 
 	ctx = metadata.NewOutgoingContext(ctx, md)

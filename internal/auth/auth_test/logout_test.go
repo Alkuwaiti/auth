@@ -99,7 +99,7 @@ func TestLogout_CreatesAuditLog(t *testing.T) {
 	var count int
 	err = db.QueryRow(`
 		SELECT COUNT(*)
-		FROM auth_audit_logs
+		FROM audit_logs
 		WHERE action = 'logout'
 	`).Scan(&count)
 
