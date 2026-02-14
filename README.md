@@ -12,7 +12,7 @@ From the start, I approached this project with ambition. I wanted it to feel pro
 
 I plan to keep building on this, adding features gradually while continuously hardening the architectural integrity of the system. Right now, the feature set may look small for two months of work, but that’s intentional. A lot of effort went into handling edge cases properly and making sure the foundation is solid before expanding further.
 
-The only major architectural “if” at the moment is transport exposure. Since the service runs as a gRPC server, it will require a gRPC-Gateway layer to expose HTTP/JSON endpoints when integrating with web clients or external systems. That piece is intentionally left as a future addition once the surrounding ecosystem solidifies. A good contender would be grpc-gateway ([https://github.com/grpc-ecosystem/grpc-gateway](https://github.com/grpc-ecosystem/grpc-gateway)) to save me from building that layer from scratch.
+The only major architectural “if” at the moment is transport exposure. Since the service runs as a gRPC server, it will require a gRPC-Gateway layer to expose HTTP/JSON endpoints when integrating with web clients or external systems. That piece is intentionally left as a future addition once the surrounding ecosystem solidifies. A good contender would be [ grpc-gateway ](https://github.com/grpc-ecosystem/grpc-gateway(https://github.com/grpc-ecosystem/grpc-gateway)) to save me from building that layer from scratch.
 
 ## Table of Contents
 - [Setup](docs/setup.md)
