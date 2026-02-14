@@ -167,7 +167,7 @@ func (s *Service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 	committed = true
 
 	meta := contextkeys.RequestMetaFromContext(ctx)
-	_ = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+	if err = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
 		UserID: &method.UserID,
 		Action: audit.ActionConfirmMFAMethod,
 		Context: audit.AuditContext{
@@ -176,7 +176,9 @@ func (s *Service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 		},
 		IPAddress: &meta.IPAddress,
 		UserAgent: &meta.UserAgent,
-	})
+	}); err != nil {
+		return nil, err
+	}
 
 	return backupCodes, nil
 }
@@ -194,20 +196,6 @@ func (s *Service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, c
 		}
 
 		slog.ErrorContext(ctx, "login failed: user lookup error", "user_id", lockedChallenge.UserID, "err", err)
-		return TokenPair{}, err
-	}
-
-	meta := contextkeys.RequestMetaFromContext(ctx)
-	if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
-		UserID: &user.ID,
-		Action: audit.ActionConfirmMFAMethod,
-		Context: audit.AuditContext{
-			"method_type": "totp",
-			"method_id":   challengeID.String(),
-		},
-		IPAddress: &meta.IPAddress,
-		UserAgent: &meta.UserAgent,
-	}); err != nil {
 		return TokenPair{}, err
 	}
 
@@ -311,20 +299,6 @@ func (s *Service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 		return VerifyStepUpChallengeResponse{}, err
 	}
 
-	meta := contextkeys.RequestMetaFromContext(ctx)
-	if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
-		UserID: &challenge.UserID,
-		Action: audit.ActionConfirmMFAMethod,
-		Context: audit.AuditContext{
-			"method_type": "totp",
-			"method_id":   challengeID.String(),
-		},
-		IPAddress: &meta.IPAddress,
-		UserAgent: &meta.UserAgent,
-	}); err != nil {
-		return VerifyStepUpChallengeResponse{}, err
-	}
-
 	span.SetAttributes(
 		attribute.String("user.id", userID.String()),
 	)
@@ -392,6 +366,20 @@ func (s *Service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 
 	if err = tx.Commit(); err != nil {
 		slog.ErrorContext(ctx, "error committing transaction", "err", err)
+		return domain.LockedTOTPChallenge{}, err
+	}
+
+	meta := contextkeys.RequestMetaFromContext(ctx)
+	if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+		UserID: &challenge.UserID,
+		Action: audit.ActionConsumeChallenge,
+		Context: audit.AuditContext{
+			"method_type":  "totp",
+			"challenge_id": challengeID.String(),
+		},
+		IPAddress: &meta.IPAddress,
+		UserAgent: &meta.UserAgent,
+	}); err != nil {
 		return domain.LockedTOTPChallenge{}, err
 	}
 
