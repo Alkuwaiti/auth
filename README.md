@@ -24,17 +24,3 @@ The only major architectural “if” at the moment is transport exposure. Since
   - [sessions](docs/features/session.md)
   - [MFA](docs/features/mfa.md)
 
-## Future Improvements
-
-- Trusted devices
-- WebAuthn support
-- Rate limiting at API gateway
-- Redis-backed challenge cache
-- Email verification
-- Password reset
-- Device management UI
-- Remember-me logic
-- Emit auth events
-- gRPC Endpoint for Step-up MFA
-- K8s Kustomize
-
