@@ -11,25 +11,25 @@ make tools
 ```bash
 go get
 ```
-3. Start dependencies:
+3. Start dependencies (Needs docker running)
 
 ```bash
 docker-compose up -d
 ```
 
-4. Run migrations:
+4. Run migrations
 
 ```bash
 make run-migrations
 ```
 
-5. shut down dependencies:
+5. shut down dependencies
 
 ```bash
 docker-compose down
 ```
 
-## Run Locally (starts dependencies)
+## Run Locally (starts dependencies, needs docker running)
 
 ```bash
 make run
