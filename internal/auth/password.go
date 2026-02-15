@@ -105,3 +105,11 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 
 	return nil
 }
+
+func (s *Service) ForgetPassword(ctx context.Context, email string) {
+	// user, err := s.Repo.GetUserByEmail(ctx, email)
+	// if err != nil {
+	// 	return
+	// }
+
+}

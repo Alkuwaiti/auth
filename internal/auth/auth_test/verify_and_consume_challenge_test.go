@@ -115,11 +115,10 @@ func TestVerifyAndConsumeChallenge_SuccessWithBackupCode(t *testing.T) {
 
 	rawBackupCode := "ABCD-1234"
 
-	hashedCode, err := svc.Passwords.Hash(rawBackupCode)
-	require.NoError(t, err)
+	hashedCode := svc.Hasher.Hash(rawBackupCode)
 
 	var backupCodeID uuid.UUID
-	err = db.QueryRowContext(ctx, `
+	err := db.QueryRowContext(ctx, `
 		INSERT INTO mfa_backup_codes (user_id, code_hash)
 		VALUES ($1, $2)
 		RETURNING id

@@ -190,7 +190,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
-	newRefreshToken, err := s.tokenManager.GenerateRefreshToken()
+	newRefreshToken, err := s.tokenManager.GenerateSecureToken()
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "refresh token generation failed")
@@ -278,7 +278,7 @@ func (s *Service) finalizeLogin(ctx context.Context, user domain.User, action au
 		return TokenPair{}, err
 	}
 
-	refreshToken, err := s.tokenManager.GenerateRefreshToken()
+	refreshToken, err := s.tokenManager.GenerateSecureToken()
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "refresh token generation failed")

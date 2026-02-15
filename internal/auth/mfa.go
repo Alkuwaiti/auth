@@ -410,13 +410,7 @@ func (s *Service) VerifyBackupCode(ctx context.Context, tx *sql.Tx, userID uuid.
 	}
 
 	for _, c := range codes {
-		ok, err := s.Passwords.Compare(c.CodeHash, code)
-		if err != nil {
-			slog.ErrorContext(ctx, "error comparing hashes", "err", err)
-			return false, err
-		}
-
-		if ok {
+		if s.Hasher.Compare(c.CodeHash, code) {
 			if err := s.Repo.ConsumeBackupCode(ctx, tx, c.ID); err != nil {
 				slog.ErrorContext(ctx, "error consuming backup code", "err", err, "challenge_id", c.ID)
 				return false, err

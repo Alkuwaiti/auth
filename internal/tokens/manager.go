@@ -65,7 +65,7 @@ func (m *tokens) ValidateJWT(tokenStr string) (*AccessClaims, error) {
 	return claims, nil
 }
 
-func (m *tokens) GenerateRefreshToken() (string, error) {
+func (m *tokens) GenerateSecureToken() (string, error) {
 	b := make([]byte, 32)
 	_, err := rand.Read(b)
 	if err != nil {

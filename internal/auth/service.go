@@ -24,13 +24,14 @@ type Service struct {
 	tokenManager tokenManager
 	MFAProvider  MFAProvider
 	Config       Config
+	Hasher       hasher
 }
 
 type Config struct {
 	MaxChallengeAttempts int
 }
 
-func NewService(repoI repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, Config Config) *Service {
+func NewService(repoI repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, hasher hasher, Config Config) *Service {
 	return &Service{
 		Repo:         repoI,
 		Passwords:    passwords,
@@ -39,6 +40,7 @@ func NewService(repoI repo, passwords passwords, auditor auditor, authorizer aut
 		Flags:        flags,
 		tokenManager: tokenManager,
 		MFAProvider:  MFAProvider,
+		Hasher:       hasher,
 		Config:       Config,
 	}
 }
@@ -96,7 +98,7 @@ type featureFlags interface {
 
 type tokenManager interface {
 	GenerateAccessToken(roles []string, userID, email string) (string, error)
-	GenerateRefreshToken() (string, error)
+	GenerateSecureToken() (string, error)
 	GenerateStepUpToken(userID, email, scope string) (string, int, error)
 }
 
@@ -105,6 +107,11 @@ type MFAProvider interface {
 	GenerateEncryptedSecret(key *otp.Key) ([]byte, error)
 	VerifyTOTP(ctx context.Context, secret, code string) (bool, error)
 	GenerateBackupCodes(n int, hash func(string) (string, error)) (plain []string, hashed []string, err error)
+}
+
+type hasher interface {
+	Hash(input string) string
+	Compare(hashedInput, input string) bool
 }
 
 // TODO: test race condition for all of these methods.
