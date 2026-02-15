@@ -209,3 +209,7 @@ UPDATE mfa_backup_codes
 SET consumed_at = NOW()
 WHERE id = $1
   AND consumed_at IS NULL;
+
+-- name: CreatePasswordResetToken :exec
+INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+VALUES ($1, $2, $3);

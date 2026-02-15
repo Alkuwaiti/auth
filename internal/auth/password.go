@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/audit"
@@ -107,9 +108,26 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 }
 
 func (s *Service) ForgetPassword(ctx context.Context, email string) {
-	// user, err := s.Repo.GetUserByEmail(ctx, email)
-	// if err != nil {
-	// 	return
-	// }
+	user, err := s.Repo.GetUserByEmail(ctx, email)
+	if err != nil {
+		slog.ErrorContext(ctx, "error getting user by email", "err", err)
+		return
+	}
+
+	randomToken, err := s.tokenManager.GenerateSecureToken()
+	if err != nil {
+		slog.ErrorContext(ctx, "error generating secure token", "err", err)
+		return
+	}
+
+	hashedToken := s.Hasher.Hash(randomToken)
+
+	if err = s.Repo.CreatePasswordResetToken(ctx, user.ID, hashedToken, time.Now().Add(20*time.Minute)); err != nil {
+		slog.ErrorContext(ctx, "error inserting password reset token", "err", err)
+		return
+	}
+
+	// logging for dev
+	slog.InfoContext(ctx, "forget password function returned")
 
 }

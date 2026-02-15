@@ -25,7 +25,7 @@ type AuditLog struct {
 
 type MfaBackupCode struct {
 	ID         uuid.UUID
-	UserID     uuid.UUID
+	UserID     uuid.NullUUID
 	CodeHash   string
 	ConsumedAt sql.NullTime
 	CreatedAt  time.Time
@@ -41,6 +41,15 @@ type MfaChallenge struct {
 	CreatedAt     time.Time
 	Scope         string
 	Attempts      int32
+}
+
+type PasswordResetToken struct {
+	ID         uuid.UUID
+	UserID     uuid.UUID
+	TokenHash  string
+	ExpiresAt  time.Time
+	ConsumedAt sql.NullTime
+	CreatedAt  time.Time
 }
 
 type Role struct {
