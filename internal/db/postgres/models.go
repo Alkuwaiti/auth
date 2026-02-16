@@ -25,7 +25,7 @@ type AuditLog struct {
 
 type MfaBackupCode struct {
 	ID         uuid.UUID
-	UserID     uuid.UUID
+	UserID     uuid.NullUUID
 	CodeHash   string
 	ConsumedAt sql.NullTime
 	CreatedAt  time.Time
