@@ -130,9 +130,7 @@ func (s *Service) ForgetPassword(ctx context.Context, email string) {
 	if err != nil {
 		return
 	}
-	defer func() {
-		_ = tx.Rollback()
-	}()
+	defer tx.Rollback()
 
 	if err = s.Repo.DeleteUserPasswordResetTokens(ctx, tx, user.ID); err != nil {
 		slog.ErrorContext(ctx, "error deleting user password reset tokens", "err", err)

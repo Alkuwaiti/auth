@@ -126,13 +126,7 @@ func (s *Service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 	if err != nil {
 		return nil, err
 	}
-
-	committed := false
-	defer func() {
-		if !committed {
-			_ = tx.Rollback()
-		}
-	}()
+	defer tx.Rollback()
 
 	totpValid, err := s.MFAProvider.VerifyTOTP(ctx, method.EncryptedSecret, code)
 	if err != nil {
@@ -164,7 +158,6 @@ func (s *Service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 	if err = tx.Commit(); err != nil {
 		return nil, err
 	}
-	committed = true
 
 	meta := contextkeys.RequestMetaFromContext(ctx)
 	if err = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
@@ -318,9 +311,7 @@ func (s *Service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 	if err != nil {
 		return domain.LockedTOTPChallenge{}, err
 	}
-	defer func() {
-		_ = tx.Rollback()
-	}()
+	defer tx.Rollback()
 
 	challenge, err := s.Repo.LockActiveTOTPChallenge(ctx, tx, challengeID)
 	if err != nil {
