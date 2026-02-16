@@ -105,10 +105,12 @@ func (s *Service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 
 	method, err := s.Repo.GetMFAMethodByID(ctx, methodID)
 	if err != nil {
+		slog.ErrorContext(ctx, "error getting mfa method by id", "err", err, "method_id", methodID)
 		return nil, err
 	}
 
 	if method.ExpiresAt != nil && method.ExpiresAt.Before(time.Now()) {
+		slog.DebugContext(ctx, "method expired", "method_id", methodID)
 		return nil, &apperrors.BadRequestError{
 			Field: "method",
 			Msg:   "enrollment window expired",
@@ -116,6 +118,7 @@ func (s *Service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 	}
 
 	if method.ConfirmedAt != nil {
+		slog.DebugContext(ctx, "method already confirmed", "method_id", methodID)
 		return nil, &apperrors.BadRequestError{
 			Field: "method",
 			Msg:   "already confirmed",
@@ -137,25 +140,28 @@ func (s *Service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 	}
 
 	if err = s.Repo.ConfirmUserMFAMethod(ctx, tx, methodID); err != nil {
+		slog.ErrorContext(ctx, "error confirming user mfa method", "err", err, "method_id", methodID)
 		return nil, err
 	}
 
 	if err = s.Repo.DeleteBackupCodesForUser(ctx, tx, method.UserID); err != nil {
+		slog.ErrorContext(ctx, "error deleting backup codes for user", "err", err, "method_id", methodID)
 		return nil, err
 	}
 
 	backupCodes, hashed, err := s.MFAProvider.GenerateBackupCodes(10, s.Passwords.Hash)
 	if err != nil {
+		slog.ErrorContext(ctx, "error generating backup codes", "err", err, "method_id", methodID)
 		return nil, err
 	}
 
-	slog.DebugContext(ctx, "where are my backup codes? ", "backupCodes", backupCodes)
-
 	if err = s.Repo.InsertBackupCodes(ctx, tx, method.UserID, hashed); err != nil {
+		slog.ErrorContext(ctx, "error inserting backup codes", "err", err, "method_id", methodID)
 		return nil, err
 	}
 
 	if err = tx.Commit(); err != nil {
+		slog.ErrorContext(ctx, "error committing transaction", "err", err, "method_id", methodID)
 		return nil, err
 	}
 
@@ -212,6 +218,7 @@ func (s *Service) CreateStepUpChallenge(ctx context.Context, methodType domain.M
 
 	method, err := s.Repo.GetConfirmedMFAMethodByType(ctx, userID, methodType)
 	if err != nil {
+		slog.ErrorContext(ctx, "error getting confirmed mfa methods by type", "err", err)
 		return CreateStepUpChallengeResponse{}, err
 	}
 
@@ -222,6 +229,7 @@ func (s *Service) CreateStepUpChallenge(ctx context.Context, methodType domain.M
 		ChallengeType: domain.ChallengeStepUp,
 	})
 	if err != nil {
+		slog.ErrorContext(ctx, "error creating challenge", "err", err)
 		return CreateStepUpChallengeResponse{}, err
 	}
 
@@ -259,15 +267,17 @@ func (s *Service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 
 	challenge, err := s.Repo.GetChallengeByID(ctx, challengeID)
 	if err != nil {
+		slog.ErrorContext(ctx, "error getting challenge by id", "err", err)
 		return VerifyStepUpChallengeResponse{}, err
 	}
 
 	if challenge.UserID != userID {
-		slog.WarnContext(ctx, "challenge does not belong to user", "user_id", userID, "err", err)
+		slog.WarnContext(ctx, "challenge does not belong to user", "user_id", userID)
 		return VerifyStepUpChallengeResponse{}, &apperrors.ForbiddenError{}
 	}
 
 	if challenge.ExpiresAt.Before(time.Now()) {
+		slog.DebugContext(ctx, "challenge expired", "user_id", userID)
 		return VerifyStepUpChallengeResponse{}, &apperrors.BadRequestError{
 			Field: "challenge",
 			Msg:   "challenge expired",
@@ -275,6 +285,7 @@ func (s *Service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 	}
 
 	if challenge.ConsumedAt != nil {
+		slog.DebugContext(ctx, "challenge consumed", "user_id", userID)
 		return VerifyStepUpChallengeResponse{}, &apperrors.BadRequestError{
 			Field: "challenge",
 			Msg:   "challenge already consumed",
@@ -288,6 +299,8 @@ func (s *Service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 
 	token, expiresIn, err := s.tokenManager.GenerateStepUpToken(userID.String(), email, challenge.Scope.String())
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "error generating step-up token")
 		slog.ErrorContext(ctx, "error generating step up token", "err", err)
 		return VerifyStepUpChallengeResponse{}, err
 	}
@@ -323,6 +336,7 @@ func (s *Service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 	}
 
 	if challenge.Attempts >= s.Config.MaxChallengeAttempts {
+		slog.DebugContext(ctx, "max challenge attempts reached", "err", err)
 		return domain.LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
 	}
 

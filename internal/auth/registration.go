@@ -28,8 +28,6 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 	)
 
 	if err := input.validate(); err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "validation failed")
 		return domain.User{}, err
 	}
 
@@ -42,7 +40,6 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 		}
 	}
 	if exists {
-		span.SetStatus(codes.Error, "user already exists")
 		return domain.User{}, &apperrors.BadRequestError{
 			Field: "user",
 			Msg:   "user already exists",
@@ -55,6 +52,7 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 
 	newPasswordHash, err := s.Passwords.Hash(input.Password)
 	if err != nil {
+		span.RecordError(err)
 		return domain.User{}, err
 	}
 
@@ -105,8 +103,6 @@ func (s *Service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 	}
 
 	if err := input.validate(); err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to validate deletion reason")
 		slog.ErrorContext(ctx, "failed to validate deletion reason", "err", err)
 		return err
 	}

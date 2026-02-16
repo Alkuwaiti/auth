@@ -23,17 +23,9 @@ type LoginResult struct {
 }
 
 func (s *Service) Login(ctx context.Context, email, password string) (LoginResult, error) {
-	ctx, span := tracer.Start(ctx, "AuthService.Login")
-	defer span.End()
-
 	if !s.Flags.RefreshTokensEnabled(ctx) {
-		span.SetStatus(codes.Error, "Refresh tokenManager disabled")
 		return LoginResult{}, &apperrors.RefreshDisabledError{}
 	}
-
-	span.SetAttributes(
-		attribute.String("user.email", email),
-	)
 
 	user, err := s.Repo.GetUserByEmail(ctx, email)
 	if err != nil {
@@ -48,8 +40,6 @@ func (s *Service) Login(ctx context.Context, email, password string) (LoginResul
 
 	match, err := s.Passwords.Compare(user.PasswordHash, password)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "invalid credentials")
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email)
 		return LoginResult{}, err
 	}
@@ -58,14 +48,12 @@ func (s *Service) Login(ctx context.Context, email, password string) (LoginResul
 	}
 
 	if user.DeletedAt != nil {
-		span.SetStatus(codes.Error, "user deleted")
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email, "deleted_at", user.DeletedAt)
 		// Don't tell the user they're deleted.
 		return LoginResult{}, &apperrors.InvalidCredentialsError{}
 	}
 
 	if !user.IsActive {
-		span.SetStatus(codes.Error, "user inactive")
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email, "is_active", user.IsActive)
 		// Don't tell the user they're inactive.
 		return LoginResult{}, &apperrors.InvalidCredentialsError{}
@@ -114,7 +102,6 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 	defer span.End()
 
 	if !s.Flags.RefreshTokensEnabled(ctx) {
-		span.SetStatus(codes.Error, "Refresh tokenManager disabled")
 		return TokenPair{}, &apperrors.RefreshDisabledError{}
 	}
 
@@ -131,16 +118,15 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 	}
 
 	if session.CompromisedAt != nil {
-		span.SetStatus(codes.Error, "session already compromised")
 		slog.WarnContext(ctx, "attempt to use already compromised session",
 			"session_id", session.ID,
 			"compromised_at", session.CompromisedAt,
+			"user_id", session.UserID,
 		)
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
 	if session.IsExpired() {
-		span.SetStatus(codes.Error, "session expired")
 		slog.WarnContext(ctx, "session expired",
 			"session_id", session.ID,
 			"session_expires_at", session.ExpiresAt,
@@ -149,7 +135,6 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 	}
 
 	if session.RevokedAt != nil {
-		span.SetStatus(codes.Error, "revoked token reuse detected")
 		slog.WarnContext(ctx, "revoked refresh token reused - possible attack",
 			"session_id", session.ID,
 			"user_id", session.UserID,
@@ -184,7 +169,6 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 	}
 
 	if user.DeletedAt != nil {
-		span.SetStatus(codes.Error, "user deleted")
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email, "deleted_at", user.DeletedAt)
 		// Don't tell the user they're deleted.
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}

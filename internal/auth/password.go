@@ -29,8 +29,6 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 	meta := contextkeys.RequestMetaFromContext(ctx)
 
 	if err = s.Passwords.Validate(newPassword); err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to validate password")
 		return err
 	}
 
@@ -47,7 +45,6 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 	}
 
 	if user.DeletedAt != nil {
-		span.SetStatus(codes.Error, "user deleted")
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email, "deleted_at", user.DeletedAt)
 		// Don't tell the user they're deleted.
 		return &apperrors.InvalidCredentialsError{}
@@ -55,20 +52,15 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 
 	match, err := s.Passwords.Compare(user.PasswordHash, oldPassword)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to compare passwords")
 		slog.ErrorContext(ctx, "failed to compare passwords", "err", err)
 		return err
 	}
 	if !match {
-		span.SetStatus(codes.Error, "old password and current password do not match")
 		return &apperrors.InvalidCredentialsError{}
 	}
 
 	match, err = s.Passwords.Compare(user.PasswordHash, newPassword)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to compare passwords")
 		slog.ErrorContext(ctx, "failed to compare passwords", "err", err)
 		return err
 	}
