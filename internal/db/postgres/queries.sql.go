@@ -248,7 +248,7 @@ DELETE FROM mfa_backup_codes
 WHERE user_id = $1
 `
 
-func (q *Queries) DeleteBackupCodesForUser(ctx context.Context, userID uuid.UUID) error {
+func (q *Queries) DeleteBackupCodesForUser(ctx context.Context, userID uuid.NullUUID) error {
 	_, err := q.db.ExecContext(ctx, deleteBackupCodesForUser, userID)
 	return err
 }
@@ -452,7 +452,7 @@ SELECT id, user_id, code_hash, consumed_at, created_at FROM mfa_backup_codes
 WHERE user_id = $1 AND consumed_at IS NULL
 `
 
-func (q *Queries) GetUserBackupCodes(ctx context.Context, userID uuid.UUID) ([]MfaBackupCode, error) {
+func (q *Queries) GetUserBackupCodes(ctx context.Context, userID uuid.NullUUID) ([]MfaBackupCode, error) {
 	rows, err := q.db.QueryContext(ctx, getUserBackupCodes, userID)
 	if err != nil {
 		return nil, err
@@ -590,7 +590,7 @@ SELECT $1, unnest($2::text[])
 `
 
 type InsertBackupCodesParams struct {
-	UserID  uuid.UUID
+	UserID  uuid.NullUUID
 	Column2 []string
 }
 
@@ -704,24 +704,6 @@ type UpdatePasswordParams struct {
 func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) error {
 	_, err := q.db.ExecContext(ctx, updatePassword, arg.PasswordHash, arg.ID)
 	return err
-}
-
-const userExists = `-- name: UserExists :one
-SELECT EXISTS (
-  SELECT 1 FROM users WHERE username = $1 OR email = $2
-)
-`
-
-type UserExistsParams struct {
-	Username string
-	Email    string
-}
-
-func (q *Queries) UserExists(ctx context.Context, arg UserExistsParams) (bool, error) {
-	row := q.db.QueryRowContext(ctx, userExists, arg.Username, arg.Email)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
 }
 
 const userHasActiveMFAMethod = `-- name: UserHasActiveMFAMethod :one
