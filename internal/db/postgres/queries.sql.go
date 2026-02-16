@@ -678,6 +678,22 @@ func (q *Queries) MarkSessionsCompromised(ctx context.Context, userID uuid.UUID)
 	return err
 }
 
+const passwordResetTokenExists = `-- name: PasswordResetTokenExists :one
+SELECT EXISTS (
+  SELECT 1 FROM password_reset_tokens 
+  WHERE token_hash = $1
+    AND consumed_at IS NULL
+    AND expires_at > now()
+)
+`
+
+func (q *Queries) PasswordResetTokenExists(ctx context.Context, tokenHash string) (bool, error) {
+	row := q.db.QueryRowContext(ctx, passwordResetTokenExists, tokenHash)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const revokeAllUserSessions = `-- name: RevokeAllUserSessions :exec
 UPDATE sessions
 SET 

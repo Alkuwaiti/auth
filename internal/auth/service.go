@@ -78,6 +78,7 @@ type repo interface {
 	DeleteBackupCodesForUser(ctx context.Context, tx *sql.Tx, userID uuid.UUID) error
 	CreatePasswordResetToken(ctx context.Context, tx *sql.Tx, userID uuid.UUID, tokenHash string, expiresAt time.Time) error
 	DeleteUserPasswordResetTokens(ctx context.Context, tx *sql.Tx, userID uuid.UUID) error
+	PasswordResetTokenExists(ctx context.Context, tokenHash string) (bool, error)
 }
 
 type auditor interface {
