@@ -19,6 +19,7 @@ var publicMethods = map[string]struct{}{
 	"/auth.v1.AuthService/RefreshToken":     {},
 	"/auth.v1.AuthService/Logout":           {},
 	"/auth.v1.AuthService/CompleteLoginMFA": {},
+	"/auth.v1.AuthService/ForgetPassword":   {},
 }
 
 type JWTValidator interface {

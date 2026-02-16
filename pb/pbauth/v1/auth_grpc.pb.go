@@ -32,6 +32,7 @@ const (
 	AuthService_CompleteLoginMFA_FullMethodName      = "/auth.v1.AuthService/CompleteLoginMFA"
 	AuthService_CreateStepUpChallenge_FullMethodName = "/auth.v1.AuthService/CreateStepUpChallenge"
 	AuthService_VerifyStepUpChallenge_FullMethodName = "/auth.v1.AuthService/VerifyStepUpChallenge"
+	AuthService_ForgetPassword_FullMethodName        = "/auth.v1.AuthService/ForgetPassword"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -50,6 +51,7 @@ type AuthServiceClient interface {
 	CompleteLoginMFA(ctx context.Context, in *CompleteLoginMFARequest, opts ...grpc.CallOption) (*TokenPair, error)
 	CreateStepUpChallenge(ctx context.Context, in *CreateStepUpChallengeRequest, opts ...grpc.CallOption) (*CreateStepUpChallengeResponse, error)
 	VerifyStepUpChallenge(ctx context.Context, in *VerifyStepUpChallengeRequest, opts ...grpc.CallOption) (*VerifyStepUpChallengeResponse, error)
+	ForgetPassword(ctx context.Context, in *ForgetPasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type authServiceClient struct {
@@ -180,6 +182,16 @@ func (c *authServiceClient) VerifyStepUpChallenge(ctx context.Context, in *Verif
 	return out, nil
 }
 
+func (c *authServiceClient) ForgetPassword(ctx context.Context, in *ForgetPasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, AuthService_ForgetPassword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -196,6 +208,7 @@ type AuthServiceServer interface {
 	CompleteLoginMFA(context.Context, *CompleteLoginMFARequest) (*TokenPair, error)
 	CreateStepUpChallenge(context.Context, *CreateStepUpChallengeRequest) (*CreateStepUpChallengeResponse, error)
 	VerifyStepUpChallenge(context.Context, *VerifyStepUpChallengeRequest) (*VerifyStepUpChallengeResponse, error)
+	ForgetPassword(context.Context, *ForgetPasswordRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -241,6 +254,9 @@ func (UnimplementedAuthServiceServer) CreateStepUpChallenge(context.Context, *Cr
 }
 func (UnimplementedAuthServiceServer) VerifyStepUpChallenge(context.Context, *VerifyStepUpChallengeRequest) (*VerifyStepUpChallengeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method VerifyStepUpChallenge not implemented")
+}
+func (UnimplementedAuthServiceServer) ForgetPassword(context.Context, *ForgetPasswordRequest) (*emptypb.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method ForgetPassword not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -479,6 +495,24 @@ func _AuthService_VerifyStepUpChallenge_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_ForgetPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ForgetPasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).ForgetPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_ForgetPassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).ForgetPassword(ctx, req.(*ForgetPasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -533,6 +567,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "VerifyStepUpChallenge",
 			Handler:    _AuthService_VerifyStepUpChallenge_Handler,
+		},
+		{
+			MethodName: "ForgetPassword",
+			Handler:    _AuthService_ForgetPassword_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

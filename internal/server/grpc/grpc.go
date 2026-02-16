@@ -36,6 +36,7 @@ type authService interface {
 	CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, code string) (auth.TokenPair, error)
 	CreateStepUpChallenge(ctx context.Context, methodType domain.MFAMethodType, scope domain.ChallengeScope) (auth.CreateStepUpChallengeResponse, error)
 	VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UUID, code string) (auth.VerifyStepUpChallengeResponse, error)
+	ForgetPassword(ctx context.Context, email string)
 }
 
 type Config struct {
