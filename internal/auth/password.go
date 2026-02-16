@@ -109,8 +109,12 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 
 func (s *Service) ForgetPassword(ctx context.Context, email string) {
 	user, err := s.Repo.GetUserByEmail(ctx, email)
+	if errors.Is(err, repository.ErrNotFound) {
+		slog.DebugContext(ctx, "user does not exist", "err", err)
+		return
+	}
 	if err != nil {
-		slog.ErrorContext(ctx, "error getting user by email", "err", err)
+		slog.ErrorContext(ctx, "error getting user by email")
 		return
 	}
 
@@ -122,12 +126,28 @@ func (s *Service) ForgetPassword(ctx context.Context, email string) {
 
 	hashedToken := s.Hasher.Hash(randomToken)
 
-	if err = s.Repo.CreatePasswordResetToken(ctx, user.ID, hashedToken, time.Now().Add(20*time.Minute)); err != nil {
+	tx, err := s.Repo.BeginTx(ctx)
+	if err != nil {
+		return
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	if err = s.Repo.DeleteUserPasswordResetTokens(ctx, tx, user.ID); err != nil {
+		slog.ErrorContext(ctx, "error deleting user password reset tokens", "err", err)
+		return
+	}
+
+	if err = s.Repo.CreatePasswordResetToken(ctx, tx, user.ID, hashedToken, time.Now().Add(20*time.Minute)); err != nil {
 		slog.ErrorContext(ctx, "error inserting password reset token", "err", err)
 		return
 	}
 
-	// logging for dev
-	slog.InfoContext(ctx, "forget password function returned")
+	if err = tx.Commit(); err != nil {
+		return
+	}
 
+	// TODO: remove, logging for dev
+	slog.InfoContext(ctx, "forget password function returned", "randomToken", randomToken)
 }

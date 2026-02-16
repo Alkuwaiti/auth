@@ -213,3 +213,7 @@ WHERE id = $1
 -- name: CreatePasswordResetToken :exec
 INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
 VALUES ($1, $2, $3);
+
+-- name: DeleteUserPasswordResetTokens :exec
+DELETE FROM password_reset_tokens
+WHERE user_id = $1;

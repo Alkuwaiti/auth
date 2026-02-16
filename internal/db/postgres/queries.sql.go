@@ -264,7 +264,7 @@ DELETE FROM mfa_backup_codes
 WHERE user_id = $1
 `
 
-func (q *Queries) DeleteBackupCodesForUser(ctx context.Context, userID uuid.NullUUID) error {
+func (q *Queries) DeleteBackupCodesForUser(ctx context.Context, userID uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, deleteBackupCodesForUser, userID)
 	return err
 }
@@ -308,6 +308,16 @@ func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) (int64, 
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const deleteUserPasswordResetTokens = `-- name: DeleteUserPasswordResetTokens :exec
+DELETE FROM password_reset_tokens
+WHERE user_id = $1
+`
+
+func (q *Queries) DeleteUserPasswordResetTokens(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteUserPasswordResetTokens, userID)
+	return err
 }
 
 const getChallengeByID = `-- name: GetChallengeByID :one
@@ -468,7 +478,7 @@ SELECT id, user_id, code_hash, consumed_at, created_at FROM mfa_backup_codes
 WHERE user_id = $1 AND consumed_at IS NULL
 `
 
-func (q *Queries) GetUserBackupCodes(ctx context.Context, userID uuid.NullUUID) ([]MfaBackupCode, error) {
+func (q *Queries) GetUserBackupCodes(ctx context.Context, userID uuid.UUID) ([]MfaBackupCode, error) {
 	rows, err := q.db.QueryContext(ctx, getUserBackupCodes, userID)
 	if err != nil {
 		return nil, err
@@ -606,7 +616,7 @@ SELECT $1, unnest($2::text[])
 `
 
 type InsertBackupCodesParams struct {
-	UserID  uuid.NullUUID
+	UserID  uuid.UUID
 	Column2 []string
 }
 
