@@ -118,23 +118,13 @@ func (s *Service) ForgetPassword(ctx context.Context, email string) {
 
 	hashedToken := s.Hasher.Hash(randomToken)
 
-	tx, err := s.Repo.BeginTx(ctx)
-	if err != nil {
-		return
-	}
-	defer tx.Rollback()
-
-	if err = s.Repo.DeleteUserPasswordResetTokens(ctx, tx, user.ID); err != nil {
+	if err = s.Repo.DeleteUserPasswordResetTokens(ctx, user.ID); err != nil {
 		slog.ErrorContext(ctx, "error deleting user password reset tokens", "err", err)
 		return
 	}
 
-	if err = s.Repo.CreatePasswordResetToken(ctx, tx, user.ID, hashedToken, time.Now().Add(20*time.Minute)); err != nil {
+	if err = s.Repo.CreatePasswordResetToken(ctx, user.ID, hashedToken, time.Now().Add(20*time.Minute)); err != nil {
 		slog.ErrorContext(ctx, "error inserting password reset token", "err", err)
-		return
-	}
-
-	if err = tx.Commit(); err != nil {
 		return
 	}
 
