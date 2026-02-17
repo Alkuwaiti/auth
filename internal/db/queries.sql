@@ -212,10 +212,10 @@ VALUES ($1, $2, $3);
 DELETE FROM password_reset_tokens
 WHERE user_id = $1;
 
--- name: PasswordResetTokenExists :one
-SELECT EXISTS (
-  SELECT 1 FROM password_reset_tokens 
-  WHERE token_hash = $1
-    AND consumed_at IS NULL
-    AND expires_at > now()
-);
+-- name: ConsumePasswordResetToken :one
+UPDATE password_reset_tokens
+SET consumed_at = NOW()
+WHERE token_hash = $1
+  AND consumed_at IS NULL
+  AND expires_at > NOW()
+RETURNING user_id;

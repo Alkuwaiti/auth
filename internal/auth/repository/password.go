@@ -20,11 +20,6 @@ func (r *repo) DeleteUserPasswordResetTokens(ctx context.Context, userID uuid.UU
 	return r.queries.DeleteUserPasswordResetTokens(ctx, userID)
 }
 
-func (r *repo) PasswordResetTokenExists(ctx context.Context, tokenHash string) (bool, error) {
-	exists, err := r.queries.PasswordResetTokenExists(ctx, tokenHash)
-	if err != nil {
-		return false, err
-	}
-
-	return exists, nil
+func (r *repo) ConsumePasswordResetToken(ctx context.Context, tokenHash string) (uuid.UUID, error) {
+	return r.queries.ConsumePasswordResetToken(ctx, tokenHash)
 }

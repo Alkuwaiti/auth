@@ -1,3 +1,4 @@
+// Package auth is where all test cases are kept.
 package auth
 
 import (

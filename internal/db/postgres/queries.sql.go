@@ -68,6 +68,22 @@ func (q *Queries) ConsumeChallenge(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const consumePasswordResetToken = `-- name: ConsumePasswordResetToken :one
+UPDATE password_reset_tokens
+SET consumed_at = NOW()
+WHERE token_hash = $1
+  AND consumed_at IS NULL
+  AND expires_at > NOW()
+RETURNING user_id
+`
+
+func (q *Queries) ConsumePasswordResetToken(ctx context.Context, tokenHash string) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, consumePasswordResetToken, tokenHash)
+	var user_id uuid.UUID
+	err := row.Scan(&user_id)
+	return user_id, err
+}
+
 const createAuditLog = `-- name: CreateAuditLog :exec
 
 INSERT INTO audit_logs (user_id, action, ip_address, user_agent, actor_id, context)
@@ -676,22 +692,6 @@ WHERE user_id = $1
 func (q *Queries) MarkSessionsCompromised(ctx context.Context, userID uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, markSessionsCompromised, userID)
 	return err
-}
-
-const passwordResetTokenExists = `-- name: PasswordResetTokenExists :one
-SELECT EXISTS (
-  SELECT 1 FROM password_reset_tokens 
-  WHERE token_hash = $1
-    AND consumed_at IS NULL
-    AND expires_at > now()
-)
-`
-
-func (q *Queries) PasswordResetTokenExists(ctx context.Context, tokenHash string) (bool, error) {
-	row := q.db.QueryRowContext(ctx, passwordResetTokenExists, tokenHash)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
 }
 
 const revokeAllUserSessions = `-- name: RevokeAllUserSessions :exec
