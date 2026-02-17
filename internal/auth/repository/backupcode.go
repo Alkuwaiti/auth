@@ -31,6 +31,7 @@ func (r *repo) InsertBackupCodes(ctx context.Context, tx *sql.Tx, userID uuid.UU
 	})
 }
 
+// TODO: rename, wtf.
 func (r *repo) DeleteBackupCodesForUser(ctx context.Context, tx *sql.Tx, userID uuid.UUID) error {
 	return r.queries.WithTx(tx).DeleteBackupCodesForUser(ctx, userID)
 }

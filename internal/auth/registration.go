@@ -100,6 +100,7 @@ func (s *Service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 
 	meta := contextkeys.RequestMetaFromContext(ctx)
 
+	// TODO: split up
 	if err := s.Repo.DeleteUserAndRevokeSessions(ctx, input.UserID, input.DeletionReason, domain.RevocationUserDeleted); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return &apperrors.BadRequestError{

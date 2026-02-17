@@ -142,6 +142,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 			"revocation_reason", session.RevocationReason,
 		)
 
+		// TODO: split up, handle tx outside.
 		if err = s.Repo.RevokeAndMarkSessionsCompromised(ctx, session.UserID, domain.RevocationSessionCompromised); err != nil {
 			slog.ErrorContext(ctx, "failed to mark sessions as compromised", "err", err)
 		}

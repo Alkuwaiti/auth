@@ -47,6 +47,7 @@ func (s *Service) EnrollMFAMethod(ctx context.Context, methodType domain.MFAMeth
 		}
 	}
 
+	// TODO: possibly remove this, to just delete right away, and then create
 	exists, err := s.Repo.UserHasActiveMFAMethodByType(ctx, userID, methodType)
 	if err != nil {
 		slog.ErrorContext(ctx, "error when checking if user has an active MFA method", "user_id", userID, "method_type", methodType, "err", err)
@@ -96,6 +97,8 @@ func (s *Service) EnrollMFAMethod(ctx context.Context, methodType domain.MFAMeth
 		SetupURI: setupURI,
 	}, nil
 }
+
+// TODO: extract user uuid from context, and compare with method's userID
 
 func (s *Service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code string) (backupCodes []string, err error) {
 	ctx, span := tracer.Start(ctx, "AuthService.ConfirmMFAMethod")
