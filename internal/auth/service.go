@@ -9,7 +9,6 @@ import (
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
-	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/google/uuid"
 	"github.com/pquerna/otp"
 	"go.opentelemetry.io/otel"
@@ -62,7 +61,7 @@ type repo interface {
 	GetConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) (domain.MFAMethod, error)
 	UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error)
 	BeginTx(ctx context.Context) (*sql.Tx, error)
-	ExecTx(ctx context.Context, fn func(*postgres.Queries) error) error
+	// WithTx(ctx context.Context, fn func(r repo) error) error
 	CreateSession(ctx context.Context, userID uuid.UUID, expiry time.Time, refreshToken, IPAddress, userAgent string) (domain.Session, error)
 	GetSessionByRefreshToken(ctx context.Context, refreshToken string) (domain.Session, error)
 	RevokeSession(ctx context.Context, SessionID uuid.UUID, revocationReason domain.RevocationReason) error
