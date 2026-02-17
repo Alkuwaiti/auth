@@ -5,12 +5,6 @@ INSERT INTO users (id, username, email, password_hash , created_at, updated_at)
 VALUES ($1, $2, $3, $4, NOW(), NOW())
 RETURNING *;
 
--- name: UserExists :one
-SELECT EXISTS (
-  SELECT 1 FROM users WHERE username = $1 OR email = $2
-);
-
-
 -- name: GetUserByEmail :one
 SELECT
   u.*,
@@ -209,3 +203,19 @@ UPDATE mfa_backup_codes
 SET consumed_at = NOW()
 WHERE id = $1
   AND consumed_at IS NULL;
+
+-- name: CreatePasswordResetToken :exec
+INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+VALUES ($1, $2, $3);
+
+-- name: DeleteUserPasswordResetTokens :exec
+DELETE FROM password_reset_tokens
+WHERE user_id = $1;
+
+-- name: ConsumePasswordResetToken :one
+UPDATE password_reset_tokens
+SET consumed_at = NOW()
+WHERE token_hash = $1
+  AND consumed_at IS NULL
+  AND expires_at > NOW()
+RETURNING user_id;

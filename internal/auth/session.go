@@ -142,6 +142,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 			"revocation_reason", session.RevocationReason,
 		)
 
+		// TODO: split up, handle tx outside.
 		if err = s.Repo.RevokeAndMarkSessionsCompromised(ctx, session.UserID, domain.RevocationSessionCompromised); err != nil {
 			slog.ErrorContext(ctx, "failed to mark sessions as compromised", "err", err)
 		}
@@ -174,7 +175,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 		return TokenPair{}, &apperrors.InvalidCredentialsError{}
 	}
 
-	newRefreshToken, err := s.tokenManager.GenerateRefreshToken()
+	newRefreshToken, err := s.tokenManager.GenerateSecureToken()
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "refresh token generation failed")
@@ -262,7 +263,7 @@ func (s *Service) finalizeLogin(ctx context.Context, user domain.User, action au
 		return TokenPair{}, err
 	}
 
-	refreshToken, err := s.tokenManager.GenerateRefreshToken()
+	refreshToken, err := s.tokenManager.GenerateSecureToken()
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "refresh token generation failed")

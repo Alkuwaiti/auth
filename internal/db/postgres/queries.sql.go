@@ -68,6 +68,22 @@ func (q *Queries) ConsumeChallenge(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const consumePasswordResetToken = `-- name: ConsumePasswordResetToken :one
+UPDATE password_reset_tokens
+SET consumed_at = NOW()
+WHERE token_hash = $1
+  AND consumed_at IS NULL
+  AND expires_at > NOW()
+RETURNING user_id
+`
+
+func (q *Queries) ConsumePasswordResetToken(ctx context.Context, tokenHash string) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, consumePasswordResetToken, tokenHash)
+	var user_id uuid.UUID
+	err := row.Scan(&user_id)
+	return user_id, err
+}
+
 const createAuditLog = `-- name: CreateAuditLog :exec
 
 INSERT INTO audit_logs (user_id, action, ip_address, user_agent, actor_id, context)
@@ -133,6 +149,22 @@ func (q *Queries) CreateChallenge(ctx context.Context, arg CreateChallengeParams
 		&i.Attempts,
 	)
 	return i, err
+}
+
+const createPasswordResetToken = `-- name: CreatePasswordResetToken :exec
+INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+VALUES ($1, $2, $3)
+`
+
+type CreatePasswordResetTokenParams struct {
+	UserID    uuid.UUID
+	TokenHash string
+	ExpiresAt time.Time
+}
+
+func (q *Queries) CreatePasswordResetToken(ctx context.Context, arg CreatePasswordResetTokenParams) error {
+	_, err := q.db.ExecContext(ctx, createPasswordResetToken, arg.UserID, arg.TokenHash, arg.ExpiresAt)
+	return err
 }
 
 const createSession = `-- name: CreateSession :one
@@ -292,6 +324,16 @@ func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) (int64, 
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const deleteUserPasswordResetTokens = `-- name: DeleteUserPasswordResetTokens :exec
+DELETE FROM password_reset_tokens
+WHERE user_id = $1
+`
+
+func (q *Queries) DeleteUserPasswordResetTokens(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteUserPasswordResetTokens, userID)
+	return err
 }
 
 const getChallengeByID = `-- name: GetChallengeByID :one
@@ -704,24 +746,6 @@ type UpdatePasswordParams struct {
 func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) error {
 	_, err := q.db.ExecContext(ctx, updatePassword, arg.PasswordHash, arg.ID)
 	return err
-}
-
-const userExists = `-- name: UserExists :one
-SELECT EXISTS (
-  SELECT 1 FROM users WHERE username = $1 OR email = $2
-)
-`
-
-type UserExistsParams struct {
-	Username string
-	Email    string
-}
-
-func (q *Queries) UserExists(ctx context.Context, arg UserExistsParams) (bool, error) {
-	row := q.db.QueryRowContext(ctx, userExists, arg.Username, arg.Email)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
 }
 
 const userHasActiveMFAMethod = `-- name: UserHasActiveMFAMethod :one

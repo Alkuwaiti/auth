@@ -245,3 +245,14 @@ func (s *server) VerifyStepUpChallenge(ctx context.Context, req *authv1.VerifySt
 		ExpiresIn:   int64(res.ExpiresIn),
 	}, nil
 }
+
+func (s *server) ForgetPassword(ctx context.Context, req *authv1.ForgetPasswordRequest) (*emptypb.Empty, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	s.authService.ForgetPassword(ctx, req.Email)
+
+	return &emptypb.Empty{}, nil
+}

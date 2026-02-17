@@ -43,6 +43,15 @@ type MfaChallenge struct {
 	Attempts      int32
 }
 
+type PasswordResetToken struct {
+	ID         uuid.UUID
+	UserID     uuid.UUID
+	TokenHash  string
+	ExpiresAt  time.Time
+	ConsumedAt sql.NullTime
+	CreatedAt  time.Time
+}
+
 type Role struct {
 	ID          uuid.UUID
 	Name        string

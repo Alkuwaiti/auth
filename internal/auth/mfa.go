@@ -47,6 +47,7 @@ func (s *Service) EnrollMFAMethod(ctx context.Context, methodType domain.MFAMeth
 		}
 	}
 
+	// TODO: possibly remove this, to just delete right away, and then create
 	exists, err := s.Repo.UserHasActiveMFAMethodByType(ctx, userID, methodType)
 	if err != nil {
 		slog.ErrorContext(ctx, "error when checking if user has an active MFA method", "user_id", userID, "method_type", methodType, "err", err)
@@ -97,6 +98,8 @@ func (s *Service) EnrollMFAMethod(ctx context.Context, methodType domain.MFAMeth
 	}, nil
 }
 
+// TODO: extract user uuid from context, and compare with method's userID
+
 func (s *Service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code string) (backupCodes []string, err error) {
 	ctx, span := tracer.Start(ctx, "AuthService.ConfirmMFAMethod")
 	defer span.End()
@@ -129,13 +132,7 @@ func (s *Service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 	if err != nil {
 		return nil, err
 	}
-
-	committed := false
-	defer func() {
-		if !committed {
-			_ = tx.Rollback()
-		}
-	}()
+	defer tx.Rollback()
 
 	totpValid, err := s.MFAProvider.VerifyTOTP(ctx, method.EncryptedSecret, code)
 	if err != nil {
@@ -170,7 +167,6 @@ func (s *Service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 		slog.ErrorContext(ctx, "error committing transaction", "err", err, "method_id", methodID)
 		return nil, err
 	}
-	committed = true
 
 	meta := contextkeys.RequestMetaFromContext(ctx)
 	if err = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
@@ -331,9 +327,7 @@ func (s *Service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 	if err != nil {
 		return domain.LockedTOTPChallenge{}, err
 	}
-	defer func() {
-		_ = tx.Rollback()
-	}()
+	defer tx.Rollback()
 
 	challenge, err := s.Repo.LockActiveTOTPChallenge(ctx, tx, challengeID)
 	if err != nil {
@@ -424,13 +418,7 @@ func (s *Service) VerifyBackupCode(ctx context.Context, tx *sql.Tx, userID uuid.
 	}
 
 	for _, c := range codes {
-		ok, err := s.Passwords.Compare(c.CodeHash, code)
-		if err != nil {
-			slog.ErrorContext(ctx, "error comparing hashes", "err", err)
-			return false, err
-		}
-
-		if ok {
+		if s.Hasher.Compare(c.CodeHash, code) {
 			if err := s.Repo.ConsumeBackupCode(ctx, tx, c.ID); err != nil {
 				slog.ErrorContext(ctx, "error consuming backup code", "err", err, "challenge_id", c.ID)
 				return false, err

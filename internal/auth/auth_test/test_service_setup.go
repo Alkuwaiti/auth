@@ -1,3 +1,4 @@
+// Package auth is where all test cases are kept.
 package auth
 
 import (
@@ -11,6 +12,7 @@ import (
 	authz "github.com/alkuwaiti/auth/internal/authorization"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/alkuwaiti/auth/internal/flags"
+	"github.com/alkuwaiti/auth/internal/hasher"
 	"github.com/alkuwaiti/auth/internal/mfa"
 	"github.com/alkuwaiti/auth/internal/password"
 	"github.com/alkuwaiti/auth/internal/testutil"
@@ -58,7 +60,9 @@ func setupTestAuthService(t *testing.T) (*auth.Service, *sql.DB, func()) {
 		AppName: "MyApp",
 	})
 
-	service := auth.NewService(authRepo, passwordService, auditService, authorizerService, flagsService, tokenManager, multifactor, auth.Config{
+	hasher := hasher.NewHasher()
+
+	service := auth.NewService(authRepo, passwordService, auditService, authorizerService, flagsService, tokenManager, multifactor, hasher, auth.Config{
 		MaxChallengeAttempts: 5,
 	})
 

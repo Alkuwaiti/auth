@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/audit"
@@ -76,6 +77,7 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 		return err
 	}
 
+	// TODO: split up tx
 	if err = s.Repo.UpdatePasswordAndRevokeSessions(ctx, userID, newPasswordHash, domain.RevocationPasswordChange); err != nil {
 		slog.ErrorContext(ctx, "failed to update password and revoke sessions", "err", err)
 		return err
@@ -97,3 +99,48 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 
 	return nil
 }
+
+func (s *Service) ForgetPassword(ctx context.Context, email string) {
+	user, err := s.Repo.GetUserByEmail(ctx, email)
+	if errors.Is(err, repository.ErrNotFound) {
+		slog.DebugContext(ctx, "user does not exist", "err", err)
+		return
+	}
+	if err != nil {
+		slog.ErrorContext(ctx, "error getting user by email")
+		return
+	}
+
+	randomToken, err := s.tokenManager.GenerateSecureToken()
+	if err != nil {
+		slog.ErrorContext(ctx, "error generating secure token", "err", err)
+		return
+	}
+
+	hashedToken := s.Hasher.Hash(randomToken)
+
+	if err = s.Repo.DeleteUserPasswordResetTokens(ctx, user.ID); err != nil {
+		slog.ErrorContext(ctx, "error deleting user password reset tokens", "err", err)
+		return
+	}
+
+	if err = s.Repo.CreatePasswordResetToken(ctx, user.ID, hashedToken, time.Now().Add(20*time.Minute)); err != nil {
+		slog.ErrorContext(ctx, "error inserting password reset token", "err", err)
+		return
+	}
+
+	// TODO: remove, logging for dev
+	slog.InfoContext(ctx, "forget password function returned", "randomToken", randomToken)
+}
+
+// TODO: finish this later on
+// func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) error {
+// 	hashedToken := s.Hasher.Hash(token)
+//
+// 	userID, err := s.Repo.ConsumePasswordResetToken(ctx, hashedToken)
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	return nil
+// }

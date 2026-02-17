@@ -4,24 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/lib/pq"
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/google/uuid"
 )
-
-func (r *repo) UserExists(ctx context.Context, username, email string) (bool, error) {
-	exists, err := r.queries.UserExists(ctx, postgres.UserExistsParams{
-		Username: username,
-		Email:    email,
-	})
-	if err != nil {
-		return false, err
-	}
-
-	return exists, nil
-}
 
 func (r *repo) GetUserByEmail(ctx context.Context, email string) (domain.User, error) {
 	user, err := r.queries.GetUserByEmail(ctx, email)
@@ -67,6 +56,12 @@ func (r *repo) CreateUser(ctx context.Context, username, email, passwordHash str
 			PasswordHash: passwordHash,
 		})
 		if err != nil {
+			var pgErr *pq.Error
+			if errors.As(err, &pgErr) {
+				if pgErr.Code == "23505" { // Unique constraint error code
+					return ErrRecordAlreadyExists
+				}
+			}
 			return err
 		}
 

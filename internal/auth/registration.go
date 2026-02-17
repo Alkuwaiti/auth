@@ -31,22 +31,7 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 		return domain.User{}, err
 	}
 
-	exists, err := s.Repo.UserExists(ctx, input.Username, input.Email)
-	if err != nil {
-		slog.WarnContext(ctx, "failed to check if user exists", "email", input.Email, "username", input.Username)
-		return domain.User{}, &apperrors.InternalError{
-			Msg: "failed to check username or email uniqueness",
-			Err: err,
-		}
-	}
-	if exists {
-		return domain.User{}, &apperrors.BadRequestError{
-			Field: "user",
-			Msg:   "user already exists",
-		}
-	}
-
-	if err = s.Passwords.Validate(input.Password); err != nil {
+	if err := s.Passwords.Validate(input.Password); err != nil {
 		return domain.User{}, err
 	}
 
@@ -58,6 +43,12 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 
 	user, err := s.Repo.CreateUser(ctx, input.Username, input.Email, newPasswordHash)
 	if err != nil {
+		if errors.Is(err, repository.ErrRecordAlreadyExists) {
+			return domain.User{}, &apperrors.BadRequestError{
+				Field: "user",
+				Msg:   "user already exists",
+			}
+		}
 		return domain.User{}, &apperrors.InternalError{
 			Msg: "failed to register a user",
 			Err: err,
@@ -109,6 +100,7 @@ func (s *Service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 
 	meta := contextkeys.RequestMetaFromContext(ctx)
 
+	// TODO: split up
 	if err := s.Repo.DeleteUserAndRevokeSessions(ctx, input.UserID, input.DeletionReason, domain.RevocationUserDeleted); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return &apperrors.BadRequestError{
