@@ -133,13 +133,14 @@ func (s *Service) ForgetPassword(ctx context.Context, email string) {
 	slog.InfoContext(ctx, "forget password function returned", "randomToken", randomToken)
 }
 
-func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) error {
-	hashedToken := s.Hasher.Hash(token)
-
-	_, err := s.Repo.ConsumePasswordResetToken(ctx, hashedToken)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
+// TODO: finish this later on
+// func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) error {
+// 	hashedToken := s.Hasher.Hash(token)
+//
+// 	userID, err := s.Repo.ConsumePasswordResetToken(ctx, hashedToken)
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	return nil
+// }
