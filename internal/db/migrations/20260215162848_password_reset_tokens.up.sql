@@ -8,3 +8,5 @@ CREATE TABLE password_reset_tokens (
 );
 
 CREATE INDEX idx_password_reset_user_id ON password_reset_tokens (user_id);
+
+CREATE INDEX idx_password_reset_tooken_hash ON password_reset_tokens (token_hash);
