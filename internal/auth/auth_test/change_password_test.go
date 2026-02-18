@@ -44,7 +44,7 @@ func TestChangePassword(t *testing.T) {
 			setupUser:   true,
 			oldPassword: "OldPassword123!",
 			newPassword: "OldPassword123!",
-			expectedErr: &apperrors.PasswordReuseError{},
+			expectedErr: auth.ErrPasswordReuse,
 		},
 		{
 			name:        "WeakPassword",

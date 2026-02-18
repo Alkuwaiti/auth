@@ -66,7 +66,7 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 	}
 	if match {
 		span.SetStatus(codes.Error, "old password cannot be new password")
-		return &apperrors.PasswordReuseError{}
+		return ErrPasswordReuse
 	}
 
 	newPasswordHash, err := s.Passwords.Hash(newPassword)

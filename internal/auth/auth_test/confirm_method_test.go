@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/apperrors"
+	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/google/uuid"
@@ -163,8 +164,7 @@ func TestConfirmMFAMethod_InvalidCode(t *testing.T) {
 	_, err = service.ConfirmMFAMethod(ctx, methodID, "000000")
 	require.Error(t, err)
 
-	var invalidMFA *apperrors.InvalidMFACodeError
-	require.ErrorAs(t, err, &invalidMFA)
+	require.ErrorIs(t, err, auth.ErrInvalidMFACode)
 }
 
 func TestConfirmMFAMethod_ExpiredMethod(t *testing.T) {

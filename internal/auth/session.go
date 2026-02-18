@@ -24,7 +24,7 @@ type LoginResult struct {
 
 func (s *Service) Login(ctx context.Context, email, password string) (LoginResult, error) {
 	if !s.Flags.RefreshTokensEnabled(ctx) {
-		return LoginResult{}, &apperrors.RefreshDisabledError{}
+		return LoginResult{}, ErrRefreshDisabled
 	}
 
 	user, err := s.Repo.GetUserByEmail(ctx, email)
@@ -102,7 +102,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 	defer span.End()
 
 	if !s.Flags.RefreshTokensEnabled(ctx) {
-		return TokenPair{}, &apperrors.RefreshDisabledError{}
+		return TokenPair{}, ErrRefreshDisabled
 	}
 
 	meta := contextkeys.RequestMetaFromContext(ctx)

@@ -51,39 +51,3 @@ type BadRequestError struct {
 func (e *BadRequestError) Error() string {
 	return fmt.Sprintf("%s: %s", e.Field, e.Msg)
 }
-
-type PasswordReuseError struct{}
-
-func (e *PasswordReuseError) Error() string {
-	return "new password cannot be old password"
-}
-
-type RefreshDisabledError struct{}
-
-func (e *RefreshDisabledError) Error() string {
-	return "refresh tokens disabled by system"
-}
-
-type ForbiddenError struct{}
-
-func (e *ForbiddenError) Error() string {
-	return "forbidden"
-}
-
-type ChallengeExpiredError struct{}
-
-func (e *ChallengeExpiredError) Error() string {
-	return "challenge expired"
-}
-
-type InvalidMFACodeError struct{}
-
-func (e *InvalidMFACodeError) Error() string {
-	return "incorrect mfa code"
-}
-
-type InvalidMFAChallengeError struct{}
-
-func (e *InvalidMFAChallengeError) Error() string {
-	return "invalid mfa challenge"
-}

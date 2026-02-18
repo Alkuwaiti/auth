@@ -139,7 +139,7 @@ func (s *Service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 		return nil, err
 	}
 	if !totpValid {
-		return nil, &apperrors.InvalidMFACodeError{}
+		return nil, ErrInvalidMFACode
 	}
 
 	if err = s.Repo.ConfirmUserMFAMethod(ctx, tx, methodID); err != nil {
@@ -276,7 +276,7 @@ func (s *Service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 
 	if challenge.UserID != userID {
 		slog.WarnContext(ctx, "challenge does not belong to user", "user_id", userID)
-		return VerifyStepUpChallengeResponse{}, &apperrors.ForbiddenError{}
+		return VerifyStepUpChallengeResponse{}, ErrForbidden
 	}
 
 	if challenge.ExpiresAt.Before(time.Now()) {
@@ -332,7 +332,7 @@ func (s *Service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 	challenge, err := s.Repo.LockActiveTOTPChallenge(ctx, tx, challengeID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return domain.LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
+			return domain.LockedTOTPChallenge{}, ErrInvalidMFACode
 		}
 		slog.ErrorContext(ctx, "error locking active totp challenge", "err", err)
 		return domain.LockedTOTPChallenge{}, err
@@ -340,7 +340,7 @@ func (s *Service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 
 	if challenge.Attempts >= s.Config.MaxChallengeAttempts {
 		slog.DebugContext(ctx, "max challenge attempts reached", "err", err)
-		return domain.LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
+		return domain.LockedTOTPChallenge{}, ErrInvalidMFACode
 	}
 
 	totpValid, err := s.MFAProvider.VerifyTOTP(ctx, string(challenge.SecretCiphertext), code)
@@ -364,7 +364,7 @@ func (s *Service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 			return domain.LockedTOTPChallenge{}, err
 		}
 
-		return domain.LockedTOTPChallenge{}, &apperrors.InvalidMFACodeError{}
+		return domain.LockedTOTPChallenge{}, ErrInvalidMFACode
 	}
 
 	if err = s.Repo.ConsumeChallenge(ctx, tx, challenge.ChallengeID); err != nil {

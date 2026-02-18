@@ -366,6 +366,5 @@ func TestRefreshToken_Disabled(t *testing.T) {
 
 	require.Error(t, err)
 
-	var refreshDisabledErr *apperrors.RefreshDisabledError
-	require.ErrorAs(t, err, &refreshDisabledErr)
+	require.ErrorIs(t, err, auth.ErrRefreshDisabled)
 }
