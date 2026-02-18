@@ -5,7 +5,6 @@ import (
 	"errors"
 	"unicode"
 
-	"github.com/alkuwaiti/auth/internal/apperrors"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -38,17 +37,11 @@ func (p *passwords) Validate(password string) error {
 	runes := []rune(password)
 
 	if len(runes) < 8 {
-		return &apperrors.ValidationError{
-			Field: "password",
-			Msg:   "must be at least 8 characters",
-		}
+		return ErrPasswordTooShort
 	}
 
 	if len(runes) > 255 {
-		return &apperrors.ValidationError{
-			Field: "password",
-			Msg:   "maximum 255 characters",
-		}
+		return ErrPasswordTooLong
 	}
 
 	var hasUpper, hasLower, hasNumber, hasSpecial bool
@@ -67,18 +60,17 @@ func (p *passwords) Validate(password string) error {
 	}
 
 	if !hasUpper {
-		return &apperrors.ValidationError{Field: "password", Msg: "must contain at least one uppercase letter"}
+		return ErrPasswordMissingUppercase
 	}
 	if !hasLower {
-		return &apperrors.ValidationError{Field: "password", Msg: "must contain at least one lowercase letter"}
+		return ErrPasswordMissingLowercase
 	}
 	if !hasNumber {
-		return &apperrors.ValidationError{Field: "password", Msg: "must contain at least one number"}
+		return ErrPasswordMissingNumber
 	}
 	if !hasSpecial {
-		return &apperrors.ValidationError{Field: "password", Msg: "must contain at least one special character"}
+		return ErrPasswordMissingSpecial
 	}
 
 	return nil
-
 }

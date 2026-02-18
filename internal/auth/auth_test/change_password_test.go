@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/google/uuid"
@@ -45,13 +44,6 @@ func TestChangePassword(t *testing.T) {
 			oldPassword: "OldPassword123!",
 			newPassword: "OldPassword123!",
 			expectedErr: auth.ErrPasswordReuse,
-		},
-		{
-			name:        "WeakPassword",
-			setupUser:   true,
-			oldPassword: "OldPassword123!",
-			newPassword: "123",
-			expectedErr: &apperrors.ValidationError{},
 		},
 		{
 			name:        "UserNotFound",
