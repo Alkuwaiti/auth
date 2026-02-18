@@ -39,7 +39,7 @@ func (r *repo) LockActiveTOTPChallenge(ctx context.Context, tx *sql.Tx, challeng
 	row, err := r.queries.WithTx(tx).LockActiveTOTPChallenge(ctx, challengeID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return domain.LockedTOTPChallenge{}, ErrNotFound
+			return domain.LockedTOTPChallenge{}, domain.ErrNotFound
 		}
 		return domain.LockedTOTPChallenge{}, err
 	}

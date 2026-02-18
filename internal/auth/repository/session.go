@@ -36,7 +36,7 @@ func (r *repo) GetSessionByRefreshToken(ctx context.Context, refreshToken string
 	session, err := r.queries.GetSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return domain.Session{}, ErrNotFound
+			return domain.Session{}, domain.ErrNotFound
 		}
 		return domain.Session{}, err
 	}
@@ -144,7 +144,7 @@ func (r *repo) DeleteUserAndRevokeSessions(ctx context.Context, userID uuid.UUID
 		}
 
 		if rows == 0 {
-			return ErrNotFound
+			return domain.ErrNotFound
 		}
 
 		if err := q.RevokeAllUserSessions(ctx, postgres.RevokeAllUserSessionsParams{

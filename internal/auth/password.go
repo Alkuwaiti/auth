@@ -8,7 +8,6 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
-	"github.com/alkuwaiti/auth/internal/auth/repository"
 	"github.com/alkuwaiti/auth/pkg/contextkeys"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -33,7 +32,7 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 
 	user, err := s.Repo.GetUserByID(ctx, userID)
 	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
+		if errors.Is(err, domain.ErrNotFound) {
 			_, _ = s.Passwords.Compare(dummyBcryptHash, oldPassword)
 			return ErrInvalidCredentials
 		}
@@ -101,7 +100,7 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 
 func (s *Service) ForgetPassword(ctx context.Context, email string) {
 	user, err := s.Repo.GetUserByEmail(ctx, email)
-	if errors.Is(err, repository.ErrNotFound) {
+	if errors.Is(err, domain.ErrNotFound) {
 		slog.DebugContext(ctx, "user does not exist", "err", err)
 		return
 	}

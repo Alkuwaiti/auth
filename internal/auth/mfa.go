@@ -10,7 +10,6 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
-	"github.com/alkuwaiti/auth/internal/auth/repository"
 	"github.com/alkuwaiti/auth/pkg/contextkeys"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
@@ -180,7 +179,7 @@ func (s *Service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, c
 
 	user, err := s.Repo.GetUserByID(ctx, lockedChallenge.UserID)
 	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
+		if errors.Is(err, domain.ErrNotFound) {
 			return TokenPair{}, ErrInvalidCredentials
 		}
 
@@ -312,7 +311,7 @@ func (s *Service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 
 	challenge, err := s.Repo.LockActiveTOTPChallenge(ctx, tx, challengeID)
 	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
+		if errors.Is(err, domain.ErrNotFound) {
 			return domain.LockedTOTPChallenge{}, ErrInvalidMFACode
 		}
 		slog.ErrorContext(ctx, "error locking active totp challenge", "err", err)

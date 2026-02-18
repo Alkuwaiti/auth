@@ -6,7 +6,6 @@ import (
 	"log/slog"
 
 	"github.com/alkuwaiti/auth/internal/auth/domain"
-	"github.com/alkuwaiti/auth/internal/auth/repository"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
 
 	"github.com/alkuwaiti/auth/internal/audit"
@@ -43,7 +42,7 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 	user, err := s.Repo.CreateUser(ctx, input.Username, input.Email, newPasswordHash)
 	if err != nil {
 		// TODO: all of these need to be yeeted.
-		if errors.Is(err, repository.ErrRecordAlreadyExists) {
+		if errors.Is(err, domain.ErrRecordAlreadyExists) {
 			return domain.User{}, ErrUserExists
 		}
 		return domain.User{}, err
@@ -96,7 +95,7 @@ func (s *Service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 
 	// TODO: split up
 	if err := s.Repo.DeleteUserAndRevokeSessions(ctx, input.UserID, input.DeletionReason, domain.RevocationUserDeleted); err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
+		if errors.Is(err, domain.ErrNotFound) {
 			return ErrUserNotFound
 		}
 		slog.ErrorContext(ctx, "failed to delete user and revoke sessions", "err", err)

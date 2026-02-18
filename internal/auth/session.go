@@ -8,7 +8,6 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
-	"github.com/alkuwaiti/auth/internal/auth/repository"
 	"github.com/alkuwaiti/auth/pkg/contextkeys"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
@@ -28,7 +27,7 @@ func (s *Service) Login(ctx context.Context, email, password string) (LoginResul
 
 	user, err := s.Repo.GetUserByEmail(ctx, email)
 	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
+		if errors.Is(err, domain.ErrNotFound) {
 			// Return an invalid credentials here as this is a login endpoint.
 			return LoginResult{}, ErrInvalidCredentials
 		}
@@ -108,7 +107,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 
 	session, err := s.Repo.GetSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
+		if errors.Is(err, domain.ErrNotFound) {
 			return TokenPair{}, ErrInvalidCredentials
 		}
 
@@ -162,7 +161,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to get user by id", "err", err)
 
-		if errors.Is(err, repository.ErrNotFound) {
+		if errors.Is(err, domain.ErrNotFound) {
 			return TokenPair{}, ErrInvalidCredentials
 		}
 		return TokenPair{}, err

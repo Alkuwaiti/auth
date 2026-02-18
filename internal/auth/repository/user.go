@@ -4,8 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"github.com/lib/pq"
 	"time"
+
+	"github.com/lib/pq"
 
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
@@ -16,7 +17,7 @@ func (r *repo) GetUserByEmail(ctx context.Context, email string) (domain.User, e
 	user, err := r.queries.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return domain.User{}, ErrNotFound
+			return domain.User{}, domain.ErrNotFound
 		}
 		return domain.User{}, err
 	}
@@ -28,7 +29,7 @@ func (r *repo) GetUserByID(ctx context.Context, userID uuid.UUID) (domain.User, 
 	user, err := r.queries.GetUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return domain.User{}, ErrNotFound
+			return domain.User{}, domain.ErrNotFound
 		}
 		return domain.User{}, err
 	}
@@ -59,7 +60,7 @@ func (r *repo) CreateUser(ctx context.Context, username, email, passwordHash str
 			var pgErr *pq.Error
 			if errors.As(err, &pgErr) {
 				if pgErr.Code == "23505" { // Unique constraint error code
-					return ErrRecordAlreadyExists
+					return domain.ErrRecordAlreadyExists
 				}
 			}
 			return err
