@@ -54,10 +54,7 @@ func (s *Service) EnrollMFAMethod(ctx context.Context, methodType domain.MFAMeth
 		return EnrollmentResult{}, err
 	}
 	if exists {
-		return EnrollmentResult{}, &apperrors.BadRequestError{
-			Field: "MFAMethod",
-			Msg:   "MFA method already enrolled",
-		}
+		return EnrollmentResult{}, ErrMFAMethodAlreadyEnrolled
 	}
 
 	if err = s.Repo.DeleteExpiredUnconfirmedMethods(ctx, userID, methodType); err != nil {
@@ -114,18 +111,12 @@ func (s *Service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 
 	if method.ExpiresAt != nil && method.ExpiresAt.Before(time.Now()) {
 		slog.DebugContext(ctx, "method expired", "method_id", methodID)
-		return nil, &apperrors.BadRequestError{
-			Field: "method",
-			Msg:   "enrollment window expired",
-		}
+		return nil, ErrMFAMethodExpired
 	}
 
 	if method.ConfirmedAt != nil {
 		slog.DebugContext(ctx, "method already confirmed", "method_id", methodID)
-		return nil, &apperrors.BadRequestError{
-			Field: "method",
-			Msg:   "already confirmed",
-		}
+		return nil, ErrMethodAlreadyConfirmed
 	}
 
 	tx, err := s.Repo.BeginTx(ctx)
@@ -281,18 +272,12 @@ func (s *Service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 
 	if challenge.ExpiresAt.Before(time.Now()) {
 		slog.DebugContext(ctx, "challenge expired", "user_id", userID)
-		return VerifyStepUpChallengeResponse{}, &apperrors.BadRequestError{
-			Field: "challenge",
-			Msg:   "challenge expired",
-		}
+		return VerifyStepUpChallengeResponse{}, ErrChallengeExpired
 	}
 
 	if challenge.ConsumedAt != nil {
 		slog.DebugContext(ctx, "challenge consumed", "user_id", userID)
-		return VerifyStepUpChallengeResponse{}, &apperrors.BadRequestError{
-			Field: "challenge",
-			Msg:   "challenge already consumed",
-		}
+		return VerifyStepUpChallengeResponse{}, ErrChallengeConsumed
 	}
 
 	_, err = s.VerifyAndConsumeChallenge(ctx, challengeID, code)

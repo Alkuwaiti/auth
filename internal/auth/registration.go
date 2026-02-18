@@ -9,7 +9,6 @@ import (
 	"github.com/alkuwaiti/auth/internal/auth/repository"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
 
-	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/pkg/contextkeys"
 	"go.opentelemetry.io/otel/attribute"
@@ -45,15 +44,9 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 	if err != nil {
 		// TODO: all of these need to be yeeted.
 		if errors.Is(err, repository.ErrRecordAlreadyExists) {
-			return domain.User{}, &apperrors.BadRequestError{
-				Field: "user",
-				Msg:   "user already exists",
-			}
+			return domain.User{}, ErrUserExists
 		}
-		return domain.User{}, &apperrors.InternalError{
-			Msg: "failed to register a user",
-			Err: err,
-		}
+		return domain.User{}, err
 	}
 
 	if err = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
@@ -104,10 +97,7 @@ func (s *Service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 	// TODO: split up
 	if err := s.Repo.DeleteUserAndRevokeSessions(ctx, input.UserID, input.DeletionReason, domain.RevocationUserDeleted); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return &apperrors.BadRequestError{
-				Field: "user uuid",
-				Msg:   "User not found or already deleted",
-			}
+			return ErrUserNotFound
 		}
 		slog.ErrorContext(ctx, "failed to delete user and revoke sessions", "err", err)
 		return err

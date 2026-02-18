@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/testutil"
@@ -132,9 +131,7 @@ func TestConfirmMFAMethod_AlreadyConfirmed(t *testing.T) {
 	_, err = service.ConfirmMFAMethod(ctx, methodID, "123456")
 	require.Error(t, err)
 
-	var badReq *apperrors.BadRequestError
-	require.ErrorAs(t, err, &badReq)
-	require.Equal(t, "method", badReq.Field)
+	require.ErrorIs(t, err, auth.ErrMethodAlreadyConfirmed)
 }
 
 func TestConfirmMFAMethod_InvalidCode(t *testing.T) {
@@ -204,7 +201,5 @@ func TestConfirmMFAMethod_ExpiredMethod(t *testing.T) {
 	_, err = service.ConfirmMFAMethod(ctx, methodID, code)
 	require.Error(t, err)
 
-	var badReq *apperrors.BadRequestError
-	require.ErrorAs(t, err, &badReq)
-	require.Equal(t, "method", badReq.Field)
+	require.ErrorIs(t, err, auth.ErrMFAMethodExpired)
 }

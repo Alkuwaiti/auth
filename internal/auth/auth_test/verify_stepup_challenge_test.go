@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/google/uuid"
@@ -99,7 +98,7 @@ func TestVerifyStepUpChallenge_Expired(t *testing.T) {
 
 	_, err = svc.VerifyStepUpChallenge(ctx, challengeID, "000000")
 	require.Error(t, err)
-	require.IsType(t, &apperrors.BadRequestError{}, err)
+	require.ErrorIs(t, err, auth.ErrChallengeExpired)
 }
 
 func TestVerifyStepUpChallenge_AlreadyConsumed(t *testing.T) {
@@ -122,5 +121,5 @@ func TestVerifyStepUpChallenge_AlreadyConsumed(t *testing.T) {
 	_, err = svc.VerifyStepUpChallenge(ctx, challengeID, "000000")
 	require.Error(t, err)
 
-	require.IsType(t, &apperrors.BadRequestError{}, err)
+	require.ErrorIs(t, err, auth.ErrChallengeConsumed)
 }
