@@ -1,6 +1,6 @@
 //go:build integration
 
-package auth
+package auth_test
 
 import (
 	"context"
