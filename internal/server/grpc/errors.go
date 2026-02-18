@@ -25,7 +25,7 @@ func MapError(err error) error {
 	case errors.As(err, new(*apperrors.InternalError)):
 		return status.Error(codes.Internal, err.Error())
 
-	case errors.As(err, new(*apperrors.InvalidCredentialsError)):
+	case errors.Is(err, auth.ErrInvalidCredentials):
 		return status.Error(codes.InvalidArgument, err.Error())
 
 	case errors.As(err, new(*apperrors.BadRequestError)):

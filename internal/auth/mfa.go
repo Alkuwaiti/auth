@@ -194,7 +194,7 @@ func (s *Service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, c
 	user, err := s.Repo.GetUserByID(ctx, lockedChallenge.UserID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return TokenPair{}, &apperrors.InvalidCredentialsError{}
+			return TokenPair{}, ErrInvalidCredentials
 		}
 
 		slog.ErrorContext(ctx, "login failed: user lookup error", "user_id", lockedChallenge.UserID, "err", err)

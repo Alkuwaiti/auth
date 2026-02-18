@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/auth/repository"
@@ -31,7 +30,7 @@ func (s *Service) Login(ctx context.Context, email, password string) (LoginResul
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			// Return an invalid credentials here as this is a login endpoint.
-			return LoginResult{}, &apperrors.InvalidCredentialsError{}
+			return LoginResult{}, ErrInvalidCredentials
 		}
 
 		slog.ErrorContext(ctx, "login failed: user lookup error", "email", user.Email, "err", err)
@@ -44,19 +43,19 @@ func (s *Service) Login(ctx context.Context, email, password string) (LoginResul
 		return LoginResult{}, err
 	}
 	if !match {
-		return LoginResult{}, &apperrors.InvalidCredentialsError{}
+		return LoginResult{}, ErrInvalidCredentials
 	}
 
 	if user.DeletedAt != nil {
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email, "deleted_at", user.DeletedAt)
 		// Don't tell the user they're deleted.
-		return LoginResult{}, &apperrors.InvalidCredentialsError{}
+		return LoginResult{}, ErrInvalidCredentials
 	}
 
 	if !user.IsActive {
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email, "is_active", user.IsActive)
 		// Don't tell the user they're inactive.
-		return LoginResult{}, &apperrors.InvalidCredentialsError{}
+		return LoginResult{}, ErrInvalidCredentials
 	}
 
 	methods, err := s.Repo.GetMFAMethodsConfirmedByUser(ctx, user.ID)
@@ -110,7 +109,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 	session, err := s.Repo.GetSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return TokenPair{}, &apperrors.InvalidCredentialsError{}
+			return TokenPair{}, ErrInvalidCredentials
 		}
 
 		slog.ErrorContext(ctx, "failed to get session by refresh token", "err", err)
@@ -123,7 +122,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 			"compromised_at", session.CompromisedAt,
 			"user_id", session.UserID,
 		)
-		return TokenPair{}, &apperrors.InvalidCredentialsError{}
+		return TokenPair{}, ErrInvalidCredentials
 	}
 
 	if session.IsExpired() {
@@ -131,7 +130,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 			"session_id", session.ID,
 			"session_expires_at", session.ExpiresAt,
 		)
-		return TokenPair{}, &apperrors.InvalidCredentialsError{}
+		return TokenPair{}, ErrInvalidCredentials
 	}
 
 	if session.RevokedAt != nil {
@@ -156,7 +155,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 			slog.ErrorContext(ctx, "failed to create audit log", "err", err)
 		}
 
-		return TokenPair{}, &apperrors.InvalidCredentialsError{}
+		return TokenPair{}, ErrInvalidCredentials
 	}
 
 	user, err := s.Repo.GetUserByID(ctx, session.UserID)
@@ -164,7 +163,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 		slog.ErrorContext(ctx, "failed to get user by id", "err", err)
 
 		if errors.Is(err, repository.ErrNotFound) {
-			return TokenPair{}, &apperrors.InvalidCredentialsError{}
+			return TokenPair{}, ErrInvalidCredentials
 		}
 		return TokenPair{}, err
 	}
@@ -172,7 +171,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 	if user.DeletedAt != nil {
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email, "deleted_at", user.DeletedAt)
 		// Don't tell the user they're deleted.
-		return TokenPair{}, &apperrors.InvalidCredentialsError{}
+		return TokenPair{}, ErrInvalidCredentials
 	}
 
 	newRefreshToken, err := s.tokenManager.GenerateSecureToken()

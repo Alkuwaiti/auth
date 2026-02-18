@@ -3,7 +3,6 @@ package contextkeys
 import (
 	"context"
 
-	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/observability"
 	"github.com/google/uuid"
 )
@@ -11,7 +10,7 @@ import (
 func UserIDFromContext(ctx context.Context) (uuid.UUID, error) {
 	raw, ok := ctx.Value(UserIDKey{}).(string)
 	if !ok {
-		return uuid.Nil, &apperrors.InvalidCredentialsError{}
+		return uuid.Nil, ErrMissingUserID
 	}
 
 	id, err := uuid.Parse(raw)
@@ -25,7 +24,7 @@ func UserIDFromContext(ctx context.Context) (uuid.UUID, error) {
 func UserRolesFromContext(ctx context.Context) ([]string, error) {
 	roles, ok := ctx.Value(RolesKey{}).([]string)
 	if !ok {
-		return nil, &apperrors.InvalidCredentialsError{}
+		return nil, ErrMissingUserRoles
 	}
 
 	return roles, nil
@@ -34,11 +33,13 @@ func UserRolesFromContext(ctx context.Context) ([]string, error) {
 func UserEmailFromContext(ctx context.Context) (string, error) {
 	email, ok := ctx.Value(EmailKey{}).(string)
 	if !ok {
-		return "", &apperrors.InvalidCredentialsError{}
+		return "", ErrMissingUserEmail
 	}
 
 	return email, nil
 }
+
+// TODO: move ctx key here.
 
 func RequestMetaFromContext(ctx context.Context) observability.RequestMeta {
 	meta, ok := ctx.Value(RequestMetaKeyType{}).(observability.RequestMeta)

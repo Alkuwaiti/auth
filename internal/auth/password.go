@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/auth/repository"
@@ -36,7 +35,7 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			_, _ = s.Passwords.Compare(dummyBcryptHash, oldPassword)
-			return &apperrors.InvalidCredentialsError{}
+			return ErrInvalidCredentials
 		}
 
 		slog.ErrorContext(ctx, "failed to get user by id", "err", err)
@@ -47,7 +46,7 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 	if user.DeletedAt != nil {
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email, "deleted_at", user.DeletedAt)
 		// Don't tell the user they're deleted.
-		return &apperrors.InvalidCredentialsError{}
+		return ErrInvalidCredentials
 	}
 
 	match, err := s.Passwords.Compare(user.PasswordHash, oldPassword)
@@ -56,7 +55,7 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 		return err
 	}
 	if !match {
-		return &apperrors.InvalidCredentialsError{}
+		return ErrInvalidCredentials
 	}
 
 	match, err = s.Passwords.Compare(user.PasswordHash, newPassword)
