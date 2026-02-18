@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/auth/repository"
@@ -41,10 +40,7 @@ func (s *Service) EnrollMFAMethod(ctx context.Context, methodType domain.MFAMeth
 	}
 
 	if !methodType.IsValid() {
-		return EnrollmentResult{}, &apperrors.ValidationError{
-			Field: "method type",
-			Msg:   "invalid MFA method type",
-		}
+		return EnrollmentResult{}, ErrInvalidMFAMethodType
 	}
 
 	// TODO: possibly remove this, to just delete right away, and then create

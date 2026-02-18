@@ -4,7 +4,6 @@ import (
 	"errors"
 	"log/slog"
 
-	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/auth"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -16,9 +15,6 @@ func MapError(err error) error {
 	}
 
 	switch {
-	case errors.As(err, new(*apperrors.ValidationError)):
-		return status.Error(codes.InvalidArgument, err.Error())
-
 	case errors.Is(err, auth.ErrInvalidCredentials):
 		return status.Error(codes.InvalidArgument, err.Error())
 
