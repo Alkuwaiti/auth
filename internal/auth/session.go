@@ -181,19 +181,20 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 		return TokenPair{}, err
 	}
 
-	if err = s.Repo.RotateSession(
-		ctx,
-		domain.RotateSessionInput{
-			OldSessionID:     session.ID,
-			UserID:           session.UserID,
-			Expiry:           session.ExpiresAt,
-			RevocationReason: domain.RevocationSessionRotation,
-			RefreshToken:     newRefreshToken,
-			IPAddress:        meta.IPAddress,
-			UserAgent:        meta.UserAgent,
-		},
-	); err != nil {
-		slog.ErrorContext(ctx, "session rotation failed", "err", err)
+	if err = s.Repo.WithTx(ctx, func(r Repo) error {
+		if err = r.RevokeSession(ctx, session.ID, domain.RevocationSessionRotation); err != nil {
+			slog.ErrorContext(ctx, "session revocation failed", "err", err)
+			return err
+		}
+
+		if _, err = r.CreateSession(ctx, user.ID, session.ExpiresAt, newRefreshToken, meta.IPAddress, meta.UserAgent); err != nil {
+			slog.ErrorContext(ctx, "creating session failed", "err", err)
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		slog.ErrorContext(ctx, "transaction error", "err", err)
 		return TokenPair{}, err
 	}
 

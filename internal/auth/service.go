@@ -65,8 +65,8 @@ type Repo interface {
 	CreateSession(ctx context.Context, userID uuid.UUID, expiry time.Time, refreshToken, IPAddress, userAgent string) (domain.Session, error)
 	GetSessionByRefreshToken(ctx context.Context, refreshToken string) (domain.Session, error)
 	RevokeSession(ctx context.Context, SessionID uuid.UUID, revocationReason domain.RevocationReason) error
-	UpdatePasswordAndRevokeSessions(ctx context.Context, userID uuid.UUID, newPasswordHash string, reason domain.RevocationReason) error
-	RotateSession(ctx context.Context, input domain.RotateSessionInput) error
+	UpdatePassword(ctx context.Context, userID uuid.UUID, newPasswordHash string) error
+	RevokeSessions(ctx context.Context, userID uuid.UUID, revocationReason domain.RevocationReason) error
 	RevokeAndMarkSessionsCompromised(ctx context.Context, userID uuid.UUID, reason domain.RevocationReason) error
 	DeleteUserAndRevokeSessions(ctx context.Context, userID uuid.UUID, deletionReason domain.DeletionReason, revocationReason domain.RevocationReason) error
 	GetUserByEmail(ctx context.Context, email string) (domain.User, error)

@@ -75,9 +75,20 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 		return err
 	}
 
-	// TODO: split up tx
-	if err = s.Repo.UpdatePasswordAndRevokeSessions(ctx, userID, newPasswordHash, domain.RevocationPasswordChange); err != nil {
-		slog.ErrorContext(ctx, "failed to update password and revoke sessions", "err", err)
+	if err = s.Repo.WithTx(ctx, func(r Repo) error {
+		if txErr := r.UpdatePassword(ctx, userID, newPasswordHash); txErr != nil {
+			slog.ErrorContext(ctx, "failed to update password", "err", err)
+			return txErr
+		}
+
+		if txErr := r.RevokeSessions(ctx, userID, domain.RevocationPasswordChange); txErr != nil {
+			slog.ErrorContext(ctx, "failed to revoke sessions", "err", err)
+			return txErr
+		}
+
+		return nil
+	}); err != nil {
+		slog.ErrorContext(ctx, "error in transaction", "err", err)
 		return err
 	}
 
