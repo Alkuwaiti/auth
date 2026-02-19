@@ -3,7 +3,6 @@ package auth
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/audit"
@@ -46,12 +45,12 @@ func NewService(repoI Repo, passwords passwords, auditor auditor, authorizer aut
 
 type Repo interface {
 	GetUserBackupCodes(ctx context.Context, userID uuid.UUID) ([]domain.MFABackupCode, error)
-	ConsumeBackupCode(ctx context.Context, tx *sql.Tx, codeID uuid.UUID) error
+	ConsumeBackupCode(ctx context.Context, codeID uuid.UUID) error
 	CreateChallenge(ctx context.Context, challenge domain.MFAChallenge) (domain.MFAChallenge, error)
 	GetChallengeByID(ctx context.Context, challengeID uuid.UUID) (domain.MFAChallenge, error)
-	LockActiveTOTPChallenge(ctx context.Context, tx *sql.Tx, challengeID uuid.UUID) (domain.LockedTOTPChallenge, error)
-	IncrementChallengeAttempts(ctx context.Context, tx *sql.Tx, challengeID uuid.UUID) error
-	ConsumeChallenge(ctx context.Context, tx *sql.Tx, challengeID uuid.UUID) error
+	LockActiveTOTPChallenge(ctx context.Context, challengeID uuid.UUID) (domain.LockedTOTPChallenge, error)
+	IncrementChallengeAttempts(ctx context.Context, challengeID uuid.UUID) error
+	ConsumeChallenge(ctx context.Context, challengeID uuid.UUID) error
 	UserHasActiveMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) (bool, error)
 	DeleteExpiredUnconfirmedMethods(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) error
 	CreateUserMFAMethod(ctx context.Context, userID uuid.UUID, secret []byte, methodType domain.MFAMethodType) (domain.MFAMethod, error)
@@ -60,8 +59,6 @@ type Repo interface {
 	GetMFAMethodsConfirmedByUser(ctx context.Context, userID uuid.UUID) ([]domain.MFAMethod, error)
 	GetConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) (domain.MFAMethod, error)
 	UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error)
-	// TODO: remove BeginTx()
-	BeginTx(ctx context.Context) (*sql.Tx, error)
 	WithTx(ctx context.Context, fn func(r Repo) error) error
 	CreateSession(ctx context.Context, userID uuid.UUID, expiry time.Time, refreshToken, IPAddress, userAgent string) (domain.Session, error)
 	GetSessionByRefreshToken(ctx context.Context, refreshToken string) (domain.Session, error)

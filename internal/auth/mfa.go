@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"log/slog"
 	"strings"
@@ -299,57 +298,52 @@ func (s *Service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 // TODO: probably need to still break this up.
 
 func (s *Service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (domain.LockedTOTPChallenge, error) {
-	tx, err := s.Repo.BeginTx(ctx)
-	if err != nil {
-		return domain.LockedTOTPChallenge{}, err
-	}
-	defer tx.Rollback()
+	var (
+		challenge domain.LockedTOTPChallenge
+		err       error
+	)
 
-	challenge, err := s.Repo.LockActiveTOTPChallenge(ctx, tx, challengeID)
-	if err != nil {
-		if errors.Is(err, domain.ErrNotFound) {
-			return domain.LockedTOTPChallenge{}, ErrInvalidMFACode
-		}
-		slog.ErrorContext(ctx, "error locking active totp challenge", "err", err)
-		return domain.LockedTOTPChallenge{}, err
-	}
-
-	if challenge.Attempts >= s.Config.MaxChallengeAttempts {
-		slog.DebugContext(ctx, "max challenge attempts reached", "err", err)
-		return domain.LockedTOTPChallenge{}, ErrInvalidMFACode
-	}
-
-	totpValid, err := s.MFAProvider.VerifyTOTP(ctx, string(challenge.SecretCiphertext), code)
-	if err != nil {
-		return domain.LockedTOTPChallenge{}, err
-	}
-
-	backupCodeValid, err := s.VerifyBackupCode(ctx, tx, challenge.UserID, code)
-	if err != nil {
-		return domain.LockedTOTPChallenge{}, err
-	}
-
-	if !totpValid && !backupCodeValid {
-		if err = s.Repo.IncrementChallengeAttempts(ctx, tx, challenge.ChallengeID); err != nil {
-			slog.ErrorContext(ctx, "error incrementing challenge attempts", "err", err)
-			return domain.LockedTOTPChallenge{}, err
+	if err = s.Repo.WithTx(ctx, func(r Repo) error {
+		challenge, err = r.LockActiveTOTPChallenge(ctx, challengeID)
+		if err != nil {
+			if errors.Is(err, domain.ErrNotFound) {
+				return ErrInvalidMFACode
+			}
+			slog.ErrorContext(ctx, "error locking active totp challenge", "err", err)
+			return err
 		}
 
-		if err = tx.Commit(); err != nil {
-			slog.ErrorContext(ctx, "error committing transaction", "err", err)
-			return domain.LockedTOTPChallenge{}, err
+		if challenge.Attempts >= s.Config.MaxChallengeAttempts {
+			slog.DebugContext(ctx, "max challenge attempts reached", "err", err)
+			return ErrInvalidMFACode
 		}
 
-		return domain.LockedTOTPChallenge{}, ErrInvalidMFACode
-	}
+		totpValid, totpErr := s.MFAProvider.VerifyTOTP(ctx, string(challenge.SecretCiphertext), code)
+		if totpErr != nil {
+			return totpErr
+		}
 
-	if err = s.Repo.ConsumeChallenge(ctx, tx, challenge.ChallengeID); err != nil {
-		slog.ErrorContext(ctx, "error consuming challenge", "err", err)
-		return domain.LockedTOTPChallenge{}, err
-	}
+		backupCodeValid, verificationErr := s.VerifyBackupCode(ctx, r, challenge.UserID, code)
+		if verificationErr != nil {
+			return verificationErr
+		}
 
-	if err = tx.Commit(); err != nil {
-		slog.ErrorContext(ctx, "error committing transaction", "err", err)
+		if !totpValid && !backupCodeValid {
+			if err = r.IncrementChallengeAttempts(ctx, challenge.ChallengeID); err != nil {
+				slog.ErrorContext(ctx, "error incrementing challenge attempts", "err", err)
+				return err
+			}
+
+			return ErrInvalidMFACode
+		}
+
+		if err = r.ConsumeChallenge(ctx, challenge.ChallengeID); err != nil {
+			slog.ErrorContext(ctx, "error consuming challenge", "err", err)
+			return err
+		}
+
+		return nil
+	}); err != nil {
 		return domain.LockedTOTPChallenge{}, err
 	}
 
@@ -380,14 +374,14 @@ func (s *Service) UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) 
 	return exists, nil
 }
 
-func (s *Service) VerifyBackupCode(ctx context.Context, tx *sql.Tx, userID uuid.UUID, code string) (bool, error) {
+func (s *Service) VerifyBackupCode(ctx context.Context, r Repo, userID uuid.UUID, code string) (bool, error) {
 	code = strings.ToUpper(strings.TrimSpace(code))
 
 	if len(code) != 9 || code[4] != '-' {
 		return false, nil
 	}
 
-	codes, err := s.Repo.GetUserBackupCodes(ctx, userID)
+	codes, err := r.GetUserBackupCodes(ctx, userID)
 	if err != nil {
 		slog.ErrorContext(ctx, "error getting user backup codes", "err", err)
 		return false, err
@@ -395,7 +389,7 @@ func (s *Service) VerifyBackupCode(ctx context.Context, tx *sql.Tx, userID uuid.
 
 	for _, c := range codes {
 		if s.Hasher.Compare(c.CodeHash, code) {
-			if err := s.Repo.ConsumeBackupCode(ctx, tx, c.ID); err != nil {
+			if err := r.ConsumeBackupCode(ctx, c.ID); err != nil {
 				slog.ErrorContext(ctx, "error consuming backup code", "err", err, "challenge_id", c.ID)
 				return false, err
 			}
