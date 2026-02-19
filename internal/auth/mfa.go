@@ -41,16 +41,6 @@ func (s *Service) EnrollMFAMethod(ctx context.Context, methodType domain.MFAMeth
 		return EnrollmentResult{}, ErrInvalidMFAMethodType
 	}
 
-	// TODO: possibly remove this, to just delete right away, and then create
-	exists, err := s.Repo.UserHasActiveMFAMethodByType(ctx, userID, methodType)
-	if err != nil {
-		slog.ErrorContext(ctx, "error when checking if user has an active MFA method", "user_id", userID, "method_type", methodType, "err", err)
-		return EnrollmentResult{}, err
-	}
-	if exists {
-		return EnrollmentResult{}, ErrMFAMethodAlreadyEnrolled
-	}
-
 	if err = s.Repo.DeleteExpiredUnconfirmedMethods(ctx, userID, methodType); err != nil {
 		return EnrollmentResult{}, err
 	}
