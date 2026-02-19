@@ -57,7 +57,7 @@ SET
 WHERE id = $2
 AND revoked_at IS NULL;
 
--- name: RevokeAllUserSessions :exec
+-- name: RevokeSessions :exec
 UPDATE sessions
 SET 
   revoked_at = NOW(),

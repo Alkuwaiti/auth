@@ -63,7 +63,7 @@ func (r *repo) UpdatePasswordAndRevokeSessions(ctx context.Context, userID uuid.
 			return err
 		}
 
-		if err := q.RevokeAllUserSessions(ctx, postgres.RevokeAllUserSessionsParams{
+		if err := q.RevokeSessions(ctx, postgres.RevokeSessionsParams{
 			UserID: userID,
 			RevocationReason: sql.NullString{
 				String: string(reason),
@@ -77,6 +77,7 @@ func (r *repo) UpdatePasswordAndRevokeSessions(ctx context.Context, userID uuid.
 	})
 }
 
+// TODO: split up
 func (r *repo) RotateSession(ctx context.Context, input domain.RotateSessionInput) error {
 	return r.ExecTx(ctx, func(queries *postgres.Queries) error {
 		if err := queries.RevokeSession(ctx, postgres.RevokeSessionParams{
@@ -112,7 +113,7 @@ func (r *repo) RotateSession(ctx context.Context, input domain.RotateSessionInpu
 
 func (r *repo) RevokeAndMarkSessionsCompromised(ctx context.Context, userID uuid.UUID, reason domain.RevocationReason) error {
 	return r.ExecTx(ctx, func(q *postgres.Queries) error {
-		if err := q.RevokeAllUserSessions(ctx, postgres.RevokeAllUserSessionsParams{
+		if err := q.RevokeSessions(ctx, postgres.RevokeSessionsParams{
 			UserID: userID,
 			RevocationReason: sql.NullString{
 				String: string(reason),
@@ -147,7 +148,7 @@ func (r *repo) DeleteUserAndRevokeSessions(ctx context.Context, userID uuid.UUID
 			return domain.ErrNotFound
 		}
 
-		if err := q.RevokeAllUserSessions(ctx, postgres.RevokeAllUserSessionsParams{
+		if err := q.RevokeSessions(ctx, postgres.RevokeSessionsParams{
 			UserID: userID,
 			RevocationReason: sql.NullString{
 				String: string(revocationReason),
@@ -159,6 +160,20 @@ func (r *repo) DeleteUserAndRevokeSessions(ctx context.Context, userID uuid.UUID
 
 		return nil
 	})
+}
+
+func (r *repo) RevokeSessions(ctx context.Context, userID uuid.UUID, revocationReason domain.RevocationReason) error {
+	return r.queries.RevokeSessions(ctx, postgres.RevokeSessionsParams{
+		UserID: userID,
+		RevocationReason: sql.NullString{
+			String: string(revocationReason),
+			Valid:  revocationReason != "",
+		},
+	})
+}
+
+func (r *repo) MarkSessionsCompromised(ctx context.Context, userID uuid.UUID) error {
+	return r.queries.MarkSessionsCompromised(ctx, userID)
 }
 
 func toSessionModel(session postgres.Session) domain.Session {

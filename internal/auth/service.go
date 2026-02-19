@@ -15,7 +15,7 @@ import (
 )
 
 type Service struct {
-	Repo         repo
+	Repo         Repo
 	Passwords    passwords
 	auditor      auditor
 	authorizer   authorizer
@@ -30,7 +30,7 @@ type Config struct {
 	MaxChallengeAttempts int
 }
 
-func NewService(repoI repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, hasher hasher, Config Config) *Service {
+func NewService(repoI Repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, hasher hasher, Config Config) *Service {
 	return &Service{
 		Repo:         repoI,
 		Passwords:    passwords,
@@ -44,7 +44,7 @@ func NewService(repoI repo, passwords passwords, auditor auditor, authorizer aut
 	}
 }
 
-type repo interface {
+type Repo interface {
 	GetUserBackupCodes(ctx context.Context, userID uuid.UUID) ([]domain.MFABackupCode, error)
 	ConsumeBackupCode(ctx context.Context, tx *sql.Tx, codeID uuid.UUID) error
 	CreateChallenge(ctx context.Context, challenge domain.MFAChallenge) (domain.MFAChallenge, error)
@@ -61,7 +61,7 @@ type repo interface {
 	GetConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) (domain.MFAMethod, error)
 	UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error)
 	BeginTx(ctx context.Context) (*sql.Tx, error)
-	// WithTx(ctx context.Context, fn func(r repo) error) error
+	WithTx(ctx context.Context, fn func(r Repo) error) error
 	CreateSession(ctx context.Context, userID uuid.UUID, expiry time.Time, refreshToken, IPAddress, userAgent string) (domain.Session, error)
 	GetSessionByRefreshToken(ctx context.Context, refreshToken string) (domain.Session, error)
 	RevokeSession(ctx context.Context, SessionID uuid.UUID, revocationReason domain.RevocationReason) error

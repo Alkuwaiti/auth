@@ -37,6 +37,7 @@ func (r *repo) GetUserByID(ctx context.Context, userID uuid.UUID) (domain.User, 
 	return toUserModelFromIDRow(user), nil
 }
 
+// TODO: split up
 func (r *repo) CreateUser(ctx context.Context, username, email, passwordHash string) (domain.User, error) {
 	userID, err := uuid.NewV7()
 	if err != nil {
@@ -88,6 +89,25 @@ func (r *repo) CreateUser(ctx context.Context, username, email, passwordHash str
 	}
 
 	return user, nil
+}
+
+func (r *repo) DeleteUser(ctx context.Context, userID uuid.UUID, deletionReason domain.DeletionReason) error {
+	rows, err := r.queries.DeleteUser(ctx, postgres.DeleteUserParams{
+		ID: userID,
+		DeletionReason: sql.NullString{
+			String: string(deletionReason),
+			Valid:  deletionReason != "",
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	if rows == 0 {
+		return domain.ErrNotFound
+	}
+
+	return nil
 }
 
 func toUserModel(user postgres.User) domain.User {
