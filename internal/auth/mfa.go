@@ -167,18 +167,18 @@ func (s *Service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 }
 
 func (s *Service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, code string) (TokenPair, error) {
-	lockedChallenge, err := s.VerifyAndConsumeChallenge(ctx, challengeID, code)
+	challenge, err := s.VerifyAndConsumeChallenge(ctx, challengeID, code)
 	if err != nil {
 		return TokenPair{}, err
 	}
 
-	user, err := s.Repo.GetUserByID(ctx, lockedChallenge.UserID)
+	user, err := s.Repo.GetUserByID(ctx, challenge.UserID)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			return TokenPair{}, ErrInvalidCredentials
 		}
 
-		slog.ErrorContext(ctx, "login failed: user lookup error", "user_id", lockedChallenge.UserID, "err", err)
+		slog.ErrorContext(ctx, "login failed: user lookup error", "user_id", challenge.UserID, "err", err)
 		return TokenPair{}, err
 	}
 
@@ -297,14 +297,14 @@ func (s *Service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 
 // TODO: probably need to still break this up.
 
-func (s *Service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (domain.LockedTOTPChallenge, error) {
+func (s *Service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (domain.ActiveTOTPChallenge, error) {
 	var (
-		challenge domain.LockedTOTPChallenge
+		challenge domain.ActiveTOTPChallenge
 		err       error
 	)
 
 	if err = s.Repo.WithTx(ctx, func(r Repo) error {
-		challenge, err = r.LockActiveTOTPChallenge(ctx, challengeID)
+		challenge, err = r.GetActiveTOTPChallengeForUpdate(ctx, challengeID)
 		if err != nil {
 			if errors.Is(err, domain.ErrNotFound) {
 				return ErrInvalidMFACode
@@ -344,7 +344,7 @@ func (s *Service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 
 		return nil
 	}); err != nil {
-		return domain.LockedTOTPChallenge{}, err
+		return domain.ActiveTOTPChallenge{}, err
 	}
 
 	meta := contextkeys.RequestMetaFromContext(ctx)
@@ -358,7 +358,7 @@ func (s *Service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 		IPAddress: &meta.IPAddress,
 		UserAgent: &meta.UserAgent,
 	}); err != nil {
-		return domain.LockedTOTPChallenge{}, err
+		return domain.ActiveTOTPChallenge{}, err
 	}
 
 	return challenge, nil

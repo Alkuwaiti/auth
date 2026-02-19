@@ -35,16 +35,16 @@ func (r *repo) GetChallengeByID(ctx context.Context, challengeID uuid.UUID) (dom
 	return toMFAChallenge(challenge), nil
 }
 
-func (r *repo) LockActiveTOTPChallenge(ctx context.Context, challengeID uuid.UUID) (domain.LockedTOTPChallenge, error) {
-	row, err := r.queries.LockActiveTOTPChallenge(ctx, challengeID)
+func (r *repo) GetActiveTOTPChallengeForUpdate(ctx context.Context, challengeID uuid.UUID) (domain.ActiveTOTPChallenge, error) {
+	row, err := r.queries.GetActiveTOTPChallengeForUpdate(ctx, challengeID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return domain.LockedTOTPChallenge{}, domain.ErrNotFound
+			return domain.ActiveTOTPChallenge{}, domain.ErrNotFound
 		}
-		return domain.LockedTOTPChallenge{}, err
+		return domain.ActiveTOTPChallenge{}, err
 	}
 
-	return domain.LockedTOTPChallenge{
+	return domain.ActiveTOTPChallenge{
 		ChallengeID:      row.ChallengeID,
 		UserID:           row.UserID,
 		MethodID:         row.MethodID,

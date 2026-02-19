@@ -373,6 +373,47 @@ func (q *Queries) DeleteUserPasswordResetTokens(ctx context.Context, userID uuid
 	return err
 }
 
+const getActiveTOTPChallengeForUpdate = `-- name: GetActiveTOTPChallengeForUpdate :one
+SELECT
+  c.id            AS challenge_id,
+  c.user_id,
+  c.attempts,
+  m.id            AS method_id,
+  m.secret_ciphertext
+FROM mfa_challenges c
+JOIN user_mfa_methods m
+  ON m.id = c.mfa_method_id
+ AND m.user_id = c.user_id
+WHERE
+  c.id = $1
+  AND c.expires_at > NOW()
+  AND c.consumed_at IS NULL
+  AND m.type = 'totp'
+  AND m.confirmed_at IS NOT NULL
+FOR UPDATE
+`
+
+type GetActiveTOTPChallengeForUpdateRow struct {
+	ChallengeID      uuid.UUID
+	UserID           uuid.UUID
+	Attempts         int32
+	MethodID         uuid.UUID
+	SecretCiphertext []byte
+}
+
+func (q *Queries) GetActiveTOTPChallengeForUpdate(ctx context.Context, id uuid.UUID) (GetActiveTOTPChallengeForUpdateRow, error) {
+	row := q.db.QueryRowContext(ctx, getActiveTOTPChallengeForUpdate, id)
+	var i GetActiveTOTPChallengeForUpdateRow
+	err := row.Scan(
+		&i.ChallengeID,
+		&i.UserID,
+		&i.Attempts,
+		&i.MethodID,
+		&i.SecretCiphertext,
+	)
+	return i, err
+}
+
 const getChallengeByID = `-- name: GetChallengeByID :one
 SELECT id, user_id, mfa_method_id, challenge_type, expires_at, consumed_at, created_at, scope, attempts
 FROM mfa_challenges
@@ -676,47 +717,6 @@ type InsertBackupCodesParams struct {
 func (q *Queries) InsertBackupCodes(ctx context.Context, arg InsertBackupCodesParams) error {
 	_, err := q.db.ExecContext(ctx, insertBackupCodes, arg.UserID, pq.Array(arg.Column2))
 	return err
-}
-
-const lockActiveTOTPChallenge = `-- name: LockActiveTOTPChallenge :one
-SELECT
-  c.id            AS challenge_id,
-  c.user_id,
-  c.attempts,
-  m.id            AS method_id,
-  m.secret_ciphertext
-FROM mfa_challenges c
-JOIN user_mfa_methods m
-  ON m.id = c.mfa_method_id
- AND m.user_id = c.user_id
-WHERE
-  c.id = $1
-  AND c.expires_at > NOW()
-  AND c.consumed_at IS NULL
-  AND m.type = 'totp'
-  AND m.confirmed_at IS NOT NULL
-FOR UPDATE
-`
-
-type LockActiveTOTPChallengeRow struct {
-	ChallengeID      uuid.UUID
-	UserID           uuid.UUID
-	Attempts         int32
-	MethodID         uuid.UUID
-	SecretCiphertext []byte
-}
-
-func (q *Queries) LockActiveTOTPChallenge(ctx context.Context, id uuid.UUID) (LockActiveTOTPChallengeRow, error) {
-	row := q.db.QueryRowContext(ctx, lockActiveTOTPChallenge, id)
-	var i LockActiveTOTPChallengeRow
-	err := row.Scan(
-		&i.ChallengeID,
-		&i.UserID,
-		&i.Attempts,
-		&i.MethodID,
-		&i.SecretCiphertext,
-	)
-	return i, err
 }
 
 const markSessionsCompromised = `-- name: MarkSessionsCompromised :exec

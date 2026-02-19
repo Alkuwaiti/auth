@@ -48,7 +48,7 @@ type Repo interface {
 	ConsumeBackupCode(ctx context.Context, codeID uuid.UUID) error
 	CreateChallenge(ctx context.Context, challenge domain.MFAChallenge) (domain.MFAChallenge, error)
 	GetChallengeByID(ctx context.Context, challengeID uuid.UUID) (domain.MFAChallenge, error)
-	LockActiveTOTPChallenge(ctx context.Context, challengeID uuid.UUID) (domain.LockedTOTPChallenge, error)
+	GetActiveTOTPChallengeForUpdate(ctx context.Context, challengeID uuid.UUID) (domain.ActiveTOTPChallenge, error)
 	IncrementChallengeAttempts(ctx context.Context, challengeID uuid.UUID) error
 	ConsumeChallenge(ctx context.Context, challengeID uuid.UUID) error
 	UserHasActiveMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) (bool, error)

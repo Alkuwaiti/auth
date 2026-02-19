@@ -190,7 +190,7 @@ UPDATE mfa_challenges
 SET attempts = attempts + 1
 WHERE id = $1;
 
--- name: LockActiveTOTPChallenge :one
+-- name: GetActiveTOTPChallengeForUpdate :one
 SELECT
   c.id            AS challenge_id,
   c.user_id,
