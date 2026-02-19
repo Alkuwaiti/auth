@@ -89,8 +89,6 @@ func (s *Service) EnrollMFAMethod(ctx context.Context, methodType domain.MFAMeth
 	}, nil
 }
 
-// TODO: extract user uuid from context, and compare with method's userID
-
 func (s *Service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code string) (backupCodes []string, err error) {
 	ctx, span := tracer.Start(ctx, "AuthService.ConfirmMFAMethod")
 	defer span.End()
@@ -101,6 +99,16 @@ func (s *Service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 	if err != nil {
 		slog.ErrorContext(ctx, "error getting mfa method by id", "err", err, "method_id", methodID)
 		return nil, err
+	}
+
+	userID, err := contextkeys.UserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if method.UserID != userID {
+		slog.InfoContext(ctx, "comparing both", "method user id", method.UserID, "userID", userID)
+		return nil, ErrForbidden
 	}
 
 	if method.ExpiresAt != nil && method.ExpiresAt.Before(time.Now()) {
@@ -127,7 +135,7 @@ func (s *Service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 			return err
 		}
 
-		if err = r.DeleteBackupCodesForUser(ctx, method.UserID); err != nil {
+		if err = r.DeleteUserBackupCodes(ctx, method.UserID); err != nil {
 			slog.ErrorContext(ctx, "error deleting backup codes for user", "err", err, "method_id", methodID)
 			return err
 		}
@@ -314,7 +322,7 @@ func (s *Service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 		}
 
 		if challenge.Attempts >= s.Config.MaxChallengeAttempts {
-			slog.DebugContext(ctx, "max challenge attempts reached", "err", err)
+			slog.DebugContext(ctx, "max challenge attempts reached")
 			return ErrInvalidMFACode
 		}
 

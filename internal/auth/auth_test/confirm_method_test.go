@@ -52,7 +52,7 @@ func TestConfirmMFAMethod_Success(t *testing.T) {
 	ctx := context.Background()
 	ctx = testutil.CtxWithRequestMeta(ctx)
 	userID := uuid.New()
-	ctx = testutil.CtxWithUserID(ctx, uuid.New())
+	ctx = testutil.CtxWithUserID(ctx, userID)
 
 	email := "user@email.com"
 	ctx = testutil.CtxWithEmail(ctx, email)
@@ -102,7 +102,7 @@ func TestConfirmMFAMethod_AlreadyConfirmed(t *testing.T) {
 	ctx := context.Background()
 	ctx = testutil.CtxWithRequestMeta(ctx)
 	userID := uuid.New()
-	ctx = testutil.CtxWithUserID(ctx, uuid.New())
+	ctx = testutil.CtxWithUserID(ctx, userID)
 
 	email := "user@email.com"
 	ctx = testutil.CtxWithEmail(ctx, email)
@@ -140,7 +140,7 @@ func TestConfirmMFAMethod_InvalidCode(t *testing.T) {
 	ctx := context.Background()
 	ctx = testutil.CtxWithRequestMeta(ctx)
 	userID := uuid.New()
-	ctx = testutil.CtxWithUserID(ctx, uuid.New())
+	ctx = testutil.CtxWithUserID(ctx, userID)
 
 	email := "user@email.com"
 	ctx = testutil.CtxWithEmail(ctx, email)
@@ -170,7 +170,7 @@ func TestConfirmMFAMethod_ExpiredMethod(t *testing.T) {
 	ctx := context.Background()
 	ctx = testutil.CtxWithRequestMeta(ctx)
 	userID := uuid.New()
-	ctx = testutil.CtxWithUserID(ctx, uuid.New())
+	ctx = testutil.CtxWithUserID(ctx, userID)
 
 	email := "user@email.com"
 	ctx = testutil.CtxWithEmail(ctx, email)

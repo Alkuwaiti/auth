@@ -71,7 +71,7 @@ type Repo interface {
 	GetUserByID(ctx context.Context, userID uuid.UUID) (domain.User, error)
 	CreateUser(ctx context.Context, username, email, passwordHash string) (domain.User, error)
 	InsertBackupCodes(ctx context.Context, userID uuid.UUID, hashedCodes []string) error
-	DeleteBackupCodesForUser(ctx context.Context, userID uuid.UUID) error
+	DeleteUserBackupCodes(ctx context.Context, userID uuid.UUID) error
 	CreatePasswordResetToken(ctx context.Context, userID uuid.UUID, tokenHash string, expiresAt time.Time) error
 	DeleteUserPasswordResetTokens(ctx context.Context, userID uuid.UUID) error
 	ConsumePasswordResetToken(ctx context.Context, tokenHash string) (uuid.UUID, error)

@@ -213,7 +213,7 @@ FOR UPDATE;
 INSERT INTO mfa_backup_codes (user_id, code_hash)
 SELECT $1, unnest($2::text[]);
 
--- name: DeleteBackupCodesForUser :exec
+-- name: DeleteUserBackupCodes :exec
 DELETE FROM mfa_backup_codes
 WHERE user_id = $1;
 

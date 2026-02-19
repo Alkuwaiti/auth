@@ -30,9 +30,8 @@ func (r *repo) InsertBackupCodes(ctx context.Context, userID uuid.UUID, hashedCo
 	})
 }
 
-// TODO: rename, wtf.
-func (r *repo) DeleteBackupCodesForUser(ctx context.Context, userID uuid.UUID) error {
-	return r.queries.DeleteBackupCodesForUser(ctx, userID)
+func (r *repo) DeleteUserBackupCodes(ctx context.Context, userID uuid.UUID) error {
+	return r.queries.DeleteUserBackupCodes(ctx, userID)
 }
 
 func toMFABackupCode(postgresCodes []postgres.MfaBackupCode) []domain.MFABackupCode {
