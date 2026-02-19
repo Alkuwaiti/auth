@@ -86,19 +86,31 @@ func (s *Service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 		return ErrForbidden
 	}
 
-	if err := input.validate(); err != nil {
+	if err = input.validate(); err != nil {
 		slog.ErrorContext(ctx, "failed to validate deletion reason", "err", err)
 		return err
 	}
 
 	meta := contextkeys.RequestMetaFromContext(ctx)
 
-	// TODO: split up
-	if err := s.Repo.DeleteUserAndRevokeSessions(ctx, input.UserID, input.DeletionReason, domain.RevocationUserDeleted); err != nil {
-		if errors.Is(err, domain.ErrNotFound) {
-			return ErrUserNotFound
+	if err = s.Repo.WithTx(ctx, func(r Repo) error {
+		if err = r.DeleteUser(ctx, input.UserID, input.DeletionReason); err != nil {
+			if errors.Is(err, domain.ErrNotFound) {
+				return ErrUserNotFound
+			}
+			slog.ErrorContext(ctx, "failed to delete user", "err", err)
+			return err
 		}
-		slog.ErrorContext(ctx, "failed to delete user and revoke sessions", "err", err)
+
+		if err = r.RevokeSessions(ctx, input.UserID, domain.RevocationUserDeleted); err != nil {
+			slog.ErrorContext(ctx, "failed to revoke sessions", "err", err)
+			return err
+		}
+
+		return nil
+
+	}); err != nil {
+		slog.ErrorContext(ctx, "error in transaction", "err", err)
 		return err
 	}
 
