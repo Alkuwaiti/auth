@@ -69,6 +69,7 @@ type Repo interface {
 	RevokeSessions(ctx context.Context, userID uuid.UUID, revocationReason domain.RevocationReason) error
 	RevokeAndMarkSessionsCompromised(ctx context.Context, userID uuid.UUID, reason domain.RevocationReason) error
 	DeleteUserAndRevokeSessions(ctx context.Context, userID uuid.UUID, deletionReason domain.DeletionReason, revocationReason domain.RevocationReason) error
+	MarkSessionsCompromised(ctx context.Context, userID uuid.UUID) error
 	GetUserByEmail(ctx context.Context, email string) (domain.User, error)
 	GetUserByID(ctx context.Context, userID uuid.UUID) (domain.User, error)
 	CreateUser(ctx context.Context, username, email, passwordHash string) (domain.User, error)

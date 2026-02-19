@@ -140,9 +140,21 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 			"revocation_reason", session.RevocationReason,
 		)
 
-		// TODO: split up, handle tx outside.
-		if err = s.Repo.RevokeAndMarkSessionsCompromised(ctx, session.UserID, domain.RevocationSessionCompromised); err != nil {
-			slog.ErrorContext(ctx, "failed to mark sessions as compromised", "err", err)
+		if err = s.Repo.WithTx(ctx, func(r Repo) error {
+			if err = r.RevokeSessions(ctx, session.UserID, domain.RevocationSessionCompromised); err != nil {
+				slog.ErrorContext(ctx, "failed to revoke sessions", "err", err)
+				return err
+			}
+
+			if err = r.MarkSessionsCompromised(ctx, session.UserID); err != nil {
+				slog.ErrorContext(ctx, "failed to mark sessions as compromised", "err", err)
+				return err
+			}
+
+			return nil
+		}); err != nil {
+			slog.ErrorContext(ctx, "error in transaction", "err", err)
+			return TokenPair{}, err
 		}
 
 		if err = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
