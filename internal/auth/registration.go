@@ -41,7 +41,6 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 
 	user, err := s.Repo.CreateUser(ctx, input.Username, input.Email, newPasswordHash)
 	if err != nil {
-		// TODO: all of these need to be yeeted.
 		if errors.Is(err, domain.ErrRecordAlreadyExists) {
 			return domain.User{}, ErrUserExists
 		}

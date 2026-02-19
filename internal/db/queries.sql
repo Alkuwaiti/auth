@@ -175,9 +175,10 @@ FROM user_mfa_methods
 WHERE user_id = $1
   AND confirmed_at IS NOT NULL;
 
--- name: GetMFAMethodByID :one
+-- name: GetUserMFAMethodByID :one
 SELECT * FROM user_mfa_methods
-WHERE id = $1;
+WHERE id = $1
+  AND user_id = $2;
 
 -- name: GetConfirmedMFAMethodByType :one
 SELECT * FROM user_mfa_methods

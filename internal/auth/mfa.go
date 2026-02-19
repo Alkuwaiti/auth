@@ -95,20 +95,15 @@ func (s *Service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 
 	code = strings.TrimSpace(code)
 
-	method, err := s.Repo.GetMFAMethodByID(ctx, methodID)
-	if err != nil {
-		slog.ErrorContext(ctx, "error getting mfa method by id", "err", err, "method_id", methodID)
-		return nil, err
-	}
-
 	userID, err := contextkeys.UserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	if method.UserID != userID {
-		slog.InfoContext(ctx, "comparing both", "method user id", method.UserID, "userID", userID)
-		return nil, ErrForbidden
+	method, err := s.Repo.GetUserMFAMethodByID(ctx, methodID, userID)
+	if err != nil {
+		slog.ErrorContext(ctx, "error getting mfa method by id", "err", err, "method_id", methodID)
+		return nil, err
 	}
 
 	if method.ExpiresAt != nil && method.ExpiresAt.Before(time.Now()) {
@@ -302,8 +297,6 @@ func (s *Service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 		ExpiresIn:   expiresIn,
 	}, nil
 }
-
-// TODO: probably need to still break this up.
 
 func (s *Service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uuid.UUID, code string) (domain.ActiveTOTPChallenge, error) {
 	var (

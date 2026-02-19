@@ -41,8 +41,11 @@ func (r *repo) CreateUserMFAMethod(ctx context.Context, userID uuid.UUID, secret
 	return toMFAMethod(postgresMFAMethod), nil
 }
 
-func (r *repo) GetMFAMethodByID(ctx context.Context, methodID uuid.UUID) (domain.MFAMethod, error) {
-	postgresMethod, err := r.queries.GetMFAMethodByID(ctx, methodID)
+func (r *repo) GetUserMFAMethodByID(ctx context.Context, methodID, userID uuid.UUID) (domain.MFAMethod, error) {
+	postgresMethod, err := r.queries.GetUserMFAMethodByID(ctx, postgres.GetUserMFAMethodByIDParams{
+		UserID: userID,
+		ID:     methodID,
+	})
 	if err != nil {
 		return domain.MFAMethod{}, err
 	}

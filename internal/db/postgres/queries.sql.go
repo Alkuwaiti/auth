@@ -464,26 +464,6 @@ func (q *Queries) GetConfirmedMFAMethodByType(ctx context.Context, arg GetConfir
 	return i, err
 }
 
-const getMFAMethodByID = `-- name: GetMFAMethodByID :one
-SELECT id, user_id, type, secret_ciphertext, confirmed_at, created_at, expires_at FROM user_mfa_methods
-WHERE id = $1
-`
-
-func (q *Queries) GetMFAMethodByID(ctx context.Context, id uuid.UUID) (UserMfaMethod, error) {
-	row := q.db.QueryRowContext(ctx, getMFAMethodByID, id)
-	var i UserMfaMethod
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.Type,
-		&i.SecretCiphertext,
-		&i.ConfirmedAt,
-		&i.CreatedAt,
-		&i.ExpiresAt,
-	)
-	return i, err
-}
-
 const getMFAMethodsConfirmedByUser = `-- name: GetMFAMethodsConfirmedByUser :many
 SELECT id, user_id, type, confirmed_at, created_at
 FROM user_mfa_methods
@@ -689,6 +669,32 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow
 		&i.DeletionReason,
 		&i.MfaEnabled,
 		pq.Array(&i.Roles),
+	)
+	return i, err
+}
+
+const getUserMFAMethodByID = `-- name: GetUserMFAMethodByID :one
+SELECT id, user_id, type, secret_ciphertext, confirmed_at, created_at, expires_at FROM user_mfa_methods
+WHERE id = $1
+  AND user_id = $2
+`
+
+type GetUserMFAMethodByIDParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) GetUserMFAMethodByID(ctx context.Context, arg GetUserMFAMethodByIDParams) (UserMfaMethod, error) {
+	row := q.db.QueryRowContext(ctx, getUserMFAMethodByID, arg.ID, arg.UserID)
+	var i UserMfaMethod
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Type,
+		&i.SecretCiphertext,
+		&i.ConfirmedAt,
+		&i.CreatedAt,
+		&i.ExpiresAt,
 	)
 	return i, err
 }

@@ -54,7 +54,7 @@ type Repo interface {
 	UserHasActiveMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) (bool, error)
 	DeleteExpiredUnconfirmedMethods(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) error
 	CreateUserMFAMethod(ctx context.Context, userID uuid.UUID, secret []byte, methodType domain.MFAMethodType) (domain.MFAMethod, error)
-	GetMFAMethodByID(ctx context.Context, methodID uuid.UUID) (domain.MFAMethod, error)
+	GetUserMFAMethodByID(ctx context.Context, methodID, userID uuid.UUID) (domain.MFAMethod, error)
 	ConfirmUserMFAMethod(ctx context.Context, methodID uuid.UUID) error
 	GetMFAMethodsConfirmedByUser(ctx context.Context, userID uuid.UUID) ([]domain.MFAMethod, error)
 	GetConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) (domain.MFAMethod, error)
