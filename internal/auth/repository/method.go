@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/auth/domain"
@@ -51,8 +50,8 @@ func (r *repo) GetMFAMethodByID(ctx context.Context, methodID uuid.UUID) (domain
 	return toMFAMethod(postgresMethod), nil
 }
 
-func (r *repo) ConfirmUserMFAMethod(ctx context.Context, tx *sql.Tx, methodID uuid.UUID) error {
-	return r.queries.WithTx(tx).ConfirmUserMFAMethod(ctx, methodID)
+func (r *repo) ConfirmUserMFAMethod(ctx context.Context, methodID uuid.UUID) error {
+	return r.queries.ConfirmUserMFAMethod(ctx, methodID)
 }
 
 func (r *repo) GetMFAMethodsConfirmedByUser(ctx context.Context, userID uuid.UUID) ([]domain.MFAMethod, error) {

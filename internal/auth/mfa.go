@@ -114,43 +114,39 @@ func (s *Service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 		return nil, ErrMethodAlreadyConfirmed
 	}
 
-	tx, err := s.Repo.BeginTx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
+	if err = s.Repo.WithTx(ctx, func(r Repo) error {
+		totpValid, totpErr := s.MFAProvider.VerifyTOTP(ctx, method.EncryptedSecret, code)
+		if totpErr != nil {
+			return totpErr
+		}
+		if !totpValid {
+			return ErrInvalidMFACode
+		}
 
-	totpValid, err := s.MFAProvider.VerifyTOTP(ctx, method.EncryptedSecret, code)
-	if err != nil {
-		return nil, err
-	}
-	if !totpValid {
-		return nil, ErrInvalidMFACode
-	}
+		if err = r.ConfirmUserMFAMethod(ctx, methodID); err != nil {
+			slog.ErrorContext(ctx, "error confirming user mfa method", "err", err, "method_id", methodID)
+			return err
+		}
 
-	if err = s.Repo.ConfirmUserMFAMethod(ctx, tx, methodID); err != nil {
-		slog.ErrorContext(ctx, "error confirming user mfa method", "err", err, "method_id", methodID)
-		return nil, err
-	}
+		if err = r.DeleteBackupCodesForUser(ctx, method.UserID); err != nil {
+			slog.ErrorContext(ctx, "error deleting backup codes for user", "err", err, "method_id", methodID)
+			return err
+		}
 
-	if err = s.Repo.DeleteBackupCodesForUser(ctx, tx, method.UserID); err != nil {
-		slog.ErrorContext(ctx, "error deleting backup codes for user", "err", err, "method_id", methodID)
-		return nil, err
-	}
+		var hashed []string
+		backupCodes, hashed, err = s.MFAProvider.GenerateBackupCodes(10, s.Passwords.Hash)
+		if err != nil {
+			slog.ErrorContext(ctx, "error generating backup codes", "err", err, "method_id", methodID)
+			return err
+		}
 
-	backupCodes, hashed, err := s.MFAProvider.GenerateBackupCodes(10, s.Passwords.Hash)
-	if err != nil {
-		slog.ErrorContext(ctx, "error generating backup codes", "err", err, "method_id", methodID)
-		return nil, err
-	}
+		if err = r.InsertBackupCodes(ctx, method.UserID, hashed); err != nil {
+			slog.ErrorContext(ctx, "error inserting backup codes", "err", err, "method_id", methodID)
+			return err
+		}
 
-	if err = s.Repo.InsertBackupCodes(ctx, tx, method.UserID, hashed); err != nil {
-		slog.ErrorContext(ctx, "error inserting backup codes", "err", err, "method_id", methodID)
-		return nil, err
-	}
-
-	if err = tx.Commit(); err != nil {
-		slog.ErrorContext(ctx, "error committing transaction", "err", err, "method_id", methodID)
+		return nil
+	}); err != nil {
 		return nil, err
 	}
 

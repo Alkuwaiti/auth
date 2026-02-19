@@ -56,10 +56,11 @@ type Repo interface {
 	DeleteExpiredUnconfirmedMethods(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) error
 	CreateUserMFAMethod(ctx context.Context, userID uuid.UUID, secret []byte, methodType domain.MFAMethodType) (domain.MFAMethod, error)
 	GetMFAMethodByID(ctx context.Context, methodID uuid.UUID) (domain.MFAMethod, error)
-	ConfirmUserMFAMethod(ctx context.Context, tx *sql.Tx, methodID uuid.UUID) error
+	ConfirmUserMFAMethod(ctx context.Context, methodID uuid.UUID) error
 	GetMFAMethodsConfirmedByUser(ctx context.Context, userID uuid.UUID) ([]domain.MFAMethod, error)
 	GetConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) (domain.MFAMethod, error)
 	UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error)
+	// TODO: remove BeginTx()
 	BeginTx(ctx context.Context) (*sql.Tx, error)
 	WithTx(ctx context.Context, fn func(r Repo) error) error
 	CreateSession(ctx context.Context, userID uuid.UUID, expiry time.Time, refreshToken, IPAddress, userAgent string) (domain.Session, error)
@@ -72,8 +73,8 @@ type Repo interface {
 	GetUserByEmail(ctx context.Context, email string) (domain.User, error)
 	GetUserByID(ctx context.Context, userID uuid.UUID) (domain.User, error)
 	CreateUser(ctx context.Context, username, email, passwordHash string) (domain.User, error)
-	InsertBackupCodes(ctx context.Context, tx *sql.Tx, userID uuid.UUID, hashedCodes []string) error
-	DeleteBackupCodesForUser(ctx context.Context, tx *sql.Tx, userID uuid.UUID) error
+	InsertBackupCodes(ctx context.Context, userID uuid.UUID, hashedCodes []string) error
+	DeleteBackupCodesForUser(ctx context.Context, userID uuid.UUID) error
 	CreatePasswordResetToken(ctx context.Context, userID uuid.UUID, tokenHash string, expiresAt time.Time) error
 	DeleteUserPasswordResetTokens(ctx context.Context, userID uuid.UUID) error
 	ConsumePasswordResetToken(ctx context.Context, tokenHash string) (uuid.UUID, error)
