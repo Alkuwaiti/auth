@@ -207,9 +207,32 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 
 const createUser = `-- name: CreateUser :one
 
-INSERT INTO users (id, username, email, password_hash , created_at, updated_at)
-VALUES ($1, $2, $3, $4, NOW(), NOW())
-RETURNING id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at, deleted_at, deletion_reason, mfa_enabled
+WITH role_cte AS (
+    SELECT id
+    FROM roles
+    WHERE name = 'user'
+),
+inserted_user AS (
+    INSERT INTO users (
+        id,
+        username,
+        email,
+        password_hash,
+        created_at,
+        updated_at
+    )
+    VALUES ($1, $2, $3, $4, NOW(), NOW())
+    RETURNING id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at, deleted_at, deletion_reason, mfa_enabled
+),
+insert_role AS (
+    INSERT INTO user_roles (user_id, role_id, assigned_at)
+    SELECT
+        inserted_user.id,
+        role_cte.id,
+        NOW()
+    FROM inserted_user, role_cte
+)
+SELECT id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at, deleted_at, deletion_reason, mfa_enabled FROM inserted_user
 `
 
 type CreateUserParams struct {
@@ -219,15 +242,29 @@ type CreateUserParams struct {
 	PasswordHash string
 }
 
+type CreateUserRow struct {
+	ID              uuid.UUID
+	Email           string
+	Username        string
+	PasswordHash    string
+	IsEmailVerified bool
+	IsActive        bool
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	DeletedAt       sql.NullTime
+	DeletionReason  sql.NullString
+	MfaEnabled      bool
+}
+
 // users
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
 	row := q.db.QueryRowContext(ctx, createUser,
 		arg.ID,
 		arg.Username,
 		arg.Email,
 		arg.PasswordHash,
 	)
-	var i User
+	var i CreateUserRow
 	err := row.Scan(
 		&i.ID,
 		&i.Email,

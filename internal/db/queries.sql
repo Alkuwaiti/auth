@@ -1,9 +1,32 @@
 -- users
 
 -- name: CreateUser :one
-INSERT INTO users (id, username, email, password_hash , created_at, updated_at)
-VALUES ($1, $2, $3, $4, NOW(), NOW())
-RETURNING *;
+WITH role_cte AS (
+    SELECT id
+    FROM roles
+    WHERE name = 'user'
+),
+inserted_user AS (
+    INSERT INTO users (
+        id,
+        username,
+        email,
+        password_hash,
+        created_at,
+        updated_at
+    )
+    VALUES ($1, $2, $3, $4, NOW(), NOW())
+    RETURNING *
+),
+insert_role AS (
+    INSERT INTO user_roles (user_id, role_id, assigned_at)
+    SELECT
+        inserted_user.id,
+        role_cte.id,
+        NOW()
+    FROM inserted_user, role_cte
+)
+SELECT * FROM inserted_user;
 
 -- name: GetUserByEmail :one
 SELECT

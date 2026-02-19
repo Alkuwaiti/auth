@@ -37,58 +37,29 @@ func (r *repo) GetUserByID(ctx context.Context, userID uuid.UUID) (domain.User, 
 	return toUserModelFromIDRow(user), nil
 }
 
-// TODO: split up
 func (r *repo) CreateUser(ctx context.Context, username, email, passwordHash string) (domain.User, error) {
 	userID, err := uuid.NewV7()
 	if err != nil {
 		return domain.User{}, err
 	}
 
-	var (
-		user   domain.User
-		dbUser postgres.User
-		roleID uuid.UUID
-	)
-
-	err = r.ExecTx(ctx, func(q *postgres.Queries) error {
-		dbUser, err = q.CreateUser(ctx, postgres.CreateUserParams{
-			ID:           userID,
-			Username:     username,
-			Email:        email,
-			PasswordHash: passwordHash,
-		})
-		if err != nil {
-			var pgErr *pq.Error
-			if errors.As(err, &pgErr) {
-				if pgErr.Code == "23505" { // Unique constraint error code
-					return domain.ErrRecordAlreadyExists
-				}
-			}
-			return err
-		}
-
-		roleID, err = q.GetRoleIDByName(ctx, "user")
-		if err != nil {
-			return err
-		}
-
-		err = q.AssignRoleToUser(ctx, postgres.AssignRoleToUserParams{
-			UserID: userID,
-			RoleID: roleID,
-		})
-		if err != nil {
-			return err
-		}
-
-		user = toUserModel(dbUser)
-		return nil
+	user, err := r.queries.CreateUser(ctx, postgres.CreateUserParams{
+		ID:           userID,
+		Username:     username,
+		Email:        email,
+		PasswordHash: passwordHash,
 	})
-
 	if err != nil {
+		var pgErr *pq.Error
+		if errors.As(err, &pgErr) {
+			if pgErr.Code == "23505" { // Unique constraint error code
+				return domain.User{}, domain.ErrRecordAlreadyExists
+			}
+		}
 		return domain.User{}, err
 	}
 
-	return user, nil
+	return toUserModel(user), nil
 }
 
 func (r *repo) DeleteUser(ctx context.Context, userID uuid.UUID, deletionReason domain.DeletionReason) error {
@@ -110,7 +81,7 @@ func (r *repo) DeleteUser(ctx context.Context, userID uuid.UUID, deletionReason 
 	return nil
 }
 
-func toUserModel(user postgres.User) domain.User {
+func toUserModel(user postgres.CreateUserRow) domain.User {
 	var deletedAt *time.Time
 	if user.DeletedAt.Valid {
 		deletedAt = &user.DeletedAt.Time
