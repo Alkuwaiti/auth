@@ -3,13 +3,12 @@ package testutil
 import (
 	"context"
 
-	"github.com/alkuwaiti/auth/internal/observability"
 	"github.com/alkuwaiti/auth/pkg/contextkeys"
 	"github.com/google/uuid"
 )
 
 func CtxWithRequestMeta(ctx context.Context) context.Context {
-	return context.WithValue(ctx, contextkeys.RequestMetaKeyType{}, observability.RequestMeta{
+	return context.WithValue(ctx, contextkeys.RequestMetaKeyType{}, contextkeys.RequestMeta{
 		IPAddress: "127.0.0.1",
 		UserAgent: "test-agent",
 	})

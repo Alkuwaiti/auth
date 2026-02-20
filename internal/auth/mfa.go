@@ -21,7 +21,6 @@ type EnrollmentResult struct {
 }
 
 // TODO: enroll other methods.
-// TODO: make sure to reference the completionist's MFA guide.
 
 func (s *Service) EnrollMFAMethod(ctx context.Context, methodType domain.MFAMethodType) (EnrollmentResult, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.EnrollMethod")
