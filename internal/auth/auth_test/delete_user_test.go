@@ -1,6 +1,6 @@
 //go:build integration
 
-package auth
+package auth_test
 
 import (
 	"context"
@@ -81,7 +81,7 @@ func TestDeleteUser_AlreadyDeleted(t *testing.T) {
 	})
 
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "User not found or already deleted")
+	require.ErrorIs(t, err, auth.ErrUserNotFound)
 }
 
 func TestDeleteUser_UserDoesNotExist(t *testing.T) {
@@ -106,7 +106,7 @@ func TestDeleteUser_UserDoesNotExist(t *testing.T) {
 	})
 
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "User not found or already deleted")
+	require.ErrorIs(t, err, auth.ErrUserNotFound)
 }
 
 func TestDeleteUser_InvalidInput(t *testing.T) {

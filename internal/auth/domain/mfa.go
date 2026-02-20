@@ -26,7 +26,7 @@ type MFAChallenge struct {
 	Attempts      int
 }
 
-type LockedTOTPChallenge struct {
+type ActiveTOTPChallenge struct {
 	ChallengeID      uuid.UUID
 	UserID           uuid.UUID
 	MethodID         uuid.UUID

@@ -1,6 +1,6 @@
 //go:build integration
 
-package auth
+package auth_test
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/apperrors"
+	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/google/uuid"
@@ -52,7 +52,7 @@ func TestConfirmMFAMethod_Success(t *testing.T) {
 	ctx := context.Background()
 	ctx = testutil.CtxWithRequestMeta(ctx)
 	userID := uuid.New()
-	ctx = testutil.CtxWithUserID(ctx, uuid.New())
+	ctx = testutil.CtxWithUserID(ctx, userID)
 
 	email := "user@email.com"
 	ctx = testutil.CtxWithEmail(ctx, email)
@@ -102,7 +102,7 @@ func TestConfirmMFAMethod_AlreadyConfirmed(t *testing.T) {
 	ctx := context.Background()
 	ctx = testutil.CtxWithRequestMeta(ctx)
 	userID := uuid.New()
-	ctx = testutil.CtxWithUserID(ctx, uuid.New())
+	ctx = testutil.CtxWithUserID(ctx, userID)
 
 	email := "user@email.com"
 	ctx = testutil.CtxWithEmail(ctx, email)
@@ -131,9 +131,7 @@ func TestConfirmMFAMethod_AlreadyConfirmed(t *testing.T) {
 	_, err = service.ConfirmMFAMethod(ctx, methodID, "123456")
 	require.Error(t, err)
 
-	var badReq *apperrors.BadRequestError
-	require.ErrorAs(t, err, &badReq)
-	require.Equal(t, "method", badReq.Field)
+	require.ErrorIs(t, err, auth.ErrMethodAlreadyConfirmed)
 }
 
 func TestConfirmMFAMethod_InvalidCode(t *testing.T) {
@@ -142,7 +140,7 @@ func TestConfirmMFAMethod_InvalidCode(t *testing.T) {
 	ctx := context.Background()
 	ctx = testutil.CtxWithRequestMeta(ctx)
 	userID := uuid.New()
-	ctx = testutil.CtxWithUserID(ctx, uuid.New())
+	ctx = testutil.CtxWithUserID(ctx, userID)
 
 	email := "user@email.com"
 	ctx = testutil.CtxWithEmail(ctx, email)
@@ -163,8 +161,7 @@ func TestConfirmMFAMethod_InvalidCode(t *testing.T) {
 	_, err = service.ConfirmMFAMethod(ctx, methodID, "000000")
 	require.Error(t, err)
 
-	var invalidMFA *apperrors.InvalidMFACodeError
-	require.ErrorAs(t, err, &invalidMFA)
+	require.ErrorIs(t, err, auth.ErrInvalidMFACode)
 }
 
 func TestConfirmMFAMethod_ExpiredMethod(t *testing.T) {
@@ -173,7 +170,7 @@ func TestConfirmMFAMethod_ExpiredMethod(t *testing.T) {
 	ctx := context.Background()
 	ctx = testutil.CtxWithRequestMeta(ctx)
 	userID := uuid.New()
-	ctx = testutil.CtxWithUserID(ctx, uuid.New())
+	ctx = testutil.CtxWithUserID(ctx, userID)
 
 	email := "user@email.com"
 	ctx = testutil.CtxWithEmail(ctx, email)
@@ -204,7 +201,5 @@ func TestConfirmMFAMethod_ExpiredMethod(t *testing.T) {
 	_, err = service.ConfirmMFAMethod(ctx, methodID, code)
 	require.Error(t, err)
 
-	var badReq *apperrors.BadRequestError
-	require.ErrorAs(t, err, &badReq)
-	require.Equal(t, "method", badReq.Field)
+	require.ErrorIs(t, err, auth.ErrMFAMethodExpired)
 }

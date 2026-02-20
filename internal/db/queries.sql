@@ -1,9 +1,32 @@
 -- users
 
 -- name: CreateUser :one
-INSERT INTO users (id, username, email, password_hash , created_at, updated_at)
-VALUES ($1, $2, $3, $4, NOW(), NOW())
-RETURNING *;
+WITH role_cte AS (
+    SELECT id
+    FROM roles
+    WHERE name = 'user'
+),
+inserted_user AS (
+    INSERT INTO users (
+        id,
+        username,
+        email,
+        password_hash,
+        created_at,
+        updated_at
+    )
+    VALUES ($1, $2, $3, $4, NOW(), NOW())
+    RETURNING *
+),
+insert_role AS (
+    INSERT INTO user_roles (user_id, role_id, assigned_at)
+    SELECT
+        inserted_user.id,
+        role_cte.id,
+        NOW()
+    FROM inserted_user, role_cte
+)
+SELECT * FROM inserted_user;
 
 -- name: GetUserByEmail :one
 SELECT
@@ -57,7 +80,7 @@ SET
 WHERE id = $2
 AND revoked_at IS NULL;
 
--- name: RevokeAllUserSessions :exec
+-- name: RevokeSessions :exec
 UPDATE sessions
 SET 
   revoked_at = NOW(),
@@ -152,9 +175,10 @@ FROM user_mfa_methods
 WHERE user_id = $1
   AND confirmed_at IS NOT NULL;
 
--- name: GetMFAMethodByID :one
+-- name: GetUserMFAMethodByID :one
 SELECT * FROM user_mfa_methods
-WHERE id = $1;
+WHERE id = $1
+  AND user_id = $2;
 
 -- name: GetConfirmedMFAMethodByType :one
 SELECT * FROM user_mfa_methods
@@ -167,7 +191,7 @@ UPDATE mfa_challenges
 SET attempts = attempts + 1
 WHERE id = $1;
 
--- name: LockActiveTOTPChallenge :one
+-- name: GetActiveTOTPChallengeForUpdate :one
 SELECT
   c.id            AS challenge_id,
   c.user_id,
@@ -190,7 +214,7 @@ FOR UPDATE;
 INSERT INTO mfa_backup_codes (user_id, code_hash)
 SELECT $1, unnest($2::text[]);
 
--- name: DeleteBackupCodesForUser :exec
+-- name: DeleteUserBackupCodes :exec
 DELETE FROM mfa_backup_codes
 WHERE user_id = $1;
 

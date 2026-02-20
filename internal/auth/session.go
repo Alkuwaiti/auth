@@ -6,10 +6,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
-	"github.com/alkuwaiti/auth/internal/auth/repository"
 	"github.com/alkuwaiti/auth/pkg/contextkeys"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
@@ -24,14 +22,14 @@ type LoginResult struct {
 
 func (s *Service) Login(ctx context.Context, email, password string) (LoginResult, error) {
 	if !s.Flags.RefreshTokensEnabled(ctx) {
-		return LoginResult{}, &apperrors.RefreshDisabledError{}
+		return LoginResult{}, ErrRefreshDisabled
 	}
 
 	user, err := s.Repo.GetUserByEmail(ctx, email)
 	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
+		if errors.Is(err, domain.ErrNotFound) {
 			// Return an invalid credentials here as this is a login endpoint.
-			return LoginResult{}, &apperrors.InvalidCredentialsError{}
+			return LoginResult{}, ErrInvalidCredentials
 		}
 
 		slog.ErrorContext(ctx, "login failed: user lookup error", "email", user.Email, "err", err)
@@ -44,19 +42,19 @@ func (s *Service) Login(ctx context.Context, email, password string) (LoginResul
 		return LoginResult{}, err
 	}
 	if !match {
-		return LoginResult{}, &apperrors.InvalidCredentialsError{}
+		return LoginResult{}, ErrInvalidCredentials
 	}
 
 	if user.DeletedAt != nil {
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email, "deleted_at", user.DeletedAt)
 		// Don't tell the user they're deleted.
-		return LoginResult{}, &apperrors.InvalidCredentialsError{}
+		return LoginResult{}, ErrInvalidCredentials
 	}
 
 	if !user.IsActive {
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email, "is_active", user.IsActive)
 		// Don't tell the user they're inactive.
-		return LoginResult{}, &apperrors.InvalidCredentialsError{}
+		return LoginResult{}, ErrInvalidCredentials
 	}
 
 	methods, err := s.Repo.GetMFAMethodsConfirmedByUser(ctx, user.ID)
@@ -102,15 +100,15 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 	defer span.End()
 
 	if !s.Flags.RefreshTokensEnabled(ctx) {
-		return TokenPair{}, &apperrors.RefreshDisabledError{}
+		return TokenPair{}, ErrRefreshDisabled
 	}
 
 	meta := contextkeys.RequestMetaFromContext(ctx)
 
 	session, err := s.Repo.GetSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			return TokenPair{}, &apperrors.InvalidCredentialsError{}
+		if errors.Is(err, domain.ErrNotFound) {
+			return TokenPair{}, ErrInvalidCredentials
 		}
 
 		slog.ErrorContext(ctx, "failed to get session by refresh token", "err", err)
@@ -123,7 +121,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 			"compromised_at", session.CompromisedAt,
 			"user_id", session.UserID,
 		)
-		return TokenPair{}, &apperrors.InvalidCredentialsError{}
+		return TokenPair{}, ErrInvalidCredentials
 	}
 
 	if session.IsExpired() {
@@ -131,7 +129,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 			"session_id", session.ID,
 			"session_expires_at", session.ExpiresAt,
 		)
-		return TokenPair{}, &apperrors.InvalidCredentialsError{}
+		return TokenPair{}, ErrInvalidCredentials
 	}
 
 	if session.RevokedAt != nil {
@@ -142,9 +140,21 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 			"revocation_reason", session.RevocationReason,
 		)
 
-		// TODO: split up, handle tx outside.
-		if err = s.Repo.RevokeAndMarkSessionsCompromised(ctx, session.UserID, domain.RevocationSessionCompromised); err != nil {
-			slog.ErrorContext(ctx, "failed to mark sessions as compromised", "err", err)
+		if err = s.Repo.WithTx(ctx, func(r Repo) error {
+			if err = r.RevokeSessions(ctx, session.UserID, domain.RevocationSessionCompromised); err != nil {
+				slog.ErrorContext(ctx, "failed to revoke sessions", "err", err)
+				return err
+			}
+
+			if err = r.MarkSessionsCompromised(ctx, session.UserID); err != nil {
+				slog.ErrorContext(ctx, "failed to mark sessions as compromised", "err", err)
+				return err
+			}
+
+			return nil
+		}); err != nil {
+			slog.ErrorContext(ctx, "error in transaction", "err", err)
+			return TokenPair{}, err
 		}
 
 		if err = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
@@ -156,15 +166,15 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 			slog.ErrorContext(ctx, "failed to create audit log", "err", err)
 		}
 
-		return TokenPair{}, &apperrors.InvalidCredentialsError{}
+		return TokenPair{}, ErrInvalidCredentials
 	}
 
 	user, err := s.Repo.GetUserByID(ctx, session.UserID)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to get user by id", "err", err)
 
-		if errors.Is(err, repository.ErrNotFound) {
-			return TokenPair{}, &apperrors.InvalidCredentialsError{}
+		if errors.Is(err, domain.ErrNotFound) {
+			return TokenPair{}, ErrInvalidCredentials
 		}
 		return TokenPair{}, err
 	}
@@ -172,7 +182,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 	if user.DeletedAt != nil {
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email, "deleted_at", user.DeletedAt)
 		// Don't tell the user they're deleted.
-		return TokenPair{}, &apperrors.InvalidCredentialsError{}
+		return TokenPair{}, ErrInvalidCredentials
 	}
 
 	newRefreshToken, err := s.tokenManager.GenerateSecureToken()
@@ -183,19 +193,20 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 		return TokenPair{}, err
 	}
 
-	if err = s.Repo.RotateSession(
-		ctx,
-		domain.RotateSessionInput{
-			OldSessionID:     session.ID,
-			UserID:           session.UserID,
-			Expiry:           session.ExpiresAt,
-			RevocationReason: domain.RevocationSessionRotation,
-			RefreshToken:     newRefreshToken,
-			IPAddress:        meta.IPAddress,
-			UserAgent:        meta.UserAgent,
-		},
-	); err != nil {
-		slog.ErrorContext(ctx, "session rotation failed", "err", err)
+	if err = s.Repo.WithTx(ctx, func(r Repo) error {
+		if err = r.RevokeSession(ctx, session.ID, domain.RevocationSessionRotation); err != nil {
+			slog.ErrorContext(ctx, "session revocation failed", "err", err)
+			return err
+		}
+
+		if _, err = r.CreateSession(ctx, user.ID, session.ExpiresAt, newRefreshToken, meta.IPAddress, meta.UserAgent); err != nil {
+			slog.ErrorContext(ctx, "creating session failed", "err", err)
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		slog.ErrorContext(ctx, "transaction error", "err", err)
 		return TokenPair{}, err
 	}
 

@@ -36,13 +36,3 @@ const (
 func (r RevocationReason) String() string {
 	return string(r)
 }
-
-type RotateSessionInput struct {
-	OldSessionID     uuid.UUID
-	UserID           uuid.UUID
-	Expiry           time.Time
-	RevocationReason RevocationReason
-	RefreshToken     string
-	IPAddress        string
-	UserAgent        string
-}

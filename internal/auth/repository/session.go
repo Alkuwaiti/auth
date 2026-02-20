@@ -36,7 +36,7 @@ func (r *repo) GetSessionByRefreshToken(ctx context.Context, refreshToken string
 	session, err := r.queries.GetSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return domain.Session{}, ErrNotFound
+			return domain.Session{}, domain.ErrNotFound
 		}
 		return domain.Session{}, err
 	}
@@ -54,111 +54,18 @@ func (r *repo) RevokeSession(ctx context.Context, SessionID uuid.UUID, revocatio
 	})
 }
 
-func (r *repo) UpdatePasswordAndRevokeSessions(ctx context.Context, userID uuid.UUID, newPasswordHash string, reason domain.RevocationReason) error {
-	return r.ExecTx(ctx, func(q *postgres.Queries) error {
-		if err := q.UpdatePassword(ctx, postgres.UpdatePasswordParams{
-			ID:           userID,
-			PasswordHash: newPasswordHash,
-		}); err != nil {
-			return err
-		}
-
-		if err := q.RevokeAllUserSessions(ctx, postgres.RevokeAllUserSessionsParams{
-			UserID: userID,
-			RevocationReason: sql.NullString{
-				String: string(reason),
-				Valid:  reason != "",
-			},
-		}); err != nil {
-			return err
-		}
-
-		return nil
+func (r *repo) RevokeSessions(ctx context.Context, userID uuid.UUID, revocationReason domain.RevocationReason) error {
+	return r.queries.RevokeSessions(ctx, postgres.RevokeSessionsParams{
+		UserID: userID,
+		RevocationReason: sql.NullString{
+			String: string(revocationReason),
+			Valid:  revocationReason != "",
+		},
 	})
 }
 
-func (r *repo) RotateSession(ctx context.Context, input domain.RotateSessionInput) error {
-	return r.ExecTx(ctx, func(queries *postgres.Queries) error {
-		if err := queries.RevokeSession(ctx, postgres.RevokeSessionParams{
-			ID: input.OldSessionID,
-			RevocationReason: sql.NullString{
-				String: string(input.RevocationReason),
-				Valid:  input.RevocationReason != "",
-			},
-		}); err != nil {
-			return err
-		}
-
-		_, err := queries.CreateSession(ctx, postgres.CreateSessionParams{
-			UserID:       input.UserID,
-			RefreshToken: input.RefreshToken,
-			UserAgent: sql.NullString{
-				String: input.UserAgent,
-				Valid:  input.UserAgent != "",
-			},
-			IpAddress: sql.NullString{
-				String: input.IPAddress,
-				Valid:  input.IPAddress != "",
-			},
-			ExpiresAt: input.Expiry,
-		})
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-}
-
-func (r *repo) RevokeAndMarkSessionsCompromised(ctx context.Context, userID uuid.UUID, reason domain.RevocationReason) error {
-	return r.ExecTx(ctx, func(q *postgres.Queries) error {
-		if err := q.RevokeAllUserSessions(ctx, postgres.RevokeAllUserSessionsParams{
-			UserID: userID,
-			RevocationReason: sql.NullString{
-				String: string(reason),
-				Valid:  reason != "",
-			},
-		}); err != nil {
-			return err
-		}
-
-		if err := q.MarkSessionsCompromised(ctx, userID); err != nil {
-			return err
-		}
-
-		return nil
-	})
-}
-
-func (r *repo) DeleteUserAndRevokeSessions(ctx context.Context, userID uuid.UUID, deletionReason domain.DeletionReason, revocationReason domain.RevocationReason) error {
-	return r.ExecTx(ctx, func(q *postgres.Queries) error {
-		rows, err := q.DeleteUser(ctx, postgres.DeleteUserParams{
-			ID: userID,
-			DeletionReason: sql.NullString{
-				String: string(deletionReason),
-				Valid:  deletionReason != "",
-			},
-		})
-		if err != nil {
-			return err
-		}
-
-		if rows == 0 {
-			return ErrNotFound
-		}
-
-		if err := q.RevokeAllUserSessions(ctx, postgres.RevokeAllUserSessionsParams{
-			UserID: userID,
-			RevocationReason: sql.NullString{
-				String: string(revocationReason),
-				Valid:  revocationReason != "",
-			},
-		}); err != nil {
-			return err
-		}
-
-		return nil
-	})
+func (r *repo) MarkSessionsCompromised(ctx context.Context, userID uuid.UUID) error {
+	return r.queries.MarkSessionsCompromised(ctx, userID)
 }
 
 func toSessionModel(session postgres.Session) domain.Session {

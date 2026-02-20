@@ -1,6 +1,6 @@
 //go:build integration
 
-package auth
+package auth_test
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/flags"
 	"github.com/alkuwaiti/auth/internal/testutil"
@@ -69,7 +68,7 @@ func TestRefreshToken_InvalidToken(t *testing.T) {
 
 	_, err := service.RefreshToken(ctx, "non-existent-token")
 	require.Error(t, err)
-	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
+	require.IsType(t, auth.ErrInvalidCredentials, err)
 }
 
 func TestRefreshToken_ExpiredSession(t *testing.T) {
@@ -97,7 +96,7 @@ func TestRefreshToken_ExpiredSession(t *testing.T) {
 
 	_, err = service.RefreshToken(ctx, res.Tokens.RefreshToken)
 	require.Error(t, err)
-	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
+	require.IsType(t, auth.ErrInvalidCredentials, err)
 }
 
 func TestRefreshToken_RevokedTokenReuse(t *testing.T) {
@@ -126,7 +125,7 @@ func TestRefreshToken_RevokedTokenReuse(t *testing.T) {
 
 	_, err = service.RefreshToken(ctx, res.Tokens.RefreshToken)
 	require.Error(t, err)
-	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
+	require.IsType(t, auth.ErrInvalidCredentials, err)
 
 	// verify compromise escalation
 	var count int
@@ -164,7 +163,7 @@ func TestRefreshToken_AlreadyCompromised(t *testing.T) {
 
 	_, err = service.RefreshToken(ctx, res.Tokens.RefreshToken)
 	require.Error(t, err)
-	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
+	require.IsType(t, auth.ErrInvalidCredentials, err)
 }
 
 func TestRefreshToken_ConcurrentRace(t *testing.T) {
@@ -203,7 +202,7 @@ func TestRefreshToken_ConcurrentRace(t *testing.T) {
 	for err := range errs {
 		if err == nil {
 			success++
-		} else if errors.Is(err, &apperrors.InvalidCredentialsError{}) {
+		} else if errors.Is(err, auth.ErrInvalidCredentials) {
 			compromised++
 		}
 	}
@@ -235,7 +234,7 @@ func TestRefreshToken_AfterPasswordChange(t *testing.T) {
 
 	_, err = service.RefreshToken(ctx, res.Tokens.RefreshToken)
 	require.Error(t, err)
-	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
+	require.IsType(t, auth.ErrInvalidCredentials, err)
 }
 
 func TestRefreshToken_AfterLogout(t *testing.T) {
@@ -259,7 +258,7 @@ func TestRefreshToken_AfterLogout(t *testing.T) {
 
 	_, err = service.RefreshToken(ctx, res.Tokens.RefreshToken)
 	require.Error(t, err)
-	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
+	require.IsType(t, auth.ErrInvalidCredentials, err)
 }
 
 func TestRefreshToken_LogoutThenReplay(t *testing.T) {
@@ -286,7 +285,7 @@ func TestRefreshToken_LogoutThenReplay(t *testing.T) {
 
 	_, err = service.RefreshToken(ctx, refreshed.RefreshToken)
 	require.Error(t, err)
-	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
+	require.IsType(t, auth.ErrInvalidCredentials, err)
 }
 
 func TestRefreshToken_MultiDeviceIsolation(t *testing.T) {
@@ -346,7 +345,7 @@ func TestRefreshToken_DeletedUser(t *testing.T) {
 
 	_, err = service.RefreshToken(ctx, res.Tokens.RefreshToken)
 	require.Error(t, err)
-	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
+	require.IsType(t, auth.ErrInvalidCredentials, err)
 }
 
 func TestRefreshToken_Disabled(t *testing.T) {
@@ -366,6 +365,5 @@ func TestRefreshToken_Disabled(t *testing.T) {
 
 	require.Error(t, err)
 
-	var refreshDisabledErr *apperrors.RefreshDisabledError
-	require.ErrorAs(t, err, &refreshDisabledErr)
+	require.ErrorIs(t, err, auth.ErrRefreshDisabled)
 }

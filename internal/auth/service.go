@@ -3,20 +3,18 @@ package auth
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
-	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/google/uuid"
 	"github.com/pquerna/otp"
 	"go.opentelemetry.io/otel"
 )
 
 type Service struct {
-	Repo         repo
+	Repo         Repo
 	Passwords    passwords
 	auditor      auditor
 	authorizer   authorizer
@@ -31,7 +29,7 @@ type Config struct {
 	MaxChallengeAttempts int
 }
 
-func NewService(repoI repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, hasher hasher, Config Config) *Service {
+func NewService(repoI Repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, hasher hasher, Config Config) *Service {
 	return &Service{
 		Repo:         repoI,
 		Passwords:    passwords,
@@ -45,36 +43,35 @@ func NewService(repoI repo, passwords passwords, auditor auditor, authorizer aut
 	}
 }
 
-type repo interface {
+type Repo interface {
 	GetUserBackupCodes(ctx context.Context, userID uuid.UUID) ([]domain.MFABackupCode, error)
-	ConsumeBackupCode(ctx context.Context, tx *sql.Tx, codeID uuid.UUID) error
+	ConsumeBackupCode(ctx context.Context, codeID uuid.UUID) error
 	CreateChallenge(ctx context.Context, challenge domain.MFAChallenge) (domain.MFAChallenge, error)
 	GetChallengeByID(ctx context.Context, challengeID uuid.UUID) (domain.MFAChallenge, error)
-	LockActiveTOTPChallenge(ctx context.Context, tx *sql.Tx, challengeID uuid.UUID) (domain.LockedTOTPChallenge, error)
-	IncrementChallengeAttempts(ctx context.Context, tx *sql.Tx, challengeID uuid.UUID) error
-	ConsumeChallenge(ctx context.Context, tx *sql.Tx, challengeID uuid.UUID) error
+	GetActiveTOTPChallengeForUpdate(ctx context.Context, challengeID uuid.UUID) (domain.ActiveTOTPChallenge, error)
+	IncrementChallengeAttempts(ctx context.Context, challengeID uuid.UUID) error
+	ConsumeChallenge(ctx context.Context, challengeID uuid.UUID) error
 	UserHasActiveMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) (bool, error)
 	DeleteExpiredUnconfirmedMethods(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) error
 	CreateUserMFAMethod(ctx context.Context, userID uuid.UUID, secret []byte, methodType domain.MFAMethodType) (domain.MFAMethod, error)
-	GetMFAMethodByID(ctx context.Context, methodID uuid.UUID) (domain.MFAMethod, error)
-	ConfirmUserMFAMethod(ctx context.Context, tx *sql.Tx, methodID uuid.UUID) error
+	GetUserMFAMethodByID(ctx context.Context, methodID, userID uuid.UUID) (domain.MFAMethod, error)
+	ConfirmUserMFAMethod(ctx context.Context, methodID uuid.UUID) error
 	GetMFAMethodsConfirmedByUser(ctx context.Context, userID uuid.UUID) ([]domain.MFAMethod, error)
 	GetConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) (domain.MFAMethod, error)
 	UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error)
-	BeginTx(ctx context.Context) (*sql.Tx, error)
-	ExecTx(ctx context.Context, fn func(*postgres.Queries) error) error
+	WithTx(ctx context.Context, fn func(r Repo) error) error
 	CreateSession(ctx context.Context, userID uuid.UUID, expiry time.Time, refreshToken, IPAddress, userAgent string) (domain.Session, error)
 	GetSessionByRefreshToken(ctx context.Context, refreshToken string) (domain.Session, error)
 	RevokeSession(ctx context.Context, SessionID uuid.UUID, revocationReason domain.RevocationReason) error
-	UpdatePasswordAndRevokeSessions(ctx context.Context, userID uuid.UUID, newPasswordHash string, reason domain.RevocationReason) error
-	RotateSession(ctx context.Context, input domain.RotateSessionInput) error
-	RevokeAndMarkSessionsCompromised(ctx context.Context, userID uuid.UUID, reason domain.RevocationReason) error
-	DeleteUserAndRevokeSessions(ctx context.Context, userID uuid.UUID, deletionReason domain.DeletionReason, revocationReason domain.RevocationReason) error
+	UpdatePassword(ctx context.Context, userID uuid.UUID, newPasswordHash string) error
+	RevokeSessions(ctx context.Context, userID uuid.UUID, revocationReason domain.RevocationReason) error
+	DeleteUser(ctx context.Context, userID uuid.UUID, deletionReason domain.DeletionReason) error
+	MarkSessionsCompromised(ctx context.Context, userID uuid.UUID) error
 	GetUserByEmail(ctx context.Context, email string) (domain.User, error)
 	GetUserByID(ctx context.Context, userID uuid.UUID) (domain.User, error)
 	CreateUser(ctx context.Context, username, email, passwordHash string) (domain.User, error)
-	InsertBackupCodes(ctx context.Context, tx *sql.Tx, userID uuid.UUID, hashedCodes []string) error
-	DeleteBackupCodesForUser(ctx context.Context, tx *sql.Tx, userID uuid.UUID) error
+	InsertBackupCodes(ctx context.Context, userID uuid.UUID, hashedCodes []string) error
+	DeleteUserBackupCodes(ctx context.Context, userID uuid.UUID) error
 	CreatePasswordResetToken(ctx context.Context, userID uuid.UUID, tokenHash string, expiresAt time.Time) error
 	DeleteUserPasswordResetTokens(ctx context.Context, userID uuid.UUID) error
 	ConsumePasswordResetToken(ctx context.Context, tokenHash string) (uuid.UUID, error)

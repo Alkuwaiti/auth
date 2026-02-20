@@ -24,11 +24,11 @@ import (
 	"github.com/alkuwaiti/auth/internal/flags"
 	"github.com/alkuwaiti/auth/internal/hasher"
 	"github.com/alkuwaiti/auth/internal/mfa"
-	"github.com/alkuwaiti/auth/internal/observability/logging"
-	"github.com/alkuwaiti/auth/internal/observability/tracing"
 	"github.com/alkuwaiti/auth/internal/password"
 	"github.com/alkuwaiti/auth/internal/server/grpc"
 	"github.com/alkuwaiti/auth/internal/tokens"
+	"github.com/alkuwaiti/auth/pkg/observability/logging"
+	"github.com/alkuwaiti/auth/pkg/observability/tracing"
 )
 
 var (

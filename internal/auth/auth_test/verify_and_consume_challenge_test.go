@@ -1,13 +1,13 @@
 //go:build integration
 
-package auth
+package auth_test
 
 import (
 	"context"
 	"testing"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/apperrors"
+	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/google/uuid"
 	"github.com/pquerna/otp/totp"
@@ -50,7 +50,7 @@ func TestVerifyAndConsumeChallenge_InvalidTOTP(t *testing.T) {
 
 	_, err := svc.VerifyAndConsumeChallenge(ctx, challengeID, "000000")
 	require.Error(t, err)
-	require.IsType(t, &apperrors.InvalidMFACodeError{}, err)
+	require.ErrorIs(t, err, auth.ErrInvalidMFACode)
 
 	dbChallenge, err := svc.Repo.GetChallengeByID(ctx, challengeID)
 	require.NoError(t, err)
@@ -80,7 +80,7 @@ func TestVerifyAndConsumeChallenge_MaxAttemptsExceeded(t *testing.T) {
 
 	_, err = svc.VerifyAndConsumeChallenge(ctx, challengeID, "000000")
 	require.Error(t, err)
-	require.IsType(t, &apperrors.InvalidMFACodeError{}, err)
+	require.ErrorIs(t, err, auth.ErrInvalidMFACode)
 }
 
 func TestVerifyAndConsumeChallenge_AlreadyConsumed(t *testing.T) {
@@ -103,7 +103,7 @@ func TestVerifyAndConsumeChallenge_AlreadyConsumed(t *testing.T) {
 
 	_, err = svc.VerifyAndConsumeChallenge(ctx, challengeID, "000000")
 	require.Error(t, err)
-	require.IsType(t, &apperrors.InvalidMFACodeError{}, err)
+	require.ErrorIs(t, err, auth.ErrInvalidMFACode)
 }
 
 func TestVerifyAndConsumeChallenge_SuccessWithBackupCode(t *testing.T) {

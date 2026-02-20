@@ -3,7 +3,6 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/auth/domain"
@@ -20,20 +19,19 @@ func (r *repo) GetUserBackupCodes(ctx context.Context, userID uuid.UUID) ([]doma
 	return toMFABackupCode(postgresCodes), nil
 }
 
-func (r *repo) ConsumeBackupCode(ctx context.Context, tx *sql.Tx, codeID uuid.UUID) error {
-	return r.queries.WithTx(tx).ConsumeBackupCode(ctx, codeID)
+func (r *repo) ConsumeBackupCode(ctx context.Context, codeID uuid.UUID) error {
+	return r.queries.ConsumeBackupCode(ctx, codeID)
 }
 
-func (r *repo) InsertBackupCodes(ctx context.Context, tx *sql.Tx, userID uuid.UUID, hashedCodes []string) error {
-	return r.queries.WithTx(tx).InsertBackupCodes(ctx, postgres.InsertBackupCodesParams{
+func (r *repo) InsertBackupCodes(ctx context.Context, userID uuid.UUID, hashedCodes []string) error {
+	return r.queries.InsertBackupCodes(ctx, postgres.InsertBackupCodesParams{
 		UserID:  userID,
 		Column2: hashedCodes,
 	})
 }
 
-// TODO: rename, wtf.
-func (r *repo) DeleteBackupCodesForUser(ctx context.Context, tx *sql.Tx, userID uuid.UUID) error {
-	return r.queries.WithTx(tx).DeleteBackupCodesForUser(ctx, userID)
+func (r *repo) DeleteUserBackupCodes(ctx context.Context, userID uuid.UUID) error {
+	return r.queries.DeleteUserBackupCodes(ctx, userID)
 }
 
 func toMFABackupCode(postgresCodes []postgres.MfaBackupCode) []domain.MFABackupCode {

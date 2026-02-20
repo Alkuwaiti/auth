@@ -6,10 +6,8 @@ import (
 	"log/slog"
 
 	"github.com/alkuwaiti/auth/internal/auth/domain"
-	"github.com/alkuwaiti/auth/internal/auth/repository"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
 
-	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/pkg/contextkeys"
 	"go.opentelemetry.io/otel/attribute"
@@ -43,16 +41,10 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 
 	user, err := s.Repo.CreateUser(ctx, input.Username, input.Email, newPasswordHash)
 	if err != nil {
-		if errors.Is(err, repository.ErrRecordAlreadyExists) {
-			return domain.User{}, &apperrors.BadRequestError{
-				Field: "user",
-				Msg:   "user already exists",
-			}
+		if errors.Is(err, domain.ErrRecordAlreadyExists) {
+			return domain.User{}, ErrUserExists
 		}
-		return domain.User{}, &apperrors.InternalError{
-			Msg: "failed to register a user",
-			Err: err,
-		}
+		return domain.User{}, err
 	}
 
 	if err = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
@@ -90,25 +82,34 @@ func (s *Service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 	if !s.authorizer.CanWithRoles(roles, authz.CanDeleteUser) {
 		userID, _ := contextkeys.UserIDFromContext(ctx)
 		slog.ErrorContext(ctx, "forbidden user attempt", "user_id", userID)
-		return &apperrors.ForbiddenError{}
+		return ErrForbidden
 	}
 
-	if err := input.validate(); err != nil {
+	if err = input.validate(); err != nil {
 		slog.ErrorContext(ctx, "failed to validate deletion reason", "err", err)
 		return err
 	}
 
 	meta := contextkeys.RequestMetaFromContext(ctx)
 
-	// TODO: split up
-	if err := s.Repo.DeleteUserAndRevokeSessions(ctx, input.UserID, input.DeletionReason, domain.RevocationUserDeleted); err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			return &apperrors.BadRequestError{
-				Field: "user uuid",
-				Msg:   "User not found or already deleted",
+	if err = s.Repo.WithTx(ctx, func(r Repo) error {
+		if err = r.DeleteUser(ctx, input.UserID, input.DeletionReason); err != nil {
+			if errors.Is(err, domain.ErrNotFound) {
+				return ErrUserNotFound
 			}
+			slog.ErrorContext(ctx, "failed to delete user", "err", err)
+			return err
 		}
-		slog.ErrorContext(ctx, "failed to delete user and revoke sessions", "err", err)
+
+		if err = r.RevokeSessions(ctx, input.UserID, domain.RevocationUserDeleted); err != nil {
+			slog.ErrorContext(ctx, "failed to revoke sessions", "err", err)
+			return err
+		}
+
+		return nil
+
+	}); err != nil {
+		slog.ErrorContext(ctx, "error in transaction", "err", err)
 		return err
 	}
 

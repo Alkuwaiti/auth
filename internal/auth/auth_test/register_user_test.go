@@ -1,13 +1,12 @@
 //go:build integration
 
-package auth
+package auth_test
 
 import (
 	"context"
 	"testing"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/google/uuid"
@@ -46,7 +45,7 @@ func TestRegisterUser(t *testing.T) {
 				Password: "StrongPassword123!",
 			},
 			expectError:   true,
-			expectedError: &apperrors.BadRequestError{},
+			expectedError: auth.ErrUserExists,
 		},
 		{
 			name: "DuplicateUsername",
@@ -61,7 +60,7 @@ func TestRegisterUser(t *testing.T) {
 				Password: "StrongPassword123!",
 			},
 			expectError:   true,
-			expectedError: &apperrors.BadRequestError{},
+			expectedError: auth.ErrUserExists,
 		},
 	}
 

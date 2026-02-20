@@ -3,7 +3,6 @@ package password
 import (
 	"testing"
 
-	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/stretchr/testify/require"
 )
 
@@ -12,48 +11,48 @@ func TestService(t *testing.T) {
 		name        string
 		password    string
 		expectedMsg string
-		shouldPass  bool
+		expectedErr error
 	}{
 		{
-			name:       "Success",
-			password:   "ValidPassword123!",
-			shouldPass: true,
+			name:        "Success",
+			password:    "ValidPassword123!",
+			expectedErr: nil,
 		},
 		{
 			name:        "ShortPassword",
 			password:    "pass",
 			expectedMsg: "must be at least 8 characters",
-			shouldPass:  false,
+			expectedErr: ErrPasswordTooShort,
 		},
 		{
 			name:        "LongPassword",
 			password:    "thisisaverylongpassword,letscontinueontillwehitthemaximumnumberofcharsavailableforushere.iamrunningoutofthingstosay,anditisgettingveryweirdsoireallyhopeigottoitbythislikewowokherewegoijustneedsomereallydumbcharactersforthistogettowhereineedittouhfjrtguvrybvpncqmyxemtchrgycnesrotcyuncyrbvngcp",
 			expectedMsg: "maximum 255 characters",
-			shouldPass:  false,
+			expectedErr: ErrPasswordTooLong,
 		},
 		{
 			name:        "NoUpperCase",
 			password:    "nouppercaseletters",
 			expectedMsg: "must contain at least one uppercase letter",
-			shouldPass:  false,
+			expectedErr: ErrPasswordMissingUppercase,
 		},
 		{
 			name:        "NoLowerCase",
 			password:    "NOLOWERCASELETTERS",
 			expectedMsg: "must contain at least one lowercase letter",
-			shouldPass:  false,
+			expectedErr: ErrPasswordMissingLowercase,
 		},
 		{
 			name:        "NoNumbers",
 			password:    "passwordWithNoNumbers",
 			expectedMsg: "must contain at least one number",
-			shouldPass:  false,
+			expectedErr: ErrPasswordMissingNumber,
 		},
 		{
 			name:        "NoSpecialCharacters",
 			password:    "passwordWithNoSpecialChars1",
 			expectedMsg: "must contain at least one special character",
-			shouldPass:  false,
+			expectedErr: ErrPasswordMissingSpecial,
 		},
 	}
 
@@ -63,13 +62,10 @@ func TestService(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			err := service.Validate(tt.password)
 
-			if tt.shouldPass {
-				require.NoError(t, err)
+			if tt.expectedErr != nil {
+				require.ErrorIs(t, err, tt.expectedErr)
 			} else {
-				var ve *apperrors.ValidationError
-				require.ErrorAs(t, err, &ve)
-				require.Equal(t, "password", ve.Field)
-				require.Equal(t, tt.expectedMsg, ve.Msg)
+				require.NoError(t, err)
 			}
 		})
 	}

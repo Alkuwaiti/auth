@@ -1,13 +1,12 @@
 //go:build integration
 
-package auth
+package auth_test
 
 import (
 	"context"
 	"testing"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/stretchr/testify/require"
@@ -74,7 +73,7 @@ func TestLogout_PreventsRefreshReuse(t *testing.T) {
 
 	_, err = service.RefreshToken(ctx, res.Tokens.RefreshToken)
 	require.Error(t, err)
-	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
+	require.IsType(t, auth.ErrInvalidCredentials, err)
 }
 
 func TestLogout_CreatesAuditLog(t *testing.T) {

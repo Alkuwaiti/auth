@@ -4,8 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"github.com/lib/pq"
 	"time"
+
+	"github.com/lib/pq"
 
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
@@ -16,7 +17,7 @@ func (r *repo) GetUserByEmail(ctx context.Context, email string) (domain.User, e
 	user, err := r.queries.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return domain.User{}, ErrNotFound
+			return domain.User{}, domain.ErrNotFound
 		}
 		return domain.User{}, err
 	}
@@ -28,7 +29,7 @@ func (r *repo) GetUserByID(ctx context.Context, userID uuid.UUID) (domain.User, 
 	user, err := r.queries.GetUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return domain.User{}, ErrNotFound
+			return domain.User{}, domain.ErrNotFound
 		}
 		return domain.User{}, err
 	}
@@ -42,54 +43,45 @@ func (r *repo) CreateUser(ctx context.Context, username, email, passwordHash str
 		return domain.User{}, err
 	}
 
-	var (
-		user   domain.User
-		dbUser postgres.User
-		roleID uuid.UUID
-	)
-
-	err = r.ExecTx(ctx, func(q *postgres.Queries) error {
-		dbUser, err = q.CreateUser(ctx, postgres.CreateUserParams{
-			ID:           userID,
-			Username:     username,
-			Email:        email,
-			PasswordHash: passwordHash,
-		})
-		if err != nil {
-			var pgErr *pq.Error
-			if errors.As(err, &pgErr) {
-				if pgErr.Code == "23505" { // Unique constraint error code
-					return ErrRecordAlreadyExists
-				}
-			}
-			return err
-		}
-
-		roleID, err = q.GetRoleIDByName(ctx, "user")
-		if err != nil {
-			return err
-		}
-
-		err = q.AssignRoleToUser(ctx, postgres.AssignRoleToUserParams{
-			UserID: userID,
-			RoleID: roleID,
-		})
-		if err != nil {
-			return err
-		}
-
-		user = toUserModel(dbUser)
-		return nil
+	user, err := r.queries.CreateUser(ctx, postgres.CreateUserParams{
+		ID:           userID,
+		Username:     username,
+		Email:        email,
+		PasswordHash: passwordHash,
 	})
-
 	if err != nil {
+		var pgErr *pq.Error
+		if errors.As(err, &pgErr) {
+			if pgErr.Code == "23505" { // Unique constraint error code
+				return domain.User{}, domain.ErrRecordAlreadyExists
+			}
+		}
 		return domain.User{}, err
 	}
 
-	return user, nil
+	return toUserModel(user), nil
 }
 
-func toUserModel(user postgres.User) domain.User {
+func (r *repo) DeleteUser(ctx context.Context, userID uuid.UUID, deletionReason domain.DeletionReason) error {
+	rows, err := r.queries.DeleteUser(ctx, postgres.DeleteUserParams{
+		ID: userID,
+		DeletionReason: sql.NullString{
+			String: string(deletionReason),
+			Valid:  deletionReason != "",
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	if rows == 0 {
+		return domain.ErrNotFound
+	}
+
+	return nil
+}
+
+func toUserModel(user postgres.CreateUserRow) domain.User {
 	var deletedAt *time.Time
 	if user.DeletedAt.Valid {
 		deletedAt = &user.DeletedAt.Time

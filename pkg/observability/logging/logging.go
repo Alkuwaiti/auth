@@ -1,3 +1,4 @@
+// Package logging provides defaults for the system logger.
 package logging
 
 import (
@@ -5,7 +6,6 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/alkuwaiti/auth/internal/observability"
 	"github.com/alkuwaiti/auth/pkg/contextkeys"
 )
 
@@ -22,7 +22,7 @@ func (h *ContextHandler) Enabled(ctx context.Context, level slog.Level) bool {
 }
 
 func (h *ContextHandler) Handle(ctx context.Context, r slog.Record) error {
-	if meta, ok := ctx.Value(contextkeys.RequestMetaKeyType{}).(observability.RequestMeta); ok {
+	if meta, ok := ctx.Value(contextkeys.RequestMetaKeyType{}).(contextkeys.RequestMeta); ok {
 		r.AddAttrs(meta.LogAttrs()...)
 	}
 

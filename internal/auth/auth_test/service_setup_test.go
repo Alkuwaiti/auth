@@ -1,5 +1,5 @@
-// Package auth is where all test cases are kept.
-package auth
+// Package auth_test is where all test cases are kept.
+package auth_test
 
 import (
 	"context"

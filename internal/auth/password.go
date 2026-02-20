@@ -6,10 +6,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
-	"github.com/alkuwaiti/auth/internal/auth/repository"
 	"github.com/alkuwaiti/auth/pkg/contextkeys"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -34,9 +32,9 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 
 	user, err := s.Repo.GetUserByID(ctx, userID)
 	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
+		if errors.Is(err, domain.ErrNotFound) {
 			_, _ = s.Passwords.Compare(dummyBcryptHash, oldPassword)
-			return &apperrors.InvalidCredentialsError{}
+			return ErrInvalidCredentials
 		}
 
 		slog.ErrorContext(ctx, "failed to get user by id", "err", err)
@@ -47,7 +45,7 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 	if user.DeletedAt != nil {
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email, "deleted_at", user.DeletedAt)
 		// Don't tell the user they're deleted.
-		return &apperrors.InvalidCredentialsError{}
+		return ErrInvalidCredentials
 	}
 
 	match, err := s.Passwords.Compare(user.PasswordHash, oldPassword)
@@ -56,7 +54,7 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 		return err
 	}
 	if !match {
-		return &apperrors.InvalidCredentialsError{}
+		return ErrInvalidCredentials
 	}
 
 	match, err = s.Passwords.Compare(user.PasswordHash, newPassword)
@@ -66,7 +64,7 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 	}
 	if match {
 		span.SetStatus(codes.Error, "old password cannot be new password")
-		return &apperrors.PasswordReuseError{}
+		return ErrPasswordReuse
 	}
 
 	newPasswordHash, err := s.Passwords.Hash(newPassword)
@@ -77,9 +75,20 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 		return err
 	}
 
-	// TODO: split up tx
-	if err = s.Repo.UpdatePasswordAndRevokeSessions(ctx, userID, newPasswordHash, domain.RevocationPasswordChange); err != nil {
-		slog.ErrorContext(ctx, "failed to update password and revoke sessions", "err", err)
+	if err = s.Repo.WithTx(ctx, func(r Repo) error {
+		if txErr := r.UpdatePassword(ctx, userID, newPasswordHash); txErr != nil {
+			slog.ErrorContext(ctx, "failed to update password", "err", err)
+			return txErr
+		}
+
+		if txErr := r.RevokeSessions(ctx, userID, domain.RevocationPasswordChange); txErr != nil {
+			slog.ErrorContext(ctx, "failed to revoke sessions", "err", err)
+			return txErr
+		}
+
+		return nil
+	}); err != nil {
+		slog.ErrorContext(ctx, "error in transaction", "err", err)
 		return err
 	}
 
@@ -102,7 +111,7 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 
 func (s *Service) ForgetPassword(ctx context.Context, email string) {
 	user, err := s.Repo.GetUserByEmail(ctx, email)
-	if errors.Is(err, repository.ErrNotFound) {
+	if errors.Is(err, domain.ErrNotFound) {
 		slog.DebugContext(ctx, "user does not exist", "err", err)
 		return
 	}

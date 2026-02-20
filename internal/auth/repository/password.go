@@ -23,3 +23,10 @@ func (r *repo) DeleteUserPasswordResetTokens(ctx context.Context, userID uuid.UU
 func (r *repo) ConsumePasswordResetToken(ctx context.Context, tokenHash string) (uuid.UUID, error) {
 	return r.queries.ConsumePasswordResetToken(ctx, tokenHash)
 }
+
+func (r *repo) UpdatePassword(ctx context.Context, userID uuid.UUID, newPasswordHash string) error {
+	return r.queries.UpdatePassword(ctx, postgres.UpdatePasswordParams{
+		ID:           userID,
+		PasswordHash: newPasswordHash,
+	})
+}

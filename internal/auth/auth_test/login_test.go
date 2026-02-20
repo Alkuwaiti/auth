@@ -1,12 +1,11 @@
 //go:build integration
 
-package auth
+package auth_test
 
 import (
 	"context"
 	"testing"
 
-	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/flags"
 	"github.com/stretchr/testify/require"
@@ -43,7 +42,7 @@ func TestLogin_InvalidEmail(t *testing.T) {
 	_, err := service.Login(ctx, "doesnotexist@example.com", "whatever")
 
 	require.Error(t, err)
-	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
+	require.IsType(t, auth.ErrInvalidCredentials, err)
 }
 
 func TestLogin_InvalidPassword(t *testing.T) {
@@ -62,7 +61,7 @@ func TestLogin_InvalidPassword(t *testing.T) {
 	_, err = service.Login(ctx, "test@example.com", "WrongPassword!")
 
 	require.Error(t, err)
-	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
+	require.IsType(t, auth.ErrInvalidCredentials, err)
 }
 
 func TestLogin_InactiveUser(t *testing.T) {
@@ -86,7 +85,7 @@ func TestLogin_InactiveUser(t *testing.T) {
 	_, err = service.Login(ctx, "test@example.com", "StrongPassword123!")
 
 	require.Error(t, err)
-	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
+	require.IsType(t, auth.ErrInvalidCredentials, err)
 }
 
 func TestLogin_CreatesSession(t *testing.T) {
@@ -165,7 +164,7 @@ func TestLogin_DeletedUser(t *testing.T) {
 
 	_, err = service.Login(ctx, email, password)
 	require.Error(t, err)
-	require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
+	require.IsType(t, auth.ErrInvalidCredentials, err)
 }
 
 func TestLogin_Disabled(t *testing.T) {
@@ -185,6 +184,5 @@ func TestLogin_Disabled(t *testing.T) {
 
 	require.Error(t, err)
 
-	var refreshDisabledErr *apperrors.RefreshDisabledError
-	require.ErrorAs(t, err, &refreshDisabledErr)
+	require.ErrorIs(t, err, auth.ErrRefreshDisabled)
 }

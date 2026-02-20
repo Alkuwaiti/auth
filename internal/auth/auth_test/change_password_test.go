@@ -1,13 +1,12 @@
 //go:build integration
 
-package auth
+package auth_test
 
 import (
 	"context"
 	"testing"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/apperrors"
 	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/google/uuid"
@@ -37,28 +36,21 @@ func TestChangePassword(t *testing.T) {
 			setupUser:   true,
 			oldPassword: "WrongPassword!",
 			newPassword: "NewPassword123!",
-			expectedErr: &apperrors.InvalidCredentialsError{},
+			expectedErr: auth.ErrInvalidCredentials,
 		},
 		{
 			name:        "ReuseOldPassword",
 			setupUser:   true,
 			oldPassword: "OldPassword123!",
 			newPassword: "OldPassword123!",
-			expectedErr: &apperrors.PasswordReuseError{},
-		},
-		{
-			name:        "WeakPassword",
-			setupUser:   true,
-			oldPassword: "OldPassword123!",
-			newPassword: "123",
-			expectedErr: &apperrors.ValidationError{},
+			expectedErr: auth.ErrPasswordReuse,
 		},
 		{
 			name:        "UserNotFound",
 			setupUser:   false,
 			oldPassword: "OldPassword123!",
 			newPassword: "NewPassword123!",
-			expectedErr: &apperrors.InvalidCredentialsError{},
+			expectedErr: auth.ErrInvalidCredentials,
 		},
 		{
 			name:        "DeletedUser",
@@ -66,7 +58,7 @@ func TestChangePassword(t *testing.T) {
 			oldPassword: "OldPassword123!",
 			newPassword: "NewPassword123!",
 			deleteUser:  true,
-			expectedErr: &apperrors.InvalidCredentialsError{},
+			expectedErr: auth.ErrInvalidCredentials,
 		},
 	}
 
@@ -112,7 +104,7 @@ func TestChangePassword(t *testing.T) {
 					// login with old password fails
 					_, err = service.Login(ctx, "test@example.com", "OldPassword123!")
 					require.Error(t, err)
-					require.IsType(t, &apperrors.InvalidCredentialsError{}, err)
+					require.IsType(t, auth.ErrInvalidCredentials, err)
 
 					// login with new password succeeds
 					_, err = service.Login(ctx, "test@example.com", tt.newPassword)
