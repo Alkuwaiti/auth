@@ -252,8 +252,9 @@ func (s *server) ForgetPassword(ctx context.Context, req *authv1.ForgetPasswordR
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	// intentional OK
-	s.service.ForgetPassword(ctx, req.Email)
+	if err := s.service.ForgetPassword(ctx, req.Email); err != nil {
+		return nil, err
+	}
 
 	return &emptypb.Empty{}, nil
 }

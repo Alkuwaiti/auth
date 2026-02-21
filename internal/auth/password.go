@@ -109,40 +109,40 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 	return nil
 }
 
-func (s *Service) ForgetPassword(ctx context.Context, email string) {
+func (s *Service) ForgetPassword(ctx context.Context, email string) error {
 	user, err := s.Repo.GetUserByEmail(ctx, email)
 	if errors.Is(err, domain.ErrNotFound) {
 		slog.DebugContext(ctx, "user does not exist", "err", err)
-		return
+		return nil
 	}
 	if err != nil {
 		slog.ErrorContext(ctx, "error getting user by email")
-		return
+		return nil
 	}
 
 	randomToken, err := s.tokenManager.GenerateSecureToken()
 	if err != nil {
 		slog.ErrorContext(ctx, "error generating secure token", "err", err)
-		return
+		return nil
 	}
 
 	hashedToken := s.Hasher.Hash(randomToken)
 
 	if err = s.Repo.DeleteUserPasswordResetTokens(ctx, user.ID); err != nil {
 		slog.ErrorContext(ctx, "error deleting user password reset tokens", "err", err)
-		return
+		return nil
 	}
 
 	if err = s.Repo.CreatePasswordResetToken(ctx, user.ID, hashedToken, time.Now().Add(20*time.Minute)); err != nil {
 		slog.ErrorContext(ctx, "error inserting password reset token", "err", err)
-		return
+		return nil
 	}
 
 	// TODO: remove, logging for dev
 	slog.InfoContext(ctx, "forget password function returned", "randomToken", randomToken)
-}
 
-// TODO: finish this later on
+	return nil
+}
 
 func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) error {
 	hashedToken := s.Hasher.Hash(token)
