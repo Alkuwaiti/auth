@@ -143,13 +143,41 @@ func (s *Service) ForgetPassword(ctx context.Context, email string) {
 }
 
 // TODO: finish this later on
-// func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) error {
-// 	hashedToken := s.Hasher.Hash(token)
-//
-// 	userID, err := s.Repo.ConsumePasswordResetToken(ctx, hashedToken)
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	return nil
-// }
+
+func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) error {
+	hashedToken := s.Hasher.Hash(token)
+
+	if err := s.Passwords.Validate(newPassword); err != nil {
+		return err
+	}
+
+	if err := s.Repo.WithTx(ctx, func(r Repo) error {
+		userID, err := r.ConsumePasswordResetToken(ctx, hashedToken)
+		if err != nil {
+			if errors.Is(err, domain.ErrNotFound) {
+				return ErrInvalidResetToken
+			}
+			return err
+		}
+
+		hashedPassword, err := s.Passwords.Hash(newPassword)
+		if err != nil {
+			return err
+		}
+
+		if err := r.UpdatePassword(ctx, userID, hashedPassword); err != nil {
+			return err
+		}
+
+		if err := r.RevokeSessions(ctx, userID, domain.RevocationPasswordChange); err != nil {
+			return err
+		}
+
+		return nil
+
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}

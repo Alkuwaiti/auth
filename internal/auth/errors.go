@@ -24,4 +24,5 @@ var (
 	ErrUsernameTooShort         = errors.New("username must be at least 3 characters")
 	ErrUsernameTooLong          = errors.New("username must not exceed 50 characters")
 	ErrInvalidDeletionReason    = errors.New("invalid deletion reason")
+	ErrInvalidResetToken        = errors.New("invalid reset token")
 )
