@@ -19,12 +19,12 @@ import (
 type server struct {
 	authv1.UnsafeAuthServiceServer
 
-	srv         *grpc.Server
-	authService authService
-	cfg         Config
+	srv     *grpc.Server
+	service service
+	cfg     Config
 }
 
-type authService interface {
+type service interface {
 	Login(ctx context.Context, email, password string) (auth.LoginResult, error)
 	RefreshToken(ctx context.Context, refreshToken string) (auth.TokenPair, error)
 	Logout(ctx context.Context, refreshToken string) error
@@ -37,6 +37,7 @@ type authService interface {
 	CreateStepUpChallenge(ctx context.Context, methodType domain.MFAMethodType, scope domain.ChallengeScope) (auth.CreateStepUpChallengeResponse, error)
 	VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UUID, code string) (auth.VerifyStepUpChallengeResponse, error)
 	ForgetPassword(ctx context.Context, email string)
+	ResetPassword(ctx context.Context, token, newPassword string) error
 }
 
 type Config struct {
@@ -49,7 +50,7 @@ func (c Config) String() string {
 }
 
 func NewServer(
-	authService authService,
+	authService service,
 	cfg Config,
 	interceptors ...grpc.UnaryServerInterceptor,
 ) *server {
@@ -74,9 +75,9 @@ func NewServer(
 	}
 
 	s := &server{
-		cfg:         cfg,
-		authService: authService,
-		srv:         grpc.NewServer(serverOpts...),
+		cfg:     cfg,
+		service: authService,
+		srv:     grpc.NewServer(serverOpts...),
 	}
 
 	return s
