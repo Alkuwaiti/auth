@@ -33,9 +33,9 @@ func main() {
 		}
 	}()
 
-	res, err := client.ChangePassword(ctx, &authv1.ChangePasswordRequest{
-		OldPassword: "Supersecretpassword1!",
-		NewPassword: "Supersecretpassword1!!",
+	res, err := client.ResetPassword(ctx, &authv1.ResetPasswordRequest{
+		Token:       "DoqX5ZV_Ih2MOdD5TRlzqSRPdbR1WdAUjH1xzkkkB1w=",
+		NewPassword: "Supersecretpassword1!",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
