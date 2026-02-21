@@ -146,6 +146,8 @@ func (s *Service) ForgetPassword(ctx context.Context, email string) error {
 	return nil
 }
 
+// TODO: add tests
+
 func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) error {
 	hashedToken := s.Hasher.Hash(token)
 
