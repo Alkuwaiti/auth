@@ -112,6 +112,8 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 func (s *Service) ForgetPassword(ctx context.Context, email string) error {
 	user, err := s.Repo.GetUserByEmail(ctx, email)
 	if errors.Is(err, domain.ErrNotFound) {
+		// artificial delay
+		time.Sleep(150 * time.Millisecond)
 		slog.DebugContext(ctx, "user does not exist", "err", err)
 		return nil
 	}
