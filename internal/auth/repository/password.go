@@ -2,8 +2,11 @@ package repository
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"time"
 
+	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/google/uuid"
 )
@@ -21,7 +24,16 @@ func (r *repo) DeleteUserPasswordResetTokens(ctx context.Context, userID uuid.UU
 }
 
 func (r *repo) ConsumePasswordResetToken(ctx context.Context, tokenHash string) (uuid.UUID, error) {
-	return r.queries.ConsumePasswordResetToken(ctx, tokenHash)
+	userID, err := r.queries.ConsumePasswordResetToken(ctx, tokenHash)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return uuid.Nil, domain.ErrNotFound
+		}
+
+		return uuid.Nil, err
+	}
+
+	return userID, nil
 }
 
 func (r *repo) UpdatePassword(ctx context.Context, userID uuid.UUID, newPasswordHash string) error {

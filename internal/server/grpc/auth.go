@@ -20,7 +20,7 @@ func (s *server) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.L
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	res, err := s.authService.Login(ctx, req.Email, req.Password)
+	res, err := s.service.Login(ctx, req.Email, req.Password)
 	if err != nil {
 		return nil, MapError(err)
 	}
@@ -52,7 +52,7 @@ func (s *server) RefreshToken(ctx context.Context, req *authv1.RefreshTokenReque
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	res, err := s.authService.RefreshToken(ctx, req.RefreshToken)
+	res, err := s.service.RefreshToken(ctx, req.RefreshToken)
 	if err != nil {
 		return nil, MapError(err)
 	}
@@ -72,7 +72,7 @@ func (s *server) Logout(ctx context.Context, req *authv1.RefreshTokenRequest) (*
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	err := s.authService.Logout(ctx, req.RefreshToken)
+	err := s.service.Logout(ctx, req.RefreshToken)
 	if err != nil {
 		return nil, MapError(err)
 	}
@@ -86,7 +86,7 @@ func (s *server) ChangePassword(ctx context.Context, req *authv1.ChangePasswordR
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	err := s.authService.ChangePassword(ctx, req.OldPassword, req.NewPassword)
+	err := s.service.ChangePassword(ctx, req.OldPassword, req.NewPassword)
 	if err != nil {
 		return nil, MapError(err)
 	}
@@ -100,7 +100,7 @@ func (s *server) RegisterUser(ctx context.Context, req *authv1.RegisterUserReque
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	res, err := s.authService.RegisterUser(ctx, auth.RegisterUserInput{
+	res, err := s.service.RegisterUser(ctx, auth.RegisterUserInput{
 		Username: req.Username,
 		Email:    req.Email,
 		Password: req.Password,
@@ -127,7 +127,7 @@ func (s *server) DeleteUser(ctx context.Context, req *authv1.DeleteUserRequest) 
 		return nil, status.Error(codes.InvalidArgument, "user id is not a uuid")
 	}
 
-	err = s.authService.DeleteUser(ctx, auth.DeleteUserInput{
+	err = s.service.DeleteUser(ctx, auth.DeleteUserInput{
 		UserID:         userID,
 		DeletionReason: domain.DeletionReason(req.Reason),
 		Note:           req.Note,
@@ -145,7 +145,7 @@ func (s *server) EnrollMFAMethod(ctx context.Context, req *authv1.EnrollMFAMetho
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	res, err := s.authService.EnrollMFAMethod(ctx, domain.MFAMethodType(req.Method))
+	res, err := s.service.EnrollMFAMethod(ctx, domain.MFAMethodType(req.Method))
 	if err != nil {
 		return nil, MapError(err)
 	}
@@ -171,7 +171,7 @@ func (s *server) ConfirmMFAMethod(ctx context.Context, req *authv1.ConfirmMFAMet
 		return nil, status.Error(codes.InvalidArgument, "user id is not a uuid")
 	}
 
-	backupCodes, err := s.authService.ConfirmMFAMethod(ctx, methodID, req.Code)
+	backupCodes, err := s.service.ConfirmMFAMethod(ctx, methodID, req.Code)
 	if err != nil {
 		return nil, MapError(err)
 	}
@@ -192,7 +192,7 @@ func (s *server) CompleteLoginMFA(ctx context.Context, req *authv1.CompleteLogin
 		return nil, status.Error(codes.InvalidArgument, "challenge id is not a uuid")
 	}
 
-	res, err := s.authService.CompleteLoginMFA(ctx, challengeID, req.Code)
+	res, err := s.service.CompleteLoginMFA(ctx, challengeID, req.Code)
 	if err != nil {
 		return nil, MapError(err)
 	}
@@ -212,7 +212,7 @@ func (s *server) CreateStepUpChallenge(ctx context.Context, req *authv1.CreateSt
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	res, err := s.authService.CreateStepUpChallenge(ctx, domain.MFAMethodType(req.MethodType), domain.ChallengeScope(req.Scope))
+	res, err := s.service.CreateStepUpChallenge(ctx, domain.MFAMethodType(req.MethodType), domain.ChallengeScope(req.Scope))
 	if err != nil {
 		return nil, MapError(err)
 	}
@@ -235,7 +235,7 @@ func (s *server) VerifyStepUpChallenge(ctx context.Context, req *authv1.VerifySt
 		return nil, MapError(err)
 	}
 
-	res, err := s.authService.VerifyStepUpChallenge(ctx, challengeID, req.Code)
+	res, err := s.service.VerifyStepUpChallenge(ctx, challengeID, req.Code)
 	if err != nil {
 		return nil, MapError(err)
 	}
@@ -252,7 +252,22 @@ func (s *server) ForgetPassword(ctx context.Context, req *authv1.ForgetPasswordR
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	s.authService.ForgetPassword(ctx, req.Email)
+	if err := s.service.ForgetPassword(ctx, req.Email); err != nil {
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (s *server) ResetPassword(ctx context.Context, req *authv1.ResetPasswordRequest) (*emptypb.Empty, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	if err := s.service.ResetPassword(ctx, req.Token, req.NewPassword); err != nil {
+		return nil, MapError(err)
+	}
 
 	return &emptypb.Empty{}, nil
 }

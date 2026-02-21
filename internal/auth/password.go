@@ -109,47 +109,79 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 	return nil
 }
 
-func (s *Service) ForgetPassword(ctx context.Context, email string) {
+func (s *Service) ForgetPassword(ctx context.Context, email string) error {
 	user, err := s.Repo.GetUserByEmail(ctx, email)
 	if errors.Is(err, domain.ErrNotFound) {
+		// artificial delay
+		time.Sleep(150 * time.Millisecond)
 		slog.DebugContext(ctx, "user does not exist", "err", err)
-		return
+		return nil
 	}
 	if err != nil {
 		slog.ErrorContext(ctx, "error getting user by email")
-		return
+		return nil
 	}
 
 	randomToken, err := s.tokenManager.GenerateSecureToken()
 	if err != nil {
 		slog.ErrorContext(ctx, "error generating secure token", "err", err)
-		return
+		return nil
 	}
 
 	hashedToken := s.Hasher.Hash(randomToken)
 
 	if err = s.Repo.DeleteUserPasswordResetTokens(ctx, user.ID); err != nil {
 		slog.ErrorContext(ctx, "error deleting user password reset tokens", "err", err)
-		return
+		return nil
 	}
 
 	if err = s.Repo.CreatePasswordResetToken(ctx, user.ID, hashedToken, time.Now().Add(20*time.Minute)); err != nil {
 		slog.ErrorContext(ctx, "error inserting password reset token", "err", err)
-		return
+		return nil
 	}
 
 	// TODO: remove, logging for dev
 	slog.InfoContext(ctx, "forget password function returned", "randomToken", randomToken)
+
+	return nil
 }
 
-// TODO: finish this later on
-// func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) error {
-// 	hashedToken := s.Hasher.Hash(token)
-//
-// 	userID, err := s.Repo.ConsumePasswordResetToken(ctx, hashedToken)
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	return nil
-// }
+// TODO: add tests
+
+func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) error {
+	hashedToken := s.Hasher.Hash(token)
+
+	if err := s.Passwords.Validate(newPassword); err != nil {
+		return err
+	}
+
+	if err := s.Repo.WithTx(ctx, func(r Repo) error {
+		userID, err := r.ConsumePasswordResetToken(ctx, hashedToken)
+		if err != nil {
+			if errors.Is(err, domain.ErrNotFound) {
+				return ErrInvalidResetToken
+			}
+			return err
+		}
+
+		hashedPassword, err := s.Passwords.Hash(newPassword)
+		if err != nil {
+			return err
+		}
+
+		if err := r.UpdatePassword(ctx, userID, hashedPassword); err != nil {
+			return err
+		}
+
+		if err := r.RevokeSessions(ctx, userID, domain.RevocationPasswordChange); err != nil {
+			return err
+		}
+
+		return nil
+
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
