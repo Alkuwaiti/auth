@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -24,6 +25,7 @@ func (h *Handler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
 	res, err := h.authClient.BeginGoogleLogin(ctx, &emptypb.Empty{})
 	if err != nil {
 		http.Error(w, "failed to start google login", http.StatusInternalServerError)
+		slog.Error("soem error happened", "err", err)
 		return
 	}
 
