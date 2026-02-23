@@ -8,38 +8,41 @@ import (
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
+	googlesocial "github.com/alkuwaiti/auth/internal/social/google"
 	"github.com/google/uuid"
 	"github.com/pquerna/otp"
 	"go.opentelemetry.io/otel"
 )
 
 type Service struct {
-	Repo         Repo
-	Passwords    passwords
-	auditor      auditor
-	authorizer   authorizer
-	Flags        featureFlags
-	tokenManager tokenManager
-	MFAProvider  MFAProvider
-	Config       Config
-	Hasher       hasher
+	Repo           Repo
+	Passwords      passwords
+	auditor        auditor
+	authorizer     authorizer
+	Flags          featureFlags
+	tokenManager   tokenManager
+	MFAProvider    MFAProvider
+	Config         Config
+	Hasher         hasher
+	googleProvider googleProvider
 }
 
 type Config struct {
 	MaxChallengeAttempts int
 }
 
-func NewService(repoI Repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, hasher hasher, Config Config) *Service {
+func NewService(repoI Repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, googleProvider googleProvider, hasher hasher, Config Config) *Service {
 	return &Service{
-		Repo:         repoI,
-		Passwords:    passwords,
-		auditor:      auditor,
-		authorizer:   authorizer,
-		Flags:        flags,
-		tokenManager: tokenManager,
-		MFAProvider:  MFAProvider,
-		Hasher:       hasher,
-		Config:       Config,
+		Repo:           repoI,
+		Passwords:      passwords,
+		auditor:        auditor,
+		authorizer:     authorizer,
+		Flags:          flags,
+		tokenManager:   tokenManager,
+		MFAProvider:    MFAProvider,
+		Hasher:         hasher,
+		googleProvider: googleProvider,
+		Config:         Config,
 	}
 }
 
@@ -111,6 +114,13 @@ type MFAProvider interface {
 type hasher interface {
 	Hash(input string) string
 	Compare(hashedInput, input string) bool
+}
+
+type googleProvider interface {
+	GenerateState() (string, error)
+	ValidateState(state string) error
+	AuthURL(state string) string
+	ExchangeCode(ctx context.Context, code string) (googlesocial.GoogleUser, error)
 }
 
 // TODO: test race condition for all of these methods.
