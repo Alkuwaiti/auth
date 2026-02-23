@@ -121,7 +121,12 @@ func main() {
 	hasher := hasher.NewHasher()
 
 	// TODO: finish up the config
-	googleProvider := googlesocial.NewService(googlesocial.Config{})
+	googleProvider := googlesocial.NewService(googlesocial.Config{
+		ClientID:     cfg.GoogleConfig.ClientID,
+		ClientSecret: cfg.GoogleConfig.ClientSecret,
+		RedirectURL:  cfg.GoogleConfig.RedirectURL,
+		StateSecret:  cfg.GoogleConfig.StateSecret,
+	})
 
 	authService := auth.NewService(authRepo,
 		passwords,

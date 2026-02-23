@@ -2,3 +2,5 @@ databaseurl: "postgres://localuser:veryhardpassword123@localhost:5432/authdb?ssl
 jwtkey: "somerandomjwtkeywithletterstomakeitunique"
 otlpendpoint: "localhost:4317"
 aeskey: "dc9ae4289bb99c1d8e8e6db36003ca6a705ec9a85f1fca90197da3ad943178f5"
+googleconfig:
+  statesecret: "dc9ae4289bb99c1d8e8e6db36003ca6a705ec9a85f1fca90197da3ad943178f5"
