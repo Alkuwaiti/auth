@@ -272,18 +272,18 @@ func (s *server) ResetPassword(ctx context.Context, req *authv1.ResetPasswordReq
 	return &emptypb.Empty{}, nil
 }
 
-func (s *server) LoginWithGoogle(ctx context.Context, req *emptypb.Empty) (*authv1.LoginWithGoogleRequest, error) {
+func (s *server) BeginGoogleLogin(ctx context.Context, req *emptypb.Empty) (*authv1.BeginGoogleLoginRequest, error) {
 	if req == nil {
 		slog.ErrorContext(ctx, "Invalid request: request is nil")
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	authURL, err := s.service.LoginWithGoogle(ctx)
+	authURL, err := s.service.BeginGoogleLogin(ctx)
 	if err != nil {
 		return nil, MapError(err)
 	}
 
-	return &authv1.LoginWithGoogleRequest{
+	return &authv1.BeginGoogleLoginRequest{
 		AuthUrl: authURL,
 	}, nil
 }

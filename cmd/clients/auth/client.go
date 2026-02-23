@@ -24,7 +24,7 @@ func New(pingCtx context.Context, address string) (*client, error) {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create user service grpc client: %w", err)
+		return nil, fmt.Errorf("failed to create auth service grpc client: %w", err)
 	}
 
 	return &client{

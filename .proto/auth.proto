@@ -22,7 +22,7 @@ service AuthService {
   rpc VerifyStepUpChallenge(VerifyStepUpChallengeRequest) returns (VerifyStepUpChallengeResponse) {}
   rpc ForgetPassword(ForgetPasswordRequest) returns (google.protobuf.Empty) {}
   rpc ResetPassword(ResetPasswordRequest) returns (google.protobuf.Empty) {}
-  rpc LoginWithGoogle(google.protobuf.Empty) returns (LoginWithGoogleRequest) {}
+  rpc BeginGoogleLogin(google.protobuf.Empty) returns (BeginGoogleLoginRequest) {}
 }
 
 message LoginRequest {
@@ -130,6 +130,6 @@ message ResetPasswordRequest {
   string new_password = 2;
 }
 
-message LoginWithGoogleRequest {
+message BeginGoogleLoginRequest {
   string auth_url = 1;
 }
