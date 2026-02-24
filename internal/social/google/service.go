@@ -22,6 +22,7 @@ type Config struct {
 
 type GoogleUser struct {
 	Subject, Email, Name string
+	EmailVerified        bool
 }
 
 func NewService(config Config) *service {
@@ -58,14 +59,17 @@ func (s *service) ExchangeCode(ctx context.Context, code string) (GoogleUser, er
 	}
 
 	slog.InfoContext(ctx, "this is the payload", "payload", payload)
+	slog.InfoContext(ctx, "this is the payload claims", "payload", payload.Claims)
 
 	email := payload.Claims["email"].(string)
+	emailVerified := payload.Claims["email_verified"].(bool)
 	subject := payload.Subject
 	name := payload.Claims["name"].(string)
 
 	return GoogleUser{
-		Subject: subject,
-		Email:   email,
-		Name:    name,
+		Subject:       subject,
+		Email:         email,
+		Name:          name,
+		EmailVerified: emailVerified,
 	}, nil
 }
