@@ -39,7 +39,7 @@ type service interface {
 	ForgetPassword(ctx context.Context, email string) error
 	ResetPassword(ctx context.Context, token, newPassword string) error
 	BeginGoogleLogin(ctx context.Context) (string, error)
-	CompleteGoogleLogin(ctx context.Context, code string) (auth.TokenPair, error)
+	CompleteGoogleLogin(ctx context.Context, code, state string) (auth.TokenPair, error)
 }
 
 type Config struct {

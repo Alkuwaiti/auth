@@ -1150,6 +1150,7 @@ func (x *BeginGoogleLoginRequest) GetAuthUrl() string {
 type CompleteGoogleLoginRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	State         string                 `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1187,6 +1188,13 @@ func (*CompleteGoogleLoginRequest) Descriptor() ([]byte, []int) {
 func (x *CompleteGoogleLoginRequest) GetCode() string {
 	if x != nil {
 		return x.Code
+	}
+	return ""
+}
+
+func (x *CompleteGoogleLoginRequest) GetState() string {
+	if x != nil {
+		return x.State
 	}
 	return ""
 }
@@ -1269,9 +1277,10 @@ const file___proto_auth_proto_rawDesc = "" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12!\n" +
 	"\fnew_password\x18\x02 \x01(\tR\vnewPassword\"4\n" +
 	"\x17BeginGoogleLoginRequest\x12\x19\n" +
-	"\bauth_url\x18\x01 \x01(\tR\aauthUrl\"0\n" +
+	"\bauth_url\x18\x01 \x01(\tR\aauthUrl\"F\n" +
 	"\x1aCompleteGoogleLoginRequest\x12\x12\n" +
-	"\x04code\x18\x01 \x01(\tR\x04code2\xe1\t\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\x12\x14\n" +
+	"\x05state\x18\x02 \x01(\tR\x05state2\xe1\t\n" +
 	"\vAuthService\x128\n" +
 	"\x04Ping\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x00\x128\n" +
 	"\x05Login\x12\x15.auth.v1.LoginRequest\x1a\x16.auth.v1.LoginResponse\"\x00\x12B\n" +

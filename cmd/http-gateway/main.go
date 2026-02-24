@@ -27,7 +27,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/auth/google/login", handler.GoogleLogin)
-	// mux.HandleFunc("/auth/google/callback", handler.GoogleCallback)
+	mux.HandleFunc("/auth/google/callback", handler.GoogleCallback)
 
 	server := &http.Server{
 		Addr:         ":8080",

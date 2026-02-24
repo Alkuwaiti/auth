@@ -294,7 +294,7 @@ func (s *server) CompleteGoogleLogin(ctx context.Context, req *authv1.CompleteGo
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	res, err := s.service.CompleteGoogleLogin(ctx, req.Code)
+	res, err := s.service.CompleteGoogleLogin(ctx, req.Code, req.State)
 	if err != nil {
 		return nil, MapError(err)
 	}
