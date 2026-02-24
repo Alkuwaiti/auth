@@ -151,6 +151,22 @@ func (q *Queries) CreateChallenge(ctx context.Context, arg CreateChallengeParams
 	return i, err
 }
 
+const createEmailVerificationToken = `-- name: CreateEmailVerificationToken :exec
+INSERT INTO email_verification_tokens (user_id, token_hash, expires_at)
+VALUES ($1, $2, $3)
+`
+
+type CreateEmailVerificationTokenParams struct {
+	UserID    uuid.UUID
+	TokenHash string
+	ExpiresAt time.Time
+}
+
+func (q *Queries) CreateEmailVerificationToken(ctx context.Context, arg CreateEmailVerificationTokenParams) error {
+	_, err := q.db.ExecContext(ctx, createEmailVerificationToken, arg.UserID, arg.TokenHash, arg.ExpiresAt)
+	return err
+}
+
 const createPasswordResetToken = `-- name: CreatePasswordResetToken :exec
 INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
 VALUES ($1, $2, $3)

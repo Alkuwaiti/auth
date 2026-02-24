@@ -83,3 +83,6 @@ rollback-last-migration:
   -path internal/db/migrations \
   -database $(DB_URL) \
   down 1
+
+sqlc:
+	sqlc generate

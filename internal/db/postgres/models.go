@@ -23,6 +23,15 @@ type AuditLog struct {
 	Context   pqtype.NullRawMessage
 }
 
+type EmailVerificationToken struct {
+	ID         uuid.UUID
+	UserID     uuid.UUID
+	TokenHash  string
+	ExpiresAt  time.Time
+	ConsumedAt sql.NullTime
+	CreatedAt  time.Time
+}
+
 type MfaBackupCode struct {
 	ID         uuid.UUID
 	UserID     uuid.UUID
