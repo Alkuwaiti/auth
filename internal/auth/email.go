@@ -30,3 +30,5 @@ func (s *Service) VerifyEmail(ctx context.Context, rawToken string) error {
 
 	return nil
 }
+
+// TODO: add a re-send email verification endpoint.

@@ -271,3 +271,16 @@ func (s *server) ResetPassword(ctx context.Context, req *authv1.ResetPasswordReq
 
 	return &emptypb.Empty{}, nil
 }
+
+func (s *server) VerifyEmail(ctx context.Context, req *authv1.VerifyEmailRequest) (*emptypb.Empty, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	if err := s.service.VerifyEmail(ctx, req.Token); err != nil {
+		return nil, MapError(err)
+	}
+
+	return &emptypb.Empty{}, nil
+}
