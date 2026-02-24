@@ -2,8 +2,11 @@ package repository
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"time"
 
+	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/google/uuid"
 )
@@ -14,4 +17,21 @@ func (r *repo) CreateEmailVerificationToken(ctx context.Context, userID uuid.UUI
 		TokenHash: tokenHash,
 		ExpiresAt: ExpiresAt,
 	})
+}
+
+func (r *repo) ConsumeEmailVerificationToken(ctx context.Context, tokenHash string) (uuid.UUID, error) {
+	userID, err := r.queries.ConsumeEmailVerificationToken(ctx, tokenHash)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return uuid.Nil, domain.ErrNotFound
+		}
+
+		return uuid.Nil, err
+	}
+
+	return userID, nil
+}
+
+func (r *repo) VerifyUserEmail(ctx context.Context, userID uuid.UUID) error {
+	return r.queries.VerifyUserEmail(ctx, userID)
 }

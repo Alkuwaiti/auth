@@ -68,6 +68,22 @@ func (q *Queries) ConsumeChallenge(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const consumeEmailVerificationToken = `-- name: ConsumeEmailVerificationToken :one
+UPDATE email_verification_tokens
+SET consumed_at = NOW()
+WHERE token_hash = $1
+  AND consumed_at IS NULL
+  AND expires_at > NOW()
+RETURNING user_id
+`
+
+func (q *Queries) ConsumeEmailVerificationToken(ctx context.Context, tokenHash string) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, consumeEmailVerificationToken, tokenHash)
+	var user_id uuid.UUID
+	err := row.Scan(&user_id)
+	return user_id, err
+}
+
 const consumePasswordResetToken = `-- name: ConsumePasswordResetToken :one
 UPDATE password_reset_tokens
 SET consumed_at = NOW()
@@ -839,4 +855,16 @@ func (q *Queries) UserHasActiveMFAMethodByType(ctx context.Context, arg UserHasA
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const verifyUserEmail = `-- name: VerifyUserEmail :exec
+UPDATE users
+SET email_verified = true
+WHERE id = $1
+  AND email_verified = false
+`
+
+func (q *Queries) VerifyUserEmail(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, verifyUserEmail, id)
+	return err
 }

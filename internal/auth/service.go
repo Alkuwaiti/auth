@@ -74,6 +74,8 @@ type Repo interface {
 	DeleteUserPasswordResetTokens(ctx context.Context, userID uuid.UUID) error
 	ConsumePasswordResetToken(ctx context.Context, tokenHash string) (uuid.UUID, error)
 	CreateEmailVerificationToken(ctx context.Context, userID uuid.UUID, tokenHash string, ExpiresAt time.Time) error
+	ConsumeEmailVerificationToken(ctx context.Context, tokenHash string) (uuid.UUID, error)
+	VerifyUserEmail(ctx context.Context, userID uuid.UUID) error
 }
 
 type auditor interface {

@@ -53,6 +53,12 @@ UPDATE users
 SET password_hash = $1
 WHERE id = $2;
 
+-- name: VerifyUserEmail :exec
+UPDATE users
+SET email_verified = true
+WHERE id = $1
+  AND email_verified = false;
+
 -- name: DeleteUser :execrows
 UPDATE users
 SET
@@ -247,3 +253,11 @@ RETURNING user_id;
 -- name: CreateEmailVerificationToken :exec
 INSERT INTO email_verification_tokens (user_id, token_hash, expires_at)
 VALUES ($1, $2, $3);
+
+-- name: ConsumeEmailVerificationToken :one
+UPDATE email_verification_tokens
+SET consumed_at = NOW()
+WHERE token_hash = $1
+  AND consumed_at IS NULL
+  AND expires_at > NOW()
+RETURNING user_id;
