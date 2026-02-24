@@ -22,7 +22,6 @@ import (
 	"github.com/alkuwaiti/auth/internal/db"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/alkuwaiti/auth/internal/flags"
-	"github.com/alkuwaiti/auth/internal/hasher"
 	"github.com/alkuwaiti/auth/internal/mfa"
 	"github.com/alkuwaiti/auth/internal/password"
 	"github.com/alkuwaiti/auth/internal/server/grpc"
@@ -117,9 +116,7 @@ func main() {
 
 	authRepo := repository.NewRepo(dbConn)
 
-	hasher := hasher.NewHasher()
-
-	authService := auth.NewService(authRepo, passwords, auditor, authorizer, flags, tokens, multifactor, hasher, auth.Config{
+	authService := auth.NewService(authRepo, passwords, auditor, authorizer, flags, tokens, multifactor, auth.Config{
 		MaxChallengeAttempts: cfg.MaxChallengeAttempts,
 	})
 

@@ -19,26 +19,24 @@ type Service struct {
 	auditor      auditor
 	authorizer   authorizer
 	Flags        featureFlags
-	tokenManager tokenManager
+	TokenManager tokenManager
 	MFAProvider  MFAProvider
 	Config       Config
-	Hasher       hasher
 }
 
 type Config struct {
 	MaxChallengeAttempts int
 }
 
-func NewService(repoI Repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, hasher hasher, Config Config) *Service {
+func NewService(repoI Repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, Config Config) *Service {
 	return &Service{
 		Repo:         repoI,
 		Passwords:    passwords,
 		auditor:      auditor,
 		authorizer:   authorizer,
 		Flags:        flags,
-		tokenManager: tokenManager,
+		TokenManager: tokenManager,
 		MFAProvider:  MFAProvider,
-		Hasher:       hasher,
 		Config:       Config,
 	}
 }
@@ -97,8 +95,10 @@ type featureFlags interface {
 
 type tokenManager interface {
 	GenerateAccessToken(roles []string, userID, email string) (string, error)
-	GenerateSecureToken() (string, error)
+	GenerateToken() (raw string, hash string, err error)
 	GenerateStepUpToken(userID, email, scope string) (string, int, error)
+	Hash(input string) string
+	Compare(hashedInput, input string) bool
 }
 
 type MFAProvider interface {
@@ -106,11 +106,6 @@ type MFAProvider interface {
 	GenerateEncryptedSecret(key *otp.Key) ([]byte, error)
 	VerifyTOTP(ctx context.Context, secret, code string) (bool, error)
 	GenerateBackupCodes(n int, hash func(string) (string, error)) (plain []string, hashed []string, err error)
-}
-
-type hasher interface {
-	Hash(input string) string
-	Compare(hashedInput, input string) bool
 }
 
 // TODO: test race condition for all of these methods.

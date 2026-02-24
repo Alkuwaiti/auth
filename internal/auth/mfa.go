@@ -40,6 +40,7 @@ func (s *Service) EnrollMFAMethod(ctx context.Context, methodType domain.MFAMeth
 		return EnrollmentResult{}, ErrInvalidMFAMethodType
 	}
 
+	// TODO: remove, better as a cron job
 	if err = s.Repo.DeleteExpiredUnconfirmedMethods(ctx, userID, methodType); err != nil {
 		return EnrollmentResult{}, err
 	}
@@ -267,7 +268,7 @@ func (s *Service) VerifyStepUpChallenge(ctx context.Context, challengeID uuid.UU
 		return VerifyStepUpChallengeResponse{}, err
 	}
 
-	token, expiresIn, err := s.tokenManager.GenerateStepUpToken(userID.String(), email, challenge.Scope.String())
+	token, expiresIn, err := s.TokenManager.GenerateStepUpToken(userID.String(), email, challenge.Scope.String())
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "error generating step-up token")
@@ -378,7 +379,7 @@ func (s *Service) VerifyBackupCode(ctx context.Context, r Repo, userID uuid.UUID
 	}
 
 	for _, c := range codes {
-		if s.Hasher.Compare(c.CodeHash, code) {
+		if s.TokenManager.Compare(c.CodeHash, code) {
 			if err := r.ConsumeBackupCode(ctx, c.ID); err != nil {
 				slog.ErrorContext(ctx, "error consuming backup code", "err", err, "challenge_id", c.ID)
 				return false, err
