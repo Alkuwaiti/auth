@@ -35,6 +35,7 @@ const (
 	AuthService_ForgetPassword_FullMethodName        = "/auth.v1.AuthService/ForgetPassword"
 	AuthService_ResetPassword_FullMethodName         = "/auth.v1.AuthService/ResetPassword"
 	AuthService_BeginGoogleLogin_FullMethodName      = "/auth.v1.AuthService/BeginGoogleLogin"
+	AuthService_CompleteGoogleLogin_FullMethodName   = "/auth.v1.AuthService/CompleteGoogleLogin"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -56,6 +57,7 @@ type AuthServiceClient interface {
 	ForgetPassword(ctx context.Context, in *ForgetPasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	BeginGoogleLogin(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*BeginGoogleLoginRequest, error)
+	CompleteGoogleLogin(ctx context.Context, in *CompleteGoogleLoginRequest, opts ...grpc.CallOption) (*TokenPair, error)
 }
 
 type authServiceClient struct {
@@ -216,6 +218,16 @@ func (c *authServiceClient) BeginGoogleLogin(ctx context.Context, in *emptypb.Em
 	return out, nil
 }
 
+func (c *authServiceClient) CompleteGoogleLogin(ctx context.Context, in *CompleteGoogleLoginRequest, opts ...grpc.CallOption) (*TokenPair, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TokenPair)
+	err := c.cc.Invoke(ctx, AuthService_CompleteGoogleLogin_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -235,6 +247,7 @@ type AuthServiceServer interface {
 	ForgetPassword(context.Context, *ForgetPasswordRequest) (*emptypb.Empty, error)
 	ResetPassword(context.Context, *ResetPasswordRequest) (*emptypb.Empty, error)
 	BeginGoogleLogin(context.Context, *emptypb.Empty) (*BeginGoogleLoginRequest, error)
+	CompleteGoogleLogin(context.Context, *CompleteGoogleLoginRequest) (*TokenPair, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -289,6 +302,9 @@ func (UnimplementedAuthServiceServer) ResetPassword(context.Context, *ResetPassw
 }
 func (UnimplementedAuthServiceServer) BeginGoogleLogin(context.Context, *emptypb.Empty) (*BeginGoogleLoginRequest, error) {
 	return nil, status.Error(codes.Unimplemented, "method BeginGoogleLogin not implemented")
+}
+func (UnimplementedAuthServiceServer) CompleteGoogleLogin(context.Context, *CompleteGoogleLoginRequest) (*TokenPair, error) {
+	return nil, status.Error(codes.Unimplemented, "method CompleteGoogleLogin not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -581,6 +597,24 @@ func _AuthService_BeginGoogleLogin_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_CompleteGoogleLogin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CompleteGoogleLoginRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).CompleteGoogleLogin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_CompleteGoogleLogin_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).CompleteGoogleLogin(ctx, req.(*CompleteGoogleLoginRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -647,6 +681,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "BeginGoogleLogin",
 			Handler:    _AuthService_BeginGoogleLogin_Handler,
+		},
+		{
+			MethodName: "CompleteGoogleLogin",
+			Handler:    _AuthService_CompleteGoogleLogin_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

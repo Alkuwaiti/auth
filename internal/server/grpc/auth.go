@@ -287,3 +287,23 @@ func (s *server) BeginGoogleLogin(ctx context.Context, req *emptypb.Empty) (*aut
 		AuthUrl: authURL,
 	}, nil
 }
+
+func (s *server) CompleteGoogleLogin(ctx context.Context, req *authv1.CompleteGoogleLoginRequest) (*authv1.TokenPair, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	res, err := s.service.CompleteGoogleLogin(ctx, req.Code)
+	if err != nil {
+		return nil, MapError(err)
+	}
+
+	return &authv1.TokenPair{
+		AccessToken:  res.AccessToken,
+		RefreshToken: res.RefreshToken,
+		ExpiresIn:    res.RefreshExpiresAt.Unix(),
+		TokenType:    "Bearer",
+		UserId:       res.UserID.String(),
+	}, nil
+}

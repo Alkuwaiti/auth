@@ -1147,6 +1147,50 @@ func (x *BeginGoogleLoginRequest) GetAuthUrl() string {
 	return ""
 }
 
+type CompleteGoogleLoginRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CompleteGoogleLoginRequest) Reset() {
+	*x = CompleteGoogleLoginRequest{}
+	mi := &file___proto_auth_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteGoogleLoginRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteGoogleLoginRequest) ProtoMessage() {}
+
+func (x *CompleteGoogleLoginRequest) ProtoReflect() protoreflect.Message {
+	mi := &file___proto_auth_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CompleteGoogleLoginRequest.ProtoReflect.Descriptor instead.
+func (*CompleteGoogleLoginRequest) Descriptor() ([]byte, []int) {
+	return file___proto_auth_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *CompleteGoogleLoginRequest) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
 var File___proto_auth_proto protoreflect.FileDescriptor
 
 const file___proto_auth_proto_rawDesc = "" +
@@ -1225,7 +1269,9 @@ const file___proto_auth_proto_rawDesc = "" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12!\n" +
 	"\fnew_password\x18\x02 \x01(\tR\vnewPassword\"4\n" +
 	"\x17BeginGoogleLoginRequest\x12\x19\n" +
-	"\bauth_url\x18\x01 \x01(\tR\aauthUrl2\x8f\t\n" +
+	"\bauth_url\x18\x01 \x01(\tR\aauthUrl\"0\n" +
+	"\x1aCompleteGoogleLoginRequest\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code2\xe1\t\n" +
 	"\vAuthService\x128\n" +
 	"\x04Ping\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x00\x128\n" +
 	"\x05Login\x12\x15.auth.v1.LoginRequest\x1a\x16.auth.v1.LoginResponse\"\x00\x12B\n" +
@@ -1242,7 +1288,8 @@ const file___proto_auth_proto_rawDesc = "" +
 	"\x15VerifyStepUpChallenge\x12%.auth.v1.VerifyStepUpChallengeRequest\x1a&.auth.v1.VerifyStepUpChallengeResponse\"\x00\x12J\n" +
 	"\x0eForgetPassword\x12\x1e.auth.v1.ForgetPasswordRequest\x1a\x16.google.protobuf.Empty\"\x00\x12H\n" +
 	"\rResetPassword\x12\x1d.auth.v1.ResetPasswordRequest\x1a\x16.google.protobuf.Empty\"\x00\x12N\n" +
-	"\x10BeginGoogleLogin\x12\x16.google.protobuf.Empty\x1a .auth.v1.BeginGoogleLoginRequest\"\x00B/Z-github.com/alkuwaiti/auth/pb/pbauth/v1;authv1b\x06proto3"
+	"\x10BeginGoogleLogin\x12\x16.google.protobuf.Empty\x1a .auth.v1.BeginGoogleLoginRequest\"\x00\x12P\n" +
+	"\x13CompleteGoogleLogin\x12#.auth.v1.CompleteGoogleLoginRequest\x1a\x12.auth.v1.TokenPair\"\x00B/Z-github.com/alkuwaiti/auth/pb/pbauth/v1;authv1b\x06proto3"
 
 var (
 	file___proto_auth_proto_rawDescOnce sync.Once
@@ -1256,7 +1303,7 @@ func file___proto_auth_proto_rawDescGZIP() []byte {
 	return file___proto_auth_proto_rawDescData
 }
 
-var file___proto_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file___proto_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
 var file___proto_auth_proto_goTypes = []any{
 	(*LoginRequest)(nil),                  // 0: auth.v1.LoginRequest
 	(*LoginResponse)(nil),                 // 1: auth.v1.LoginResponse
@@ -1279,15 +1326,16 @@ var file___proto_auth_proto_goTypes = []any{
 	(*ForgetPasswordRequest)(nil),         // 18: auth.v1.ForgetPasswordRequest
 	(*ResetPasswordRequest)(nil),          // 19: auth.v1.ResetPasswordRequest
 	(*BeginGoogleLoginRequest)(nil),       // 20: auth.v1.BeginGoogleLoginRequest
-	(*timestamppb.Timestamp)(nil),         // 21: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),                 // 22: google.protobuf.Empty
+	(*CompleteGoogleLoginRequest)(nil),    // 21: auth.v1.CompleteGoogleLoginRequest
+	(*timestamppb.Timestamp)(nil),         // 22: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),                 // 23: google.protobuf.Empty
 }
 var file___proto_auth_proto_depIdxs = []int32{
 	2,  // 0: auth.v1.LoginResponse.tokens:type_name -> auth.v1.TokenPair
-	21, // 1: auth.v1.MFAMethod.created_at:type_name -> google.protobuf.Timestamp
+	22, // 1: auth.v1.MFAMethod.created_at:type_name -> google.protobuf.Timestamp
 	9,  // 2: auth.v1.EnrollMFAMethodResponse.method:type_name -> auth.v1.MFAMethod
-	21, // 3: auth.v1.CreateStepUpChallengeResponse.expires_at:type_name -> google.protobuf.Timestamp
-	22, // 4: auth.v1.AuthService.Ping:input_type -> google.protobuf.Empty
+	22, // 3: auth.v1.CreateStepUpChallengeResponse.expires_at:type_name -> google.protobuf.Timestamp
+	23, // 4: auth.v1.AuthService.Ping:input_type -> google.protobuf.Empty
 	0,  // 5: auth.v1.AuthService.Login:input_type -> auth.v1.LoginRequest
 	3,  // 6: auth.v1.AuthService.RefreshToken:input_type -> auth.v1.RefreshTokenRequest
 	3,  // 7: auth.v1.AuthService.Logout:input_type -> auth.v1.RefreshTokenRequest
@@ -1301,24 +1349,26 @@ var file___proto_auth_proto_depIdxs = []int32{
 	16, // 15: auth.v1.AuthService.VerifyStepUpChallenge:input_type -> auth.v1.VerifyStepUpChallengeRequest
 	18, // 16: auth.v1.AuthService.ForgetPassword:input_type -> auth.v1.ForgetPasswordRequest
 	19, // 17: auth.v1.AuthService.ResetPassword:input_type -> auth.v1.ResetPasswordRequest
-	22, // 18: auth.v1.AuthService.BeginGoogleLogin:input_type -> google.protobuf.Empty
-	22, // 19: auth.v1.AuthService.Ping:output_type -> google.protobuf.Empty
-	1,  // 20: auth.v1.AuthService.Login:output_type -> auth.v1.LoginResponse
-	2,  // 21: auth.v1.AuthService.RefreshToken:output_type -> auth.v1.TokenPair
-	22, // 22: auth.v1.AuthService.Logout:output_type -> google.protobuf.Empty
-	22, // 23: auth.v1.AuthService.ChangePassword:output_type -> google.protobuf.Empty
-	6,  // 24: auth.v1.AuthService.RegisterUser:output_type -> auth.v1.User
-	22, // 25: auth.v1.AuthService.DeleteUser:output_type -> google.protobuf.Empty
-	10, // 26: auth.v1.AuthService.EnrollMFAMethod:output_type -> auth.v1.EnrollMFAMethodResponse
-	12, // 27: auth.v1.AuthService.ConfirmMFAMethod:output_type -> auth.v1.ConfirmMFAMethodResponse
-	2,  // 28: auth.v1.AuthService.CompleteLoginMFA:output_type -> auth.v1.TokenPair
-	15, // 29: auth.v1.AuthService.CreateStepUpChallenge:output_type -> auth.v1.CreateStepUpChallengeResponse
-	17, // 30: auth.v1.AuthService.VerifyStepUpChallenge:output_type -> auth.v1.VerifyStepUpChallengeResponse
-	22, // 31: auth.v1.AuthService.ForgetPassword:output_type -> google.protobuf.Empty
-	22, // 32: auth.v1.AuthService.ResetPassword:output_type -> google.protobuf.Empty
-	20, // 33: auth.v1.AuthService.BeginGoogleLogin:output_type -> auth.v1.BeginGoogleLoginRequest
-	19, // [19:34] is the sub-list for method output_type
-	4,  // [4:19] is the sub-list for method input_type
+	23, // 18: auth.v1.AuthService.BeginGoogleLogin:input_type -> google.protobuf.Empty
+	21, // 19: auth.v1.AuthService.CompleteGoogleLogin:input_type -> auth.v1.CompleteGoogleLoginRequest
+	23, // 20: auth.v1.AuthService.Ping:output_type -> google.protobuf.Empty
+	1,  // 21: auth.v1.AuthService.Login:output_type -> auth.v1.LoginResponse
+	2,  // 22: auth.v1.AuthService.RefreshToken:output_type -> auth.v1.TokenPair
+	23, // 23: auth.v1.AuthService.Logout:output_type -> google.protobuf.Empty
+	23, // 24: auth.v1.AuthService.ChangePassword:output_type -> google.protobuf.Empty
+	6,  // 25: auth.v1.AuthService.RegisterUser:output_type -> auth.v1.User
+	23, // 26: auth.v1.AuthService.DeleteUser:output_type -> google.protobuf.Empty
+	10, // 27: auth.v1.AuthService.EnrollMFAMethod:output_type -> auth.v1.EnrollMFAMethodResponse
+	12, // 28: auth.v1.AuthService.ConfirmMFAMethod:output_type -> auth.v1.ConfirmMFAMethodResponse
+	2,  // 29: auth.v1.AuthService.CompleteLoginMFA:output_type -> auth.v1.TokenPair
+	15, // 30: auth.v1.AuthService.CreateStepUpChallenge:output_type -> auth.v1.CreateStepUpChallengeResponse
+	17, // 31: auth.v1.AuthService.VerifyStepUpChallenge:output_type -> auth.v1.VerifyStepUpChallengeResponse
+	23, // 32: auth.v1.AuthService.ForgetPassword:output_type -> google.protobuf.Empty
+	23, // 33: auth.v1.AuthService.ResetPassword:output_type -> google.protobuf.Empty
+	20, // 34: auth.v1.AuthService.BeginGoogleLogin:output_type -> auth.v1.BeginGoogleLoginRequest
+	2,  // 35: auth.v1.AuthService.CompleteGoogleLogin:output_type -> auth.v1.TokenPair
+	20, // [20:36] is the sub-list for method output_type
+	4,  // [4:20] is the sub-list for method input_type
 	4,  // [4:4] is the sub-list for extension type_name
 	4,  // [4:4] is the sub-list for extension extendee
 	0,  // [0:4] is the sub-list for field type_name
@@ -1335,7 +1385,7 @@ func file___proto_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file___proto_auth_proto_rawDesc), len(file___proto_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   21,
+			NumMessages:   22,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

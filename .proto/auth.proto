@@ -23,6 +23,7 @@ service AuthService {
   rpc ForgetPassword(ForgetPasswordRequest) returns (google.protobuf.Empty) {}
   rpc ResetPassword(ResetPasswordRequest) returns (google.protobuf.Empty) {}
   rpc BeginGoogleLogin(google.protobuf.Empty) returns (BeginGoogleLoginRequest) {}
+  rpc CompleteGoogleLogin(CompleteGoogleLoginRequest) returns (TokenPair) {}
 }
 
 message LoginRequest {
@@ -132,4 +133,8 @@ message ResetPasswordRequest {
 
 message BeginGoogleLoginRequest {
   string auth_url = 1;
+}
+
+message CompleteGoogleLoginRequest {
+  string code = 1;
 }
