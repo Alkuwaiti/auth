@@ -55,9 +55,9 @@ WHERE id = $2;
 
 -- name: VerifyUserEmail :exec
 UPDATE users
-SET email_verified = true
+SET is_email_verified = true
 WHERE id = $1
-  AND email_verified = false;
+  AND is_email_verified = false;
 
 -- name: DeleteUser :execrows
 UPDATE users

@@ -859,9 +859,9 @@ func (q *Queries) UserHasActiveMFAMethodByType(ctx context.Context, arg UserHasA
 
 const verifyUserEmail = `-- name: VerifyUserEmail :exec
 UPDATE users
-SET email_verified = true
+SET is_email_verified = true
 WHERE id = $1
-  AND email_verified = false
+  AND is_email_verified = false
 `
 
 func (q *Queries) VerifyUserEmail(ctx context.Context, id uuid.UUID) error {
