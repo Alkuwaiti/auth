@@ -80,11 +80,19 @@ type Session struct {
 	CompromisedAt    sql.NullTime
 }
 
+type SocialAccount struct {
+	ID             uuid.UUID
+	UserID         uuid.UUID
+	Provider       string
+	ProviderUserID string
+	CreatedAt      time.Time
+}
+
 type User struct {
 	ID              uuid.UUID
 	Email           string
 	Username        string
-	PasswordHash    string
+	PasswordHash    sql.NullString
 	IsEmailVerified bool
 	IsActive        bool
 	CreatedAt       time.Time

@@ -268,3 +268,8 @@ SET consumed_at = NOW()
 WHERE user_id = $1
   AND consumed_at IS NULL
   AND expires_at > NOW();
+
+-- name: GetUserByProviderID :one
+SELECT * FROM social_accounts
+WHERE provider = $1
+  AND provider_user_id = $2;

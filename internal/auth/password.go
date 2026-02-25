@@ -15,6 +15,8 @@ import (
 
 var dummyBcryptHash = "$2b$12$C6UzMDM.H6dfI/f/IKcEeOe2x7yZ0pniS3pSDOMkMt2rt7V6F2i4G"
 
+// TODO: check the impact of nullifying the password hash with the introduction of social login.
+
 func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword string) error {
 	ctx, span := tracer.Start(ctx, "AuthService.ChangePassword")
 	defer span.End()
@@ -48,7 +50,7 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 		return ErrInvalidCredentials
 	}
 
-	match, err := s.Passwords.Compare(user.PasswordHash, oldPassword)
+	match, err := s.Passwords.Compare(*user.PasswordHash, oldPassword)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to compare passwords", "err", err)
 		return err
@@ -57,7 +59,7 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 		return ErrInvalidCredentials
 	}
 
-	match, err = s.Passwords.Compare(user.PasswordHash, newPassword)
+	match, err = s.Passwords.Compare(*user.PasswordHash, newPassword)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to compare passwords", "err", err)
 		return err

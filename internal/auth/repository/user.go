@@ -44,10 +44,13 @@ func (r *repo) CreateUser(ctx context.Context, username, email, passwordHash str
 	}
 
 	user, err := r.queries.CreateUser(ctx, postgres.CreateUserParams{
-		ID:           userID,
-		Username:     username,
-		Email:        email,
-		PasswordHash: passwordHash,
+		ID:       userID,
+		Username: username,
+		Email:    email,
+		PasswordHash: sql.NullString{
+			String: passwordHash,
+			Valid:  passwordHash != "",
+		},
 	})
 	if err != nil {
 		var pgErr *pq.Error
@@ -93,11 +96,16 @@ func toUserModel(user postgres.CreateUserRow) domain.User {
 		deletionReason = &dr
 	}
 
+	var passwordHash *string
+	if user.PasswordHash.Valid {
+		passwordHash = &user.PasswordHash.String
+	}
+
 	return domain.User{
 		ID:              user.ID,
 		Email:           user.Email,
 		Username:        user.Username,
-		PasswordHash:    user.PasswordHash,
+		PasswordHash:    passwordHash,
 		IsEmailVerified: user.IsEmailVerified,
 		IsActive:        user.IsActive,
 		CreatedAt:       user.CreatedAt,
@@ -120,11 +128,16 @@ func toUserModelFromEmailRow(row postgres.GetUserByEmailRow) domain.User {
 		deletionReason = &dr
 	}
 
+	var passwordHash *string
+	if row.PasswordHash.Valid {
+		passwordHash = &row.PasswordHash.String
+	}
+
 	return domain.User{
 		ID:              row.ID,
 		Email:           row.Email,
 		Username:        row.Username,
-		PasswordHash:    row.PasswordHash,
+		PasswordHash:    passwordHash,
 		IsEmailVerified: row.IsEmailVerified,
 		IsActive:        row.IsActive,
 		CreatedAt:       row.CreatedAt,
@@ -148,11 +161,16 @@ func toUserModelFromIDRow(row postgres.GetUserByIDRow) domain.User {
 		deletionReason = &dr
 	}
 
+	var passwordHash *string
+	if row.PasswordHash.Valid {
+		passwordHash = &row.PasswordHash.String
+	}
+
 	return domain.User{
 		ID:              row.ID,
 		Email:           row.Email,
 		Username:        row.Username,
-		PasswordHash:    row.PasswordHash,
+		PasswordHash:    passwordHash,
 		IsEmailVerified: row.IsEmailVerified,
 		IsActive:        row.IsActive,
 		CreatedAt:       row.CreatedAt,

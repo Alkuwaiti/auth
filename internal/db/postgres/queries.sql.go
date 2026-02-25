@@ -271,14 +271,14 @@ type CreateUserParams struct {
 	ID           uuid.UUID
 	Username     string
 	Email        string
-	PasswordHash string
+	PasswordHash sql.NullString
 }
 
 type CreateUserRow struct {
 	ID              uuid.UUID
 	Email           string
 	Username        string
-	PasswordHash    string
+	PasswordHash    sql.NullString
 	IsEmailVerified bool
 	IsActive        bool
 	CreatedAt       time.Time
@@ -628,7 +628,7 @@ type GetUserByEmailRow struct {
 	ID              uuid.UUID
 	Email           string
 	Username        string
-	PasswordHash    string
+	PasswordHash    sql.NullString
 	IsEmailVerified bool
 	IsActive        bool
 	CreatedAt       time.Time
@@ -674,7 +674,7 @@ type GetUserByIDRow struct {
 	ID              uuid.UUID
 	Email           string
 	Username        string
-	PasswordHash    string
+	PasswordHash    sql.NullString
 	IsEmailVerified bool
 	IsActive        bool
 	CreatedAt       time.Time
@@ -701,6 +701,30 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow
 		&i.DeletionReason,
 		&i.MfaEnabled,
 		pq.Array(&i.Roles),
+	)
+	return i, err
+}
+
+const getUserByProviderID = `-- name: GetUserByProviderID :one
+SELECT id, user_id, provider, provider_user_id, created_at FROM social_accounts
+WHERE provider = $1
+  AND provider_user_id = $2
+`
+
+type GetUserByProviderIDParams struct {
+	Provider       string
+	ProviderUserID string
+}
+
+func (q *Queries) GetUserByProviderID(ctx context.Context, arg GetUserByProviderIDParams) (SocialAccount, error) {
+	row := q.db.QueryRowContext(ctx, getUserByProviderID, arg.Provider, arg.ProviderUserID)
+	var i SocialAccount
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Provider,
+		&i.ProviderUserID,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -827,7 +851,7 @@ WHERE id = $2
 `
 
 type UpdatePasswordParams struct {
-	PasswordHash string
+	PasswordHash sql.NullString
 	ID           uuid.UUID
 }
 
