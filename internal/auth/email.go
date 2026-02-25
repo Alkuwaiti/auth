@@ -35,6 +35,8 @@ func (s *Service) VerifyEmail(ctx context.Context, rawToken string) error {
 		return err
 	}
 
+	// TODO: add audit log
+
 	return nil
 }
 
@@ -61,13 +63,28 @@ func (s *Service) ResendEmailVerification(ctx context.Context, email string) err
 		return err
 	}
 
-	if err = s.Repo.CreateEmailVerificationToken(ctx, user.ID, hash, time.Now().Add(30*time.Minute)); err != nil {
-		slog.ErrorContext(ctx, "failed to create email verification token", "err", err)
+	if err = s.Repo.WithTx(ctx, func(r Repo) error {
+		if err = r.InvalidateEmailVerificationTokens(ctx, user.ID); err != nil {
+			return err
+		}
+
+		if err = r.CreateEmailVerificationToken(
+			ctx,
+			user.ID,
+			hash,
+			time.Now().Add(24*time.Hour),
+		); err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
 		return err
 	}
 
 	// TODO: remove this. for dev only.
 	slog.DebugContext(ctx, "this is the raw verification token", "raw_token", raw)
 
+	// TODO: add audit log
 	return nil
 }

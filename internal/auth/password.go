@@ -181,5 +181,7 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 		return err
 	}
 
+	// TODO: add audit log
+
 	return nil
 }

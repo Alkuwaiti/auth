@@ -757,6 +757,19 @@ func (q *Queries) InsertBackupCodes(ctx context.Context, arg InsertBackupCodesPa
 	return err
 }
 
+const invalidateEmailVerificationTokens = `-- name: InvalidateEmailVerificationTokens :exec
+UPDATE email_verification_tokens
+SET consumed_at = NOW()
+WHERE user_id = $1
+  AND consumed_at IS NULL
+  AND expires_at > NOW()
+`
+
+func (q *Queries) InvalidateEmailVerificationTokens(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, invalidateEmailVerificationTokens, userID)
+	return err
+}
+
 const markSessionsCompromised = `-- name: MarkSessionsCompromised :exec
 UPDATE sessions
 SET compromised_at = NOW()

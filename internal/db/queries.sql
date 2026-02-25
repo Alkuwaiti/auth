@@ -261,3 +261,10 @@ WHERE token_hash = $1
   AND consumed_at IS NULL
   AND expires_at > NOW()
 RETURNING user_id;
+
+-- name: InvalidateEmailVerificationTokens :exec
+UPDATE email_verification_tokens
+SET consumed_at = NOW()
+WHERE user_id = $1
+  AND consumed_at IS NULL
+  AND expires_at > NOW();

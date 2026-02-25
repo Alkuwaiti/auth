@@ -76,6 +76,7 @@ type Repo interface {
 	CreateEmailVerificationToken(ctx context.Context, userID uuid.UUID, tokenHash string, ExpiresAt time.Time) error
 	ConsumeEmailVerificationToken(ctx context.Context, tokenHash string) (uuid.UUID, error)
 	VerifyUserEmail(ctx context.Context, userID uuid.UUID) error
+	InvalidateEmailVerificationTokens(ctx context.Context, userID uuid.UUID) error
 }
 
 type auditor interface {

@@ -35,3 +35,7 @@ func (r *repo) ConsumeEmailVerificationToken(ctx context.Context, tokenHash stri
 func (r *repo) VerifyUserEmail(ctx context.Context, userID uuid.UUID) error {
 	return r.queries.VerifyUserEmail(ctx, userID)
 }
+
+func (r *repo) InvalidateEmailVerificationTokens(ctx context.Context, userID uuid.UUID) error {
+	return r.queries.InvalidateEmailVerificationTokens(ctx, userID)
+}
