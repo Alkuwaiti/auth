@@ -58,6 +58,7 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 	slog.InfoContext(ctx, "raw token for email verification for user", "user", user, "raw_token", rawToken)
 
 	if err = s.Repo.CreateEmailVerificationToken(ctx, user.ID, hashedToken, time.Now().Add(30*time.Minute)); err != nil {
+		slog.ErrorContext(ctx, "failed to create email verification token", "err", err)
 		return domain.User{}, err
 	}
 
