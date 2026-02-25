@@ -23,6 +23,7 @@ service AuthService {
   rpc ForgetPassword(ForgetPasswordRequest) returns (google.protobuf.Empty) {}
   rpc ResetPassword(ResetPasswordRequest) returns (google.protobuf.Empty) {}
   rpc VerifyEmail(VerifyEmailRequest) returns (google.protobuf.Empty) {}
+  rpc ResendEmailVerification(ResendEmailVerificationRequest) returns (google.protobuf.Empty) {}
 }
 
 message LoginRequest {
@@ -132,4 +133,8 @@ message ResetPasswordRequest {
 
 message VerifyEmailRequest {
   string token = 1;
+}
+
+message ResendEmailVerificationRequest {
+  string email = 1;
 }

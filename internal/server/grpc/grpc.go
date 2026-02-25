@@ -39,6 +39,7 @@ type service interface {
 	ForgetPassword(ctx context.Context, email string) error
 	ResetPassword(ctx context.Context, token, newPassword string) error
 	VerifyEmail(ctx context.Context, rawToken string) error
+	ResendEmailVerification(ctx context.Context, email string) error
 }
 
 type Config struct {

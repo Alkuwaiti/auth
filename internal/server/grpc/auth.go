@@ -284,3 +284,16 @@ func (s *server) VerifyEmail(ctx context.Context, req *authv1.VerifyEmailRequest
 
 	return &emptypb.Empty{}, nil
 }
+
+func (s *server) ResendEmailVerification(ctx context.Context, req *authv1.ResendEmailVerificationRequest) (*emptypb.Empty, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	if err := s.service.ResendEmailVerification(ctx, req.Email); err != nil {
+		return nil, MapError(err)
+	}
+
+	return &emptypb.Empty{}, nil
+}
