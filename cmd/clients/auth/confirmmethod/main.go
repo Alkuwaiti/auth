@@ -33,8 +33,8 @@ func main() {
 	}()
 
 	res, err := client.ConfirmMFAMethod(ctx, &authv1.ConfirmMFAMethodRequest{
-		MethodId: "5d7483bc-90e8-49d7-82c5-8aecd7fcc004",
-		Code:     "125582",
+		MethodId: "f6b6575d-b746-41b2-aa26-a83d25edafff",
+		Code:     "618166",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

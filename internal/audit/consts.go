@@ -12,4 +12,6 @@ const (
 	ActionDeleteUser         AuditAction = "delete_user"
 	ActionConfirmMFAMethod   AuditAction = "confirm_mfa_method"
 	ActionConsumeChallenge   AuditAction = "consume_challenge"
+	ActionVerifyEmail        AuditAction = "verify_email"
+	ActionPasswordReset      AuditAction = "password_reset"
 )

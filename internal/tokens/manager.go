@@ -2,7 +2,9 @@ package tokens
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -16,6 +18,16 @@ func New(cfg Config) *tokens {
 	return &tokens{
 		config: cfg,
 	}
+}
+
+func (m *tokens) Compare(hashedInput, input string) bool {
+	hash := sha256.Sum256([]byte(input))
+	return hex.EncodeToString(hash[:]) == hashedInput
+}
+
+func (m *tokens) Hash(input string) string {
+	hash := sha256.Sum256([]byte(input))
+	return hex.EncodeToString(hash[:])
 }
 
 func (m *tokens) GenerateAccessToken(roles []string, userID, email string) (string, error) {
@@ -65,14 +77,19 @@ func (m *tokens) ValidateJWT(tokenStr string) (*AccessClaims, error) {
 	return claims, nil
 }
 
-func (m *tokens) GenerateSecureToken() (string, error) {
+func (m *tokens) GenerateToken() (raw string, hash string, err error) {
 	b := make([]byte, 32)
-	_, err := rand.Read(b)
+	_, err = rand.Read(b)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	return base64.URLEncoding.EncodeToString(b), nil
+	raw = base64.URLEncoding.EncodeToString(b)
+
+	h := sha256.Sum256([]byte(raw))
+	hash = hex.EncodeToString(h[:])
+
+	return
 }
 
 func (m *tokens) GenerateStepUpToken(userID, email, scope string) (string, int, error) {

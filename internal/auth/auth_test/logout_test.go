@@ -31,12 +31,13 @@ func TestLogout_Success(t *testing.T) {
 	err = service.Logout(ctx, res.Tokens.RefreshToken)
 	require.NoError(t, err)
 
+	hashedToken := service.TokenManager.Hash(res.Tokens.RefreshToken)
 	var revokedAt *time.Time
 	err = db.QueryRow(`
 		SELECT revoked_at
 		FROM sessions
 		WHERE refresh_token = $1
-	`, res.Tokens.RefreshToken).Scan(&revokedAt)
+	`, hashedToken).Scan(&revokedAt)
 
 	require.NoError(t, err)
 	require.NotNil(t, revokedAt)
@@ -131,24 +132,26 @@ func TestLogout_MultiDeviceIsolation(t *testing.T) {
 	err = service.Logout(ctx1, device1.Tokens.RefreshToken)
 	require.NoError(t, err)
 
+	hashedToken1 := service.TokenManager.Hash(device1.Tokens.RefreshToken)
 	// device 1 revoked
 	var revokedCount int
 	err = db.QueryRow(`
 		SELECT COUNT(*)
 		FROM sessions
 		WHERE refresh_token = $1 AND revoked_at IS NOT NULL
-	`, device1.Tokens.RefreshToken).Scan(&revokedCount)
+	`, hashedToken1).Scan(&revokedCount)
 
 	require.NoError(t, err)
 	require.Equal(t, 1, revokedCount)
 
+	hashedToken2 := service.TokenManager.Hash(device2.Tokens.RefreshToken)
 	// device 2 still active
 	var activeCount int
 	err = db.QueryRow(`
 		SELECT COUNT(*)
 		FROM sessions
 		WHERE refresh_token = $1 AND revoked_at IS NULL
-	`, device2.Tokens.RefreshToken).Scan(&activeCount)
+	`, hashedToken2).Scan(&activeCount)
 
 	require.NoError(t, err)
 	require.Equal(t, 1, activeCount)

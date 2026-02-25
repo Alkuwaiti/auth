@@ -122,13 +122,11 @@ func (s *Service) ForgetPassword(ctx context.Context, email string) error {
 		return nil
 	}
 
-	randomToken, err := s.tokenManager.GenerateSecureToken()
+	rawToken, hashedToken, err := s.TokenManager.GenerateToken()
 	if err != nil {
 		slog.ErrorContext(ctx, "error generating secure token", "err", err)
 		return nil
 	}
-
-	hashedToken := s.Hasher.Hash(randomToken)
 
 	if err = s.Repo.DeleteUserPasswordResetTokens(ctx, user.ID); err != nil {
 		slog.ErrorContext(ctx, "error deleting user password reset tokens", "err", err)
@@ -141,7 +139,7 @@ func (s *Service) ForgetPassword(ctx context.Context, email string) error {
 	}
 
 	// TODO: remove, logging for dev
-	slog.InfoContext(ctx, "forget password function returned", "randomToken", randomToken)
+	slog.InfoContext(ctx, "forget password function returned", "raw_token", rawToken)
 
 	return nil
 }
@@ -149,7 +147,7 @@ func (s *Service) ForgetPassword(ctx context.Context, email string) error {
 // TODO: add tests
 
 func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) error {
-	hashedToken := s.Hasher.Hash(token)
+	hashedToken := s.TokenManager.Hash(token)
 
 	if err := s.Passwords.Validate(newPassword); err != nil {
 		return err
@@ -174,6 +172,18 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 		}
 
 		if err := r.RevokeSessions(ctx, userID, domain.RevocationPasswordChange); err != nil {
+			return err
+		}
+
+		meta := contextkeys.RequestMetaFromContext(ctx)
+
+		if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+			UserID:    &userID,
+			Action:    audit.ActionPasswordReset,
+			IPAddress: &meta.IPAddress,
+			UserAgent: &meta.UserAgent,
+		}); err != nil {
+			slog.ErrorContext(ctx, "failed to create audit log", "err", err)
 			return err
 		}
 

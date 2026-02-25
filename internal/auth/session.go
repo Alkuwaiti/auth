@@ -105,7 +105,8 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 
 	meta := contextkeys.RequestMetaFromContext(ctx)
 
-	session, err := s.Repo.GetSessionByRefreshToken(ctx, refreshToken)
+	hashedToken := s.TokenManager.Hash(refreshToken)
+	session, err := s.Repo.GetSessionByRefreshToken(ctx, hashedToken)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			return TokenPair{}, ErrInvalidCredentials
@@ -185,7 +186,8 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 		return TokenPair{}, ErrInvalidCredentials
 	}
 
-	newRefreshToken, err := s.tokenManager.GenerateSecureToken()
+	// TODO: maybe return a raw and a hashed version. store the hash, compare incoming raw with hashed...
+	rawToken, hashedToken, err := s.TokenManager.GenerateToken()
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "refresh token generation failed")
@@ -199,7 +201,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 			return err
 		}
 
-		if _, err = r.CreateSession(ctx, user.ID, session.ExpiresAt, newRefreshToken, meta.IPAddress, meta.UserAgent); err != nil {
+		if _, err = r.CreateSession(ctx, user.ID, session.ExpiresAt, hashedToken, meta.IPAddress, meta.UserAgent); err != nil {
 			slog.ErrorContext(ctx, "creating session failed", "err", err)
 			return err
 		}
@@ -210,7 +212,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 		return TokenPair{}, err
 	}
 
-	accessToken, err := s.tokenManager.GenerateAccessToken(user.Roles, user.ID.String(), user.Email)
+	accessToken, err := s.TokenManager.GenerateAccessToken(user.Roles, user.ID.String(), user.Email)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "access token generation failed")
@@ -225,7 +227,7 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 
 	return TokenPair{
 		AccessToken:      accessToken,
-		RefreshToken:     newRefreshToken,
+		RefreshToken:     rawToken,
 		RefreshExpiresAt: session.ExpiresAt,
 		UserID:           user.ID,
 	}, nil
@@ -237,7 +239,8 @@ func (s *Service) Logout(ctx context.Context, refreshToken string) error {
 
 	meta := contextkeys.RequestMetaFromContext(ctx)
 
-	session, err := s.Repo.GetSessionByRefreshToken(ctx, refreshToken)
+	hashedToken := s.TokenManager.Hash(refreshToken)
+	session, err := s.Repo.GetSessionByRefreshToken(ctx, hashedToken)
 	if err != nil {
 		// already logged out / invalid token → success
 		slog.ErrorContext(ctx, "failed to get session by refresh token", "err", err)
@@ -266,7 +269,7 @@ func (s *Service) finalizeLogin(ctx context.Context, user domain.User, action au
 	ctx, span := tracer.Start(ctx, "AuthService.finalizeLogin")
 	defer span.End()
 
-	accessToken, err := s.tokenManager.GenerateAccessToken(user.Roles, user.ID.String(), user.Email)
+	accessToken, err := s.TokenManager.GenerateAccessToken(user.Roles, user.ID.String(), user.Email)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "access token generation failed")
@@ -274,7 +277,7 @@ func (s *Service) finalizeLogin(ctx context.Context, user domain.User, action au
 		return TokenPair{}, err
 	}
 
-	refreshToken, err := s.tokenManager.GenerateSecureToken()
+	rawToken, hashedToken, err := s.TokenManager.GenerateToken()
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "refresh token generation failed")
@@ -289,7 +292,7 @@ func (s *Service) finalizeLogin(ctx context.Context, user domain.User, action au
 		ctx,
 		user.ID,
 		expiresAt,
-		refreshToken,
+		hashedToken,
 		meta.IPAddress,
 		meta.UserAgent,
 	); err != nil {
@@ -315,7 +318,7 @@ func (s *Service) finalizeLogin(ctx context.Context, user domain.User, action au
 
 	return TokenPair{
 		AccessToken:      accessToken,
-		RefreshToken:     refreshToken,
+		RefreshToken:     rawToken,
 		RefreshExpiresAt: expiresAt,
 		UserID:           user.ID,
 	}, nil

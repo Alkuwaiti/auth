@@ -39,23 +39,25 @@ func TestRefreshToken_Success(t *testing.T) {
 	require.NotEqual(t, res.Tokens.RefreshToken, refreshed.RefreshToken)
 	require.Equal(t, res.Tokens.UserID, refreshed.UserID)
 
+	hashedToken := service.TokenManager.Hash(res.Tokens.RefreshToken)
 	// old session revoked
 	var revokedAt *time.Time
 	err = db.QueryRow(`
 		SELECT revoked_at
 		FROM sessions
 		WHERE refresh_token = $1
-	`, res.Tokens.RefreshToken).Scan(&revokedAt)
+	`, hashedToken).Scan(&revokedAt)
 	require.NoError(t, err)
 	require.NotNil(t, revokedAt)
 
+	hashedToken = service.TokenManager.Hash(refreshed.RefreshToken)
 	// new session exists
 	var count int
 	err = db.QueryRow(`
 		SELECT COUNT(*)
 		FROM sessions
 		WHERE refresh_token = $1
-	`, refreshed.RefreshToken).Scan(&count)
+	`, hashedToken).Scan(&count)
 	require.NoError(t, err)
 	require.Equal(t, 1, count)
 }
@@ -87,11 +89,12 @@ func TestRefreshToken_ExpiredSession(t *testing.T) {
 	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
 	require.NoError(t, err)
 
+	hashedToken := service.TokenManager.Hash(res.Tokens.RefreshToken)
 	_, err = db.Exec(`
 		UPDATE sessions
 		SET expires_at = NOW() - INTERVAL '1 hour'
 		WHERE refresh_token = $1
-	`, res.Tokens.RefreshToken)
+	`, hashedToken)
 	require.NoError(t, err)
 
 	_, err = service.RefreshToken(ctx, res.Tokens.RefreshToken)
@@ -115,12 +118,13 @@ func TestRefreshToken_RevokedTokenReuse(t *testing.T) {
 	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
 	require.NoError(t, err)
 
+	hashedToken := service.TokenManager.Hash(res.Tokens.RefreshToken)
 	// manually revoke
 	_, err = db.Exec(`
 		UPDATE sessions
 		SET revoked_at = NOW(), revocation_reason = 'manual'
 		WHERE refresh_token = $1
-	`, res.Tokens.RefreshToken)
+	`, hashedToken)
 	require.NoError(t, err)
 
 	_, err = service.RefreshToken(ctx, res.Tokens.RefreshToken)
@@ -154,11 +158,12 @@ func TestRefreshToken_AlreadyCompromised(t *testing.T) {
 	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
 	require.NoError(t, err)
 
+	hashedToken := service.TokenManager.Hash(res.Tokens.RefreshToken)
 	_, err = db.Exec(`
 		UPDATE sessions
 		SET compromised_at = NOW()
 		WHERE refresh_token = $1
-	`, res.Tokens.RefreshToken)
+	`, hashedToken)
 	require.NoError(t, err)
 
 	_, err = service.RefreshToken(ctx, res.Tokens.RefreshToken)

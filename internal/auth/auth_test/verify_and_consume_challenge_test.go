@@ -115,7 +115,7 @@ func TestVerifyAndConsumeChallenge_SuccessWithBackupCode(t *testing.T) {
 
 	rawBackupCode := "ABCD-1234"
 
-	hashedCode := svc.Hasher.Hash(rawBackupCode)
+	hashedCode := svc.TokenManager.Hash(rawBackupCode)
 
 	var backupCodeID uuid.UUID
 	err := db.QueryRowContext(ctx, `
