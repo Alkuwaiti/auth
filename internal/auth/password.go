@@ -175,13 +175,23 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 			return err
 		}
 
+		meta := contextkeys.RequestMetaFromContext(ctx)
+
+		if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+			UserID:    &userID,
+			Action:    audit.ActionPasswordReset,
+			IPAddress: &meta.IPAddress,
+			UserAgent: &meta.UserAgent,
+		}); err != nil {
+			slog.ErrorContext(ctx, "failed to create audit log", "err", err)
+			return err
+		}
+
 		return nil
 
 	}); err != nil {
 		return err
 	}
-
-	// TODO: add audit log
 
 	return nil
 }

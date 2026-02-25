@@ -6,7 +6,9 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
+	"github.com/alkuwaiti/auth/pkg/contextkeys"
 )
 
 // TODO: write tests for this.
@@ -29,18 +31,26 @@ func (s *Service) VerifyEmail(ctx context.Context, rawToken string) error {
 			return err
 		}
 
+		meta := contextkeys.RequestMetaFromContext(ctx)
+
+		if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+			UserID:    &userID,
+			Action:    audit.ActionVerifyEmail,
+			IPAddress: &meta.IPAddress,
+			UserAgent: &meta.UserAgent,
+		}); err != nil {
+			slog.ErrorContext(ctx, "failed to create audit log", "err", err)
+			return err
+		}
+
 		return nil
 	}); err != nil {
 		slog.ErrorContext(ctx, "error in transaction", "err", err)
 		return err
 	}
 
-	// TODO: add audit log
-
 	return nil
 }
-
-// TODO: add a re-send email verification endpoint.
 
 func (s *Service) ResendEmailVerification(ctx context.Context, email string) error {
 	user, err := s.Repo.GetUserByEmail(ctx, email)
@@ -85,6 +95,5 @@ func (s *Service) ResendEmailVerification(ctx context.Context, email string) err
 	// TODO: remove this. for dev only.
 	slog.DebugContext(ctx, "this is the raw verification token", "raw_token", raw)
 
-	// TODO: add audit log
 	return nil
 }
