@@ -52,6 +52,8 @@ func (s *Service) VerifyEmail(ctx context.Context, rawToken string) error {
 	return nil
 }
 
+// TODO: write tests for this.
+
 func (s *Service) ResendEmailVerification(ctx context.Context, email string) error {
 	user, err := s.Repo.GetUserByEmail(ctx, email)
 	if err != nil {
