@@ -277,7 +277,6 @@ func (s *server) BeginGoogleLogin(ctx context.Context, req *emptypb.Empty) (*aut
 		slog.ErrorContext(ctx, "Invalid request: request is nil")
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
-
 	authURL, err := s.service.BeginGoogleLogin(ctx)
 	if err != nil {
 		return nil, MapError(err)
@@ -286,6 +285,19 @@ func (s *server) BeginGoogleLogin(ctx context.Context, req *emptypb.Empty) (*aut
 	return &authv1.BeginGoogleLoginRequest{
 		AuthUrl: authURL,
 	}, nil
+}
+
+func (s *server) VerifyEmail(ctx context.Context, req *authv1.VerifyEmailRequest) (*emptypb.Empty, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+	if err := s.service.VerifyEmail(ctx, req.Token); err != nil {
+		return nil, MapError(err)
+	}
+
+	return &emptypb.Empty{}, nil
+
 }
 
 func (s *server) CompleteGoogleLogin(ctx context.Context, req *authv1.CompleteGoogleLoginRequest) (*authv1.TokenPair, error) {
@@ -306,4 +318,16 @@ func (s *server) CompleteGoogleLogin(ctx context.Context, req *authv1.CompleteGo
 		TokenType:    "Bearer",
 		UserId:       res.UserID.String(),
 	}, nil
+}
+
+func (s *server) ResendEmailVerification(ctx context.Context, req *authv1.ResendEmailVerificationRequest) (*emptypb.Empty, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+	if err := s.service.ResendEmailVerification(ctx, req.Email); err != nil {
+		return nil, MapError(err)
+	}
+
+	return &emptypb.Empty{}, nil
 }

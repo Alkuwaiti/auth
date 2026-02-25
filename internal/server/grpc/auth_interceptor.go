@@ -14,15 +14,17 @@ import (
 )
 
 var publicMethods = map[string]struct{}{
-	"/auth.v1.AuthService/Login":               {},
-	"/auth.v1.AuthService/RegisterUser":        {},
-	"/auth.v1.AuthService/RefreshToken":        {},
-	"/auth.v1.AuthService/Logout":              {},
-	"/auth.v1.AuthService/CompleteLoginMFA":    {},
-	"/auth.v1.AuthService/ForgetPassword":      {},
-	"/auth.v1.AuthService/ResetPassword":       {},
-	"/auth.v1.AuthService/BeginGoogleLogin":    {},
-	"/auth.v1.AuthService/CompleteGoogleLogin": {},
+	"/auth.v1.AuthService/Login":                   {},
+	"/auth.v1.AuthService/RegisterUser":            {},
+	"/auth.v1.AuthService/RefreshToken":            {},
+	"/auth.v1.AuthService/Logout":                  {},
+	"/auth.v1.AuthService/CompleteLoginMFA":        {},
+	"/auth.v1.AuthService/ForgetPassword":          {},
+	"/auth.v1.AuthService/ResetPassword":           {},
+	"/auth.v1.AuthService/VerifyEmail":             {},
+	"/auth.v1.AuthService/ResendEmailVerification": {},
+	"/auth.v1.AuthService/BeginGoogleLogin":        {},
+	"/auth.v1.AuthService/CompleteGoogleLogin":     {},
 }
 
 type JWTValidator interface {

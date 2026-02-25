@@ -16,10 +16,12 @@ func main() {
 	ctx := context.Background()
 
 	md := metadata.New(map[string]string{
+		"authorization":       "Bearer ",
 		"x-forwarded-for":     "203.0.113.10",
 		"x-client-user-agent": "auth-cli/1.0",
 		"request-id":          "req-123456",
-		"x-client-ip":         "1.1.1.1",
+		"x-client-ip":         "2.2.2.2",
+		"X-Step-Up-Token":     "",
 	})
 
 	ctx = metadata.NewOutgoingContext(ctx, md)
@@ -31,9 +33,8 @@ func main() {
 		}
 	}()
 
-	res, err := client.CompleteLoginMFA(ctx, &authv1.CompleteLoginMFARequest{
-		ChallengeId: "52b875dd-5161-4b7c-947e-17e9377da6e5",
-		Code:        "976778",
+	res, err := client.VerifyEmail(ctx, &authv1.VerifyEmailRequest{
+		Token: "VYkARySNSBWFC79Vz-Ql6iMd3SwS5fDBqpOPxY1nNX8=",
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

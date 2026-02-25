@@ -165,12 +165,13 @@ func TestChangePassword_RevokesSessions(t *testing.T) {
 	err = service.ChangePassword(ctx, "OldPassword123!", "NewPassword123!")
 	require.NoError(t, err)
 
+	hashedToken := service.TokenManager.Hash(res.Tokens.RefreshToken)
 	var revokedAt *time.Time
 	err = db.QueryRow(`
 		SELECT revoked_at
 		FROM sessions
 		WHERE refresh_token = $1
-	`, res.Tokens.RefreshToken).Scan(&revokedAt)
+	`, hashedToken).Scan(&revokedAt)
 	require.NoError(t, err)
 	require.NotNil(t, revokedAt)
 }

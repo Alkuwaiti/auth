@@ -20,27 +20,25 @@ type Service struct {
 	auditor        auditor
 	authorizer     authorizer
 	Flags          featureFlags
-	tokenManager   tokenManager
+	TokenManager   tokenManager
 	MFAProvider    MFAProvider
-	Config         Config
-	Hasher         hasher
 	googleProvider googleProvider
+	Config         Config
 }
 
 type Config struct {
 	MaxChallengeAttempts int
 }
 
-func NewService(repoI Repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, googleProvider googleProvider, hasher hasher, Config Config) *Service {
+func NewService(repoI Repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, googleProvider googleProvider, Config Config) *Service {
 	return &Service{
 		Repo:           repoI,
 		Passwords:      passwords,
 		auditor:        auditor,
 		authorizer:     authorizer,
 		Flags:          flags,
-		tokenManager:   tokenManager,
+		TokenManager:   tokenManager,
 		MFAProvider:    MFAProvider,
-		Hasher:         hasher,
 		googleProvider: googleProvider,
 		Config:         Config,
 	}
@@ -78,6 +76,10 @@ type Repo interface {
 	CreatePasswordResetToken(ctx context.Context, userID uuid.UUID, tokenHash string, expiresAt time.Time) error
 	DeleteUserPasswordResetTokens(ctx context.Context, userID uuid.UUID) error
 	ConsumePasswordResetToken(ctx context.Context, tokenHash string) (uuid.UUID, error)
+	CreateEmailVerificationToken(ctx context.Context, userID uuid.UUID, tokenHash string, ExpiresAt time.Time) error
+	ConsumeEmailVerificationToken(ctx context.Context, tokenHash string) (uuid.UUID, error)
+	VerifyUserEmail(ctx context.Context, userID uuid.UUID) error
+	InvalidateEmailVerificationTokens(ctx context.Context, userID uuid.UUID) error
 }
 
 type auditor interface {
@@ -100,8 +102,10 @@ type featureFlags interface {
 
 type tokenManager interface {
 	GenerateAccessToken(roles []string, userID, email string) (string, error)
-	GenerateSecureToken() (string, error)
+	GenerateToken() (raw string, hash string, err error)
 	GenerateStepUpToken(userID, email, scope string) (string, int, error)
+	Hash(input string) string
+	Compare(hashedInput, input string) bool
 }
 
 type MFAProvider interface {
@@ -109,11 +113,6 @@ type MFAProvider interface {
 	GenerateEncryptedSecret(key *otp.Key) ([]byte, error)
 	VerifyTOTP(ctx context.Context, secret, code string) (bool, error)
 	GenerateBackupCodes(n int, hash func(string) (string, error)) (plain []string, hashed []string, err error)
-}
-
-type hasher interface {
-	Hash(input string) string
-	Compare(hashedInput, input string) bool
 }
 
 type googleProvider interface {

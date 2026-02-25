@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"time"
 
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
@@ -44,6 +45,20 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 		if errors.Is(err, domain.ErrRecordAlreadyExists) {
 			return domain.User{}, ErrUserExists
 		}
+		return domain.User{}, err
+	}
+
+	// TODO: emit an event for rawToken
+	rawToken, hashedToken, err := s.TokenManager.GenerateToken()
+	if err != nil {
+		return domain.User{}, err
+	}
+
+	// TODO: remove later on
+	slog.InfoContext(ctx, "raw token for email verification for user", "user", user, "raw_token", rawToken)
+
+	if err = s.Repo.CreateEmailVerificationToken(ctx, user.ID, hashedToken, time.Now().Add(30*time.Minute)); err != nil {
+		slog.ErrorContext(ctx, "failed to create email verification token", "err", err)
 		return domain.User{}, err
 	}
 

@@ -22,7 +22,6 @@ import (
 	"github.com/alkuwaiti/auth/internal/db"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/alkuwaiti/auth/internal/flags"
-	"github.com/alkuwaiti/auth/internal/hasher"
 	"github.com/alkuwaiti/auth/internal/mfa"
 	"github.com/alkuwaiti/auth/internal/password"
 	"github.com/alkuwaiti/auth/internal/server/grpc"
@@ -118,8 +117,6 @@ func main() {
 
 	authRepo := repository.NewRepo(dbConn)
 
-	hasher := hasher.NewHasher()
-
 	// TODO: finish up the config
 	googleProvider := googlesocial.NewService(googlesocial.Config{
 		ClientID:     cfg.GoogleConfig.ClientID,
@@ -136,7 +133,6 @@ func main() {
 		tokens,
 		multifactor,
 		googleProvider,
-		hasher,
 		auth.Config{
 			MaxChallengeAttempts: cfg.MaxChallengeAttempts,
 		})

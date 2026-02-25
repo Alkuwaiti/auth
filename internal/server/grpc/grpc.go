@@ -40,6 +40,8 @@ type service interface {
 	ResetPassword(ctx context.Context, token, newPassword string) error
 	BeginGoogleLogin(ctx context.Context) (string, error)
 	CompleteGoogleLogin(ctx context.Context, code, state string) (auth.TokenPair, error)
+	VerifyEmail(ctx context.Context, rawToken string) error
+	ResendEmailVerification(ctx context.Context, email string) error
 }
 
 type Config struct {

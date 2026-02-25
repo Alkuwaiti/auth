@@ -24,6 +24,8 @@ service AuthService {
   rpc ResetPassword(ResetPasswordRequest) returns (google.protobuf.Empty) {}
   rpc BeginGoogleLogin(google.protobuf.Empty) returns (BeginGoogleLoginRequest) {}
   rpc CompleteGoogleLogin(CompleteGoogleLoginRequest) returns (TokenPair) {}
+  rpc VerifyEmail(VerifyEmailRequest) returns (google.protobuf.Empty) {}
+  rpc ResendEmailVerification(ResendEmailVerificationRequest) returns (google.protobuf.Empty) {}
 }
 
 message LoginRequest {
@@ -138,4 +140,12 @@ message BeginGoogleLoginRequest {
 message CompleteGoogleLoginRequest {
   string code = 1;
   string state = 2;
+}
+
+message VerifyEmailRequest {
+  string token = 1;
+}
+
+message ResendEmailVerificationRequest {
+  string email = 1;
 }

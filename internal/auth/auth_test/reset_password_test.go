@@ -39,7 +39,7 @@ func TestResetPassword_ExpiredToken(t *testing.T) {
 	require.NoError(t, err)
 
 	rawToken := "expired-token"
-	hashed := service.Hasher.Hash(rawToken)
+	hashed := service.TokenManager.Hash(rawToken)
 
 	_, err = db.Exec(`
 		INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
@@ -67,7 +67,7 @@ func TestResetPassword_TokenCannotBeReused(t *testing.T) {
 	require.NoError(t, err)
 
 	rawToken := "reuse-token"
-	hashed := service.Hasher.Hash(rawToken)
+	hashed := service.TokenManager.Hash(rawToken)
 
 	_, err = db.Exec(`
 		INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)

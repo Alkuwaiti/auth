@@ -12,7 +12,6 @@ import (
 	authz "github.com/alkuwaiti/auth/internal/authorization"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/alkuwaiti/auth/internal/flags"
-	"github.com/alkuwaiti/auth/internal/hasher"
 	"github.com/alkuwaiti/auth/internal/mfa"
 	"github.com/alkuwaiti/auth/internal/password"
 	googlesocial "github.com/alkuwaiti/auth/internal/social/google"
@@ -61,8 +60,6 @@ func setupTestAuthService(t *testing.T) (*auth.Service, *sql.DB, func()) {
 		AppName: "MyApp",
 	})
 
-	hasher := hasher.NewHasher()
-
 	googleProvider := googlesocial.NewService(googlesocial.Config{
 		ClientID:     "",
 		ClientSecret: "",
@@ -70,7 +67,7 @@ func setupTestAuthService(t *testing.T) (*auth.Service, *sql.DB, func()) {
 		StateSecret:  "",
 	})
 
-	service := auth.NewService(authRepo, passwordService, auditService, authorizerService, flagsService, tokenManager, multifactor, googleProvider, hasher, auth.Config{
+	service := auth.NewService(authRepo, passwordService, auditService, authorizerService, flagsService, tokenManager, multifactor, googleProvider, auth.Config{
 		MaxChallengeAttempts: 5,
 	})
 

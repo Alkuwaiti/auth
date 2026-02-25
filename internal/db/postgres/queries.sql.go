@@ -68,6 +68,22 @@ func (q *Queries) ConsumeChallenge(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const consumeEmailVerificationToken = `-- name: ConsumeEmailVerificationToken :one
+UPDATE email_verification_tokens
+SET consumed_at = NOW()
+WHERE token_hash = $1
+  AND consumed_at IS NULL
+  AND expires_at > NOW()
+RETURNING user_id
+`
+
+func (q *Queries) ConsumeEmailVerificationToken(ctx context.Context, tokenHash string) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, consumeEmailVerificationToken, tokenHash)
+	var user_id uuid.UUID
+	err := row.Scan(&user_id)
+	return user_id, err
+}
+
 const consumePasswordResetToken = `-- name: ConsumePasswordResetToken :one
 UPDATE password_reset_tokens
 SET consumed_at = NOW()
@@ -149,6 +165,22 @@ func (q *Queries) CreateChallenge(ctx context.Context, arg CreateChallengeParams
 		&i.Attempts,
 	)
 	return i, err
+}
+
+const createEmailVerificationToken = `-- name: CreateEmailVerificationToken :exec
+INSERT INTO email_verification_tokens (user_id, token_hash, expires_at)
+VALUES ($1, $2, $3)
+`
+
+type CreateEmailVerificationTokenParams struct {
+	UserID    uuid.UUID
+	TokenHash string
+	ExpiresAt time.Time
+}
+
+func (q *Queries) CreateEmailVerificationToken(ctx context.Context, arg CreateEmailVerificationTokenParams) error {
+	_, err := q.db.ExecContext(ctx, createEmailVerificationToken, arg.UserID, arg.TokenHash, arg.ExpiresAt)
+	return err
 }
 
 const createPasswordResetToken = `-- name: CreatePasswordResetToken :exec
@@ -725,6 +757,19 @@ func (q *Queries) InsertBackupCodes(ctx context.Context, arg InsertBackupCodesPa
 	return err
 }
 
+const invalidateEmailVerificationTokens = `-- name: InvalidateEmailVerificationTokens :exec
+UPDATE email_verification_tokens
+SET consumed_at = NOW()
+WHERE user_id = $1
+  AND consumed_at IS NULL
+  AND expires_at > NOW()
+`
+
+func (q *Queries) InvalidateEmailVerificationTokens(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, invalidateEmailVerificationTokens, userID)
+	return err
+}
+
 const markSessionsCompromised = `-- name: MarkSessionsCompromised :exec
 UPDATE sessions
 SET compromised_at = NOW()
@@ -823,4 +868,16 @@ func (q *Queries) UserHasActiveMFAMethodByType(ctx context.Context, arg UserHasA
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const verifyUserEmail = `-- name: VerifyUserEmail :exec
+UPDATE users
+SET is_email_verified = true
+WHERE id = $1
+  AND is_email_verified = false
+`
+
+func (q *Queries) VerifyUserEmail(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, verifyUserEmail, id)
+	return err
 }
