@@ -273,3 +273,7 @@ WHERE user_id = $1
 SELECT * FROM social_accounts
 WHERE provider = $1
   AND provider_user_id = $2;
+
+-- name: LinkOAuthProvider :exec
+INSERT INTO social_accounts (user_id, provider, provider_user_id)
+VALUES ($1, $2, $3);

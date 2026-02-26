@@ -37,7 +37,7 @@ func (r *repo) GetUserByID(ctx context.Context, userID uuid.UUID) (domain.User, 
 	return toUserModelFromIDRow(user), nil
 }
 
-func (r *repo) CreateUser(ctx context.Context, username, email, passwordHash string) (domain.User, error) {
+func (r *repo) CreateUser(ctx context.Context, username, email string, passwordHash *string) (domain.User, error) {
 	userID, err := uuid.NewV7()
 	if err != nil {
 		return domain.User{}, err
@@ -48,8 +48,8 @@ func (r *repo) CreateUser(ctx context.Context, username, email, passwordHash str
 		Username: username,
 		Email:    email,
 		PasswordHash: sql.NullString{
-			String: passwordHash,
-			Valid:  passwordHash != "",
+			String: *passwordHash,
+			Valid:  passwordHash != nil,
 		},
 	})
 	if err != nil {

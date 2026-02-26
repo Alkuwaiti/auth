@@ -794,6 +794,22 @@ func (q *Queries) InvalidateEmailVerificationTokens(ctx context.Context, userID 
 	return err
 }
 
+const linkOAuthProvider = `-- name: LinkOAuthProvider :exec
+INSERT INTO social_accounts (user_id, provider, provider_user_id)
+VALUES ($1, $2, $3)
+`
+
+type LinkOAuthProviderParams struct {
+	UserID         uuid.UUID
+	Provider       string
+	ProviderUserID string
+}
+
+func (q *Queries) LinkOAuthProvider(ctx context.Context, arg LinkOAuthProviderParams) error {
+	_, err := q.db.ExecContext(ctx, linkOAuthProvider, arg.UserID, arg.Provider, arg.ProviderUserID)
+	return err
+}
+
 const markSessionsCompromised = `-- name: MarkSessionsCompromised :exec
 UPDATE sessions
 SET compromised_at = NOW()

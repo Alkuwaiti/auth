@@ -26,4 +26,5 @@ var (
 	ErrInvalidDeletionReason         = errors.New("invalid deletion reason")
 	ErrInvalidResetToken             = errors.New("invalid reset token")
 	ErrInvalidEmailVerificationToken = errors.New("invalid email verification token")
+	ErrUnverifiedGoogleEmail         = errors.New("unverified google email")
 )
