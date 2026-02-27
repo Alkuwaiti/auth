@@ -2,7 +2,11 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"log/slog"
+
+	"github.com/alkuwaiti/auth/internal/audit"
+	"github.com/alkuwaiti/auth/internal/auth/domain"
 )
 
 func (s *Service) BeginGoogleLogin(ctx context.Context) (string, error) {
@@ -21,7 +25,7 @@ func (s *Service) CompleteGoogleLogin(ctx context.Context, code, state string) (
 
 	googleUser, err := s.googleProvider.ExchangeCode(ctx, code)
 	if err != nil {
-		slog.ErrorContext(ctx, "error exchanging code", "err", err)
+		slog.ErrorContext(ctx, "google code exchange failed", "err", err)
 		return TokenPair{}, err
 	}
 
@@ -29,22 +33,37 @@ func (s *Service) CompleteGoogleLogin(ctx context.Context, code, state string) (
 		return TokenPair{}, ErrUnverifiedGoogleEmail
 	}
 
-	// socialAccount, err := s.Repo.GetSocialAccountByProviderID(ctx, domain.ProviderGoogle, googleUser.Subject)
-	// if err != nil {
-	// 	if errors.Is(err, domain.ErrNotFound) {
-	//
-	// 		user, err := s.Repo.GetUserByEmail(ctx, googleUser.Email)
-	// 		if err != nil {
-	// 			if errors.Is(err, domain.ErrNotFound) {
-	// 				user, err := s.Repo.CreateUser(ctx, "", googleUser.Email, nil)
-	// 			}
-	// 			return TokenPair{}, err
-	// 		}
-	// 	}
-	// 	return TokenPair{}, err
-	// }
+	socialAccount, err := s.Repo.GetSocialAccountByProviderID(
+		ctx,
+		domain.ProviderGoogle,
+		googleUser.Subject,
+	)
+	if err == nil {
+		user, err := s.Repo.GetUserByEmail(ctx, googleUser.Email)
+		if err != nil {
+			return TokenPair{}, err
+		}
+		return s.finalizeLogin(ctx, user, audit.ActionGoogleLogin)
+	}
+	if !errors.Is(err, domain.ErrNotFound) {
+		return TokenPair{}, err
+	}
 
-	slog.InfoContext(ctx, "this is the user", "user", googleUser)
+	user, err := s.Repo.GetUserByEmail(ctx, googleUser.Email)
+	if err != nil && !errors.Is(err, domain.ErrNotFound) {
+		return TokenPair{}, err
+	}
 
-	return TokenPair{}, nil
+	if errors.Is(err, domain.ErrNotFound) {
+		user, err = s.Repo.CreateUser(ctx, googleUser.Email, nil)
+		if err != nil {
+			return TokenPair{}, err
+		}
+	}
+
+	if err = s.Repo.LinkOAuthProvider(ctx, user.ID, domain.ProviderGoogle, googleUser.Subject); err != nil {
+		return TokenPair{}, err
+	}
+
+	return s.finalizeLogin(ctx, user, audit.ActionGoogleRegisteration)
 }

@@ -3,15 +3,17 @@ package audit
 type AuditAction string
 
 const (
-	ActionCreateUser         AuditAction = "create_user"
-	ActionLogout             AuditAction = "logout"
-	ActionLogin              AuditAction = "login"
-	ActionLoginMFA           AuditAction = "login_mfa"
-	ActionPasswordChange     AuditAction = "password_change"
-	ActionSessionCompromised AuditAction = "session_compromised"
-	ActionDeleteUser         AuditAction = "delete_user"
-	ActionConfirmMFAMethod   AuditAction = "confirm_mfa_method"
-	ActionConsumeChallenge   AuditAction = "consume_challenge"
-	ActionVerifyEmail        AuditAction = "verify_email"
-	ActionPasswordReset      AuditAction = "password_reset"
+	ActionCreateUser          AuditAction = "create_user"
+	ActionLogout              AuditAction = "logout"
+	ActionLogin               AuditAction = "login"
+	ActionLoginMFA            AuditAction = "login_mfa"
+	ActionPasswordChange      AuditAction = "password_change"
+	ActionSessionCompromised  AuditAction = "session_compromised"
+	ActionDeleteUser          AuditAction = "delete_user"
+	ActionConfirmMFAMethod    AuditAction = "confirm_mfa_method"
+	ActionConsumeChallenge    AuditAction = "consume_challenge"
+	ActionVerifyEmail         AuditAction = "verify_email"
+	ActionPasswordReset       AuditAction = "password_reset"
+	ActionGoogleLogin         AuditAction = "google_login"
+	ActionGoogleRegisteration AuditAction = "google_registration"
 )
