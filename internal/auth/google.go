@@ -31,17 +31,17 @@ func (s *Service) CompleteGoogleLogin(ctx context.Context, code, state string) (
 
 	// socialAccount, err := s.Repo.GetSocialAccountByProviderID(ctx, domain.ProviderGoogle, googleUser.Subject)
 	// if err != nil {
-	// 	return TokenPair{}, err
-	// }
-
-	// if socialAccount == nil {
-	// 	user, err := s.Repo.GetUserByEmail(ctx, googleUser.Email)
-	// 	if err != nil {
-	// 		if errors.Is(err, domain.ErrNotFound) {
-	// 			user, err := s.Repo.CreateUser(ctx, "", googleUser.Email, nil )
+	// 	if errors.Is(err, domain.ErrNotFound) {
+	//
+	// 		user, err := s.Repo.GetUserByEmail(ctx, googleUser.Email)
+	// 		if err != nil {
+	// 			if errors.Is(err, domain.ErrNotFound) {
+	// 				user, err := s.Repo.CreateUser(ctx, "", googleUser.Email, nil)
+	// 			}
+	// 			return TokenPair{}, err
 	// 		}
-	// 		return TokenPair{}, err
 	// 	}
+	// 	return TokenPair{}, err
 	// }
 
 	slog.InfoContext(ctx, "this is the user", "user", googleUser)
