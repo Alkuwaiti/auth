@@ -117,7 +117,6 @@ func main() {
 
 	authRepo := repository.NewRepo(dbConn)
 
-	// TODO: finish up the config
 	googleProvider := googlesocial.NewService(googlesocial.Config{
 		ClientID:     cfg.GoogleConfig.ClientID,
 		ClientSecret: cfg.GoogleConfig.ClientSecret,

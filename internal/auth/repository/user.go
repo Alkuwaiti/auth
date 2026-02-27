@@ -43,18 +43,27 @@ func (r *repo) CreateUser(ctx context.Context, email string, passwordHash *strin
 		return domain.User{}, err
 	}
 
-	user, err := r.queries.CreateUser(ctx, postgres.CreateUserParams{
-		ID:    userID,
-		Email: email,
-		PasswordHash: sql.NullString{
+	var nullPassword sql.NullString
+	if passwordHash != nil {
+		nullPassword = sql.NullString{
 			String: *passwordHash,
-			Valid:  passwordHash != nil,
-		},
+			Valid:  true,
+		}
+	} else {
+		nullPassword = sql.NullString{
+			Valid: false,
+		}
+	}
+
+	user, err := r.queries.CreateUser(ctx, postgres.CreateUserParams{
+		ID:           userID,
+		Email:        email,
+		PasswordHash: nullPassword,
 	})
 	if err != nil {
 		var pgErr *pq.Error
 		if errors.As(err, &pgErr) {
-			if pgErr.Code == "23505" { // Unique constraint error code
+			if pgErr.Code == "23505" { // unique constraint error code
 				return domain.User{}, domain.ErrRecordAlreadyExists
 			}
 		}

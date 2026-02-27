@@ -186,7 +186,6 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 		return TokenPair{}, ErrInvalidCredentials
 	}
 
-	// TODO: maybe return a raw and a hashed version. store the hash, compare incoming raw with hashed...
 	rawToken, hashedToken, err := s.TokenManager.GenerateToken()
 	if err != nil {
 		span.RecordError(err)

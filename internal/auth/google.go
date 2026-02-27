@@ -20,6 +20,7 @@ func (s *Service) BeginGoogleLogin(ctx context.Context) (string, error) {
 
 func (s *Service) CompleteGoogleLogin(ctx context.Context, code, state string) (TokenPair, error) {
 	if err := s.googleProvider.ValidateState(state); err != nil {
+		slog.ErrorContext(ctx, "failed to validate state", "err", err)
 		return TokenPair{}, err
 	}
 
@@ -33,31 +34,32 @@ func (s *Service) CompleteGoogleLogin(ctx context.Context, code, state string) (
 		return TokenPair{}, ErrUnverifiedGoogleEmail
 	}
 
-	user, err := s.Repo.GetUserByOAuthProvider(
-		ctx,
-		domain.ProviderGoogle,
-		googleUser.Subject,
-	)
+	user, err := s.Repo.GetUserByOAuthProvider(ctx, domain.ProviderGoogle, googleUser.Subject)
 	if err == nil {
 		return s.finalizeLogin(ctx, user, audit.ActionGoogleLogin)
 	}
+
 	if !errors.Is(err, domain.ErrNotFound) {
+		slog.ErrorContext(ctx, "failed to get user by oauth provider", "err", err)
 		return TokenPair{}, err
 	}
 
 	user, err = s.Repo.GetUserByEmail(ctx, googleUser.Email)
 	if err != nil && !errors.Is(err, domain.ErrNotFound) {
+		slog.ErrorContext(ctx, "failed to get user by email", "err", err)
 		return TokenPair{}, err
 	}
 
 	if errors.Is(err, domain.ErrNotFound) {
 		user, err = s.Repo.CreateUser(ctx, googleUser.Email, nil)
 		if err != nil {
+			slog.ErrorContext(ctx, "failed to create user", "err", err)
 			return TokenPair{}, err
 		}
 	}
 
 	if err = s.Repo.LinkOAuthProvider(ctx, user.ID, domain.ProviderGoogle, googleUser.Subject); err != nil {
+		slog.ErrorContext(ctx, "failed to link oauth provider", "err", err)
 		return TokenPair{}, err
 	}
 

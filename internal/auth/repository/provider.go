@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
@@ -14,6 +16,9 @@ func (r *repo) GetUserByOAuthProvider(ctx context.Context, provider domain.Provi
 		ProviderUserID: providerUserID,
 	})
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.User{}, domain.ErrNotFound
+		}
 		return domain.User{}, err
 	}
 
