@@ -37,16 +37,15 @@ func (r *repo) GetUserByID(ctx context.Context, userID uuid.UUID) (domain.User, 
 	return toUserModelFromIDRow(user), nil
 }
 
-func (r *repo) CreateUser(ctx context.Context, username, email string, passwordHash *string) (domain.User, error) {
+func (r *repo) CreateUser(ctx context.Context, email string, passwordHash *string) (domain.User, error) {
 	userID, err := uuid.NewV7()
 	if err != nil {
 		return domain.User{}, err
 	}
 
 	user, err := r.queries.CreateUser(ctx, postgres.CreateUserParams{
-		ID:       userID,
-		Username: username,
-		Email:    email,
+		ID:    userID,
+		Email: email,
 		PasswordHash: sql.NullString{
 			String: *passwordHash,
 			Valid:  passwordHash != nil,
@@ -104,7 +103,6 @@ func toUserModel(user postgres.CreateUserRow) domain.User {
 	return domain.User{
 		ID:              user.ID,
 		Email:           user.Email,
-		Username:        user.Username,
 		PasswordHash:    passwordHash,
 		IsEmailVerified: user.IsEmailVerified,
 		IsActive:        user.IsActive,
@@ -136,7 +134,6 @@ func toUserModelFromEmailRow(row postgres.GetUserByEmailRow) domain.User {
 	return domain.User{
 		ID:              row.ID,
 		Email:           row.Email,
-		Username:        row.Username,
 		PasswordHash:    passwordHash,
 		IsEmailVerified: row.IsEmailVerified,
 		IsActive:        row.IsActive,
@@ -169,7 +166,6 @@ func toUserModelFromIDRow(row postgres.GetUserByIDRow) domain.User {
 	return domain.User{
 		ID:              row.ID,
 		Email:           row.Email,
-		Username:        row.Username,
 		PasswordHash:    passwordHash,
 		IsEmailVerified: row.IsEmailVerified,
 		IsActive:        row.IsActive,

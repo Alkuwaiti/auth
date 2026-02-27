@@ -25,7 +25,6 @@ func TestRegisterUser(t *testing.T) {
 		{
 			name: "Success",
 			input: auth.RegisterUserInput{
-				Username: "testUser",
 				Email:    "test@example.com",
 				Password: "StrongPassword123!",
 			},
@@ -35,27 +34,10 @@ func TestRegisterUser(t *testing.T) {
 		{
 			name: "DuplicateEmail",
 			input: auth.RegisterUserInput{
-				Username: "anotherUser",
 				Email:    "test@example.com",
 				Password: "StrongPassword123!",
 			},
 			setupExisting: &auth.RegisterUserInput{
-				Username: "testUser",
-				Email:    "test@example.com",
-				Password: "StrongPassword123!",
-			},
-			expectError:   true,
-			expectedError: auth.ErrUserExists,
-		},
-		{
-			name: "DuplicateUsername",
-			input: auth.RegisterUserInput{
-				Username: "testUser",
-				Email:    "anothermail@example.com",
-				Password: "StrongPassword123!",
-			},
-			setupExisting: &auth.RegisterUserInput{
-				Username: "testUser",
 				Email:    "test@example.com",
 				Password: "StrongPassword123!",
 			},
@@ -112,7 +94,6 @@ func TestRegisterUser_AuditTrail(t *testing.T) {
 	ctx := context.Background()
 
 	user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "testUser",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
 	})

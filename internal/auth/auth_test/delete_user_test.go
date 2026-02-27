@@ -21,7 +21,6 @@ func TestDeleteUser_Success(t *testing.T) {
 	ctx = testutil.CtxWithRoles(ctx, []string{"admin"})
 
 	actor, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "actorUser",
 		Email:    "actor@example.com",
 		Password: "Password123!",
 	})
@@ -30,7 +29,6 @@ func TestDeleteUser_Success(t *testing.T) {
 	ctx = testutil.CtxWithUserID(ctx, actor.ID)
 
 	user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "testUser",
 		Email:    "test@example.com",
 		Password: "OldPassword123!",
 	})
@@ -53,7 +51,6 @@ func TestDeleteUser_AlreadyDeleted(t *testing.T) {
 	ctx = testutil.CtxWithRoles(ctx, []string{"admin"})
 
 	actor, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "actorUser",
 		Email:    "actor@example.com",
 		Password: "Password123!",
 	})
@@ -62,7 +59,6 @@ func TestDeleteUser_AlreadyDeleted(t *testing.T) {
 	ctx = testutil.CtxWithUserID(ctx, actor.ID)
 
 	user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "testUser",
 		Email:    "test@example.com",
 		Password: "Password123!",
 	})
@@ -92,7 +88,6 @@ func TestDeleteUser_UserDoesNotExist(t *testing.T) {
 	ctx = testutil.CtxWithRoles(ctx, []string{"admin"})
 
 	actor, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "actorUser",
 		Email:    "actor@example.com",
 		Password: "Password123!",
 	})
@@ -130,14 +125,12 @@ func TestDeleteUser_UserIsSoftDeleted(t *testing.T) {
 	ctx = testutil.CtxWithRoles(ctx, []string{"admin"})
 
 	user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "softDeleteUser",
 		Email:    "soft@delete.com",
 		Password: "Password123!",
 	})
 	require.NoError(t, err)
 
 	actor, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "actorUser",
 		Email:    "actor@example.com",
 		Password: "Password123!",
 	})

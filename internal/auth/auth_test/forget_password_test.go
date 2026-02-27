@@ -20,7 +20,6 @@ func TestForgetPassword_Success(t *testing.T) {
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "resetuser",
 		Email:    "reset@example.com",
 		Password: "Password123!",
 	})
@@ -56,7 +55,6 @@ func TestForgetPassword_ReplacesExistingTokens(t *testing.T) {
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "multi",
 		Email:    "multi@example.com",
 		Password: "Password123!",
 	})

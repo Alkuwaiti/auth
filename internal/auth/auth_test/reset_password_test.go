@@ -32,7 +32,6 @@ func TestResetPassword_ExpiredToken(t *testing.T) {
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "expired",
 		Email:    "expired@example.com",
 		Password: "Password123!",
 	})
@@ -60,7 +59,6 @@ func TestResetPassword_TokenCannotBeReused(t *testing.T) {
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "reuse",
 		Email:    "reuse@example.com",
 		Password: "Password123!",
 	})

@@ -22,7 +22,6 @@ func main() {
 	}()
 
 	res, err := client.RegisterUser(ctx, &authv1.RegisterUserRequest{
-		Username: "qasimm",
 		Email:    "qasimm@gmail.com",
 		Password: "Supersecretpassword1!!",
 	})

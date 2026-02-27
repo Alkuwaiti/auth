@@ -91,7 +91,6 @@ type SocialAccount struct {
 type User struct {
 	ID              uuid.UUID
 	Email           string
-	Username        string
 	PasswordHash    sql.NullString
 	IsEmailVerified bool
 	IsActive        bool

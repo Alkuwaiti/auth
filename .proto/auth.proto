@@ -57,7 +57,6 @@ message ChangePasswordRequest {
 }
 
 message RegisterUserRequest {
-  string username = 1;
   string email = 2;
   string password = 3;
 }
@@ -65,7 +64,6 @@ message RegisterUserRequest {
 message User {
   string id = 1;
   string email = 2;
-  string username = 3;
 }
 
 message DeleteUserRequest {

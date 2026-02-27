@@ -22,7 +22,6 @@ func TestRefreshToken_Success(t *testing.T) {
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	_, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "testUser",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
 	})
@@ -80,7 +79,6 @@ func TestRefreshToken_ExpiredSession(t *testing.T) {
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	_, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "testUser",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
 	})
@@ -109,7 +107,6 @@ func TestRefreshToken_RevokedTokenReuse(t *testing.T) {
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	_, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "testUser",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
 	})
@@ -149,7 +146,6 @@ func TestRefreshToken_AlreadyCompromised(t *testing.T) {
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	_, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "testUser",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
 	})
@@ -178,7 +174,6 @@ func TestRefreshToken_ConcurrentRace(t *testing.T) {
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	_, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "test",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
 	})
@@ -223,7 +218,6 @@ func TestRefreshToken_AfterPasswordChange(t *testing.T) {
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "test",
 		Email:    "test@example.com",
 		Password: "OldPassword123!",
 	})
@@ -249,7 +243,6 @@ func TestRefreshToken_AfterLogout(t *testing.T) {
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	_, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "test",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
 	})
@@ -273,7 +266,6 @@ func TestRefreshToken_LogoutThenReplay(t *testing.T) {
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	_, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "test",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
 	})
@@ -302,7 +294,6 @@ func TestRefreshToken_MultiDeviceIsolation(t *testing.T) {
 	ctx2 := testutil.CtxWithRequestMeta(ctx)
 
 	_, err := service.RegisterUser(ctx1, auth.RegisterUserInput{
-		Username: "test",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
 	})
@@ -330,7 +321,6 @@ func TestRefreshToken_DeletedUser(t *testing.T) {
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "testUser",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
 	})

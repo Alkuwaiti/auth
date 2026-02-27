@@ -93,11 +93,10 @@ func (c *noopCrypto) Decrypt(b []byte) ([]byte, error) {
 
 func seedUser(t *testing.T, db *sql.DB, userID uuid.UUID, email string, ctx context.Context) {
 	_, err := db.ExecContext(ctx, `
-		INSERT INTO users (id, username, email, password_hash, created_at)
-		VALUES ($1, $2, $3, $4, now())
+		INSERT INTO users (id, email, password_hash, created_at)
+		VALUES ($1, $2, $3, now())
 	`,
 		userID,
-		"username",
 		email,
 		"password_hash",
 	)

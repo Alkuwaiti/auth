@@ -70,7 +70,7 @@ type Repo interface {
 	MarkSessionsCompromised(ctx context.Context, userID uuid.UUID) error
 	GetUserByEmail(ctx context.Context, email string) (domain.User, error)
 	GetUserByID(ctx context.Context, userID uuid.UUID) (domain.User, error)
-	CreateUser(ctx context.Context, username, email string, passwordHash *string) (domain.User, error)
+	CreateUser(ctx context.Context, email string, passwordHash *string) (domain.User, error)
 	InsertBackupCodes(ctx context.Context, userID uuid.UUID, hashedCodes []string) error
 	DeleteUserBackupCodes(ctx context.Context, userID uuid.UUID) error
 	CreatePasswordResetToken(ctx context.Context, userID uuid.UUID, tokenHash string, expiresAt time.Time) error

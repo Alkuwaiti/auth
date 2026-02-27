@@ -19,7 +19,6 @@ func setupUserWithTOTP(t *testing.T, svc *auth.Service, ctx context.Context) (us
 
 	// register user
 	user, err := svc.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "testuser",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
 	})

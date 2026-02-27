@@ -18,7 +18,6 @@ func TestLogin_Success(t *testing.T) {
 	ctx := context.Background()
 
 	_, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "testUser",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
 	})
@@ -52,7 +51,6 @@ func TestLogin_InvalidPassword(t *testing.T) {
 	ctx := context.Background()
 
 	_, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "testUser",
 		Email:    "test@example.com",
 		Password: "CorrectPassword123!",
 	})
@@ -71,7 +69,6 @@ func TestLogin_InactiveUser(t *testing.T) {
 	ctx := context.Background()
 
 	user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "testUser",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
 	})
@@ -95,7 +92,6 @@ func TestLogin_CreatesSession(t *testing.T) {
 	ctx := context.Background()
 
 	user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "testUser",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
 	})
@@ -119,7 +115,6 @@ func TestLogin_CreatesAuditLog(t *testing.T) {
 	ctx := context.Background()
 
 	user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "testUser",
 		Email:    "test@example.com",
 		Password: "StrongPassword123!",
 	})
@@ -149,7 +144,6 @@ func TestLogin_DeletedUser(t *testing.T) {
 	password := "OldPassword123!"
 
 	user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "testUser",
 		Email:    email,
 		Password: password,
 	})

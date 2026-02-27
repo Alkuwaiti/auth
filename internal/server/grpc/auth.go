@@ -101,7 +101,6 @@ func (s *server) RegisterUser(ctx context.Context, req *authv1.RegisterUserReque
 	}
 
 	res, err := s.service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: req.Username,
 		Email:    req.Email,
 		Password: req.Password,
 	})
@@ -110,9 +109,8 @@ func (s *server) RegisterUser(ctx context.Context, req *authv1.RegisterUserReque
 	}
 
 	return &authv1.User{
-		Id:       res.ID.String(),
-		Username: res.Username,
-		Email:    res.Email,
+		Id:    res.ID.String(),
+		Email: res.Email,
 	}, nil
 }
 

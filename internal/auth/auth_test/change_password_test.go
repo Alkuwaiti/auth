@@ -73,7 +73,6 @@ func TestChangePassword(t *testing.T) {
 			var userID uuid.UUID
 			if tt.setupUser {
 				user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-					Username: "testUser",
 					Email:    "test@example.com",
 					Password: "OldPassword123!",
 				})
@@ -122,7 +121,6 @@ func TestChangePassword_CreatesAuditLog(t *testing.T) {
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "testUser",
 		Email:    "test@example.com",
 		Password: "OldPassword123!",
 	})
@@ -150,7 +148,6 @@ func TestChangePassword_RevokesSessions(t *testing.T) {
 	ctx = testutil.CtxWithRequestMeta(ctx)
 
 	user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: "testUser",
 		Email:    "test@example.com",
 		Password: "OldPassword123!",
 	})

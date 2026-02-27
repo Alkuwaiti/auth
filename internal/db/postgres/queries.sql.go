@@ -247,14 +247,13 @@ WITH role_cte AS (
 inserted_user AS (
     INSERT INTO users (
         id,
-        username,
         email,
         password_hash,
         created_at,
         updated_at
     )
-    VALUES ($1, $2, $3, $4, NOW(), NOW())
-    RETURNING id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at, deleted_at, deletion_reason, mfa_enabled
+    VALUES ($1, $2, $3, NOW(), NOW())
+    RETURNING id, email, password_hash, is_email_verified, is_active, created_at, updated_at, deleted_at, deletion_reason, mfa_enabled
 ),
 insert_role AS (
     INSERT INTO user_roles (user_id, role_id, assigned_at)
@@ -264,12 +263,11 @@ insert_role AS (
         NOW()
     FROM inserted_user, role_cte
 )
-SELECT id, email, username, password_hash, is_email_verified, is_active, created_at, updated_at, deleted_at, deletion_reason, mfa_enabled FROM inserted_user
+SELECT id, email, password_hash, is_email_verified, is_active, created_at, updated_at, deleted_at, deletion_reason, mfa_enabled FROM inserted_user
 `
 
 type CreateUserParams struct {
 	ID           uuid.UUID
-	Username     string
 	Email        string
 	PasswordHash sql.NullString
 }
@@ -277,7 +275,6 @@ type CreateUserParams struct {
 type CreateUserRow struct {
 	ID              uuid.UUID
 	Email           string
-	Username        string
 	PasswordHash    sql.NullString
 	IsEmailVerified bool
 	IsActive        bool
@@ -290,17 +287,11 @@ type CreateUserRow struct {
 
 // users
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
-	row := q.db.QueryRowContext(ctx, createUser,
-		arg.ID,
-		arg.Username,
-		arg.Email,
-		arg.PasswordHash,
-	)
+	row := q.db.QueryRowContext(ctx, createUser, arg.ID, arg.Email, arg.PasswordHash)
 	var i CreateUserRow
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
-		&i.Username,
 		&i.PasswordHash,
 		&i.IsEmailVerified,
 		&i.IsActive,
@@ -615,7 +606,7 @@ func (q *Queries) GetUserBackupCodes(ctx context.Context, userID uuid.UUID) ([]M
 
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT
-  u.id, u.email, u.username, u.password_hash, u.is_email_verified, u.is_active, u.created_at, u.updated_at, u.deleted_at, u.deletion_reason, u.mfa_enabled,
+  u.id, u.email, u.password_hash, u.is_email_verified, u.is_active, u.created_at, u.updated_at, u.deleted_at, u.deletion_reason, u.mfa_enabled,
   ARRAY_AGG(r.name)::text[] AS roles
 FROM users u
 JOIN user_roles ur ON u.id = ur.user_id
@@ -627,7 +618,6 @@ GROUP BY u.id
 type GetUserByEmailRow struct {
 	ID              uuid.UUID
 	Email           string
-	Username        string
 	PasswordHash    sql.NullString
 	IsEmailVerified bool
 	IsActive        bool
@@ -645,7 +635,6 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
-		&i.Username,
 		&i.PasswordHash,
 		&i.IsEmailVerified,
 		&i.IsActive,
@@ -661,7 +650,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 
 const getUserByID = `-- name: GetUserByID :one
 SELECT
-  u.id, u.email, u.username, u.password_hash, u.is_email_verified, u.is_active, u.created_at, u.updated_at, u.deleted_at, u.deletion_reason, u.mfa_enabled,
+  u.id, u.email, u.password_hash, u.is_email_verified, u.is_active, u.created_at, u.updated_at, u.deleted_at, u.deletion_reason, u.mfa_enabled,
   ARRAY_AGG(r.name)::text[] AS roles
 FROM users u
 JOIN user_roles ur ON u.id = ur.user_id
@@ -673,7 +662,6 @@ GROUP BY u.id
 type GetUserByIDRow struct {
 	ID              uuid.UUID
 	Email           string
-	Username        string
 	PasswordHash    sql.NullString
 	IsEmailVerified bool
 	IsActive        bool
@@ -691,7 +679,6 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
-		&i.Username,
 		&i.PasswordHash,
 		&i.IsEmailVerified,
 		&i.IsActive,

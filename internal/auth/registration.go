@@ -22,7 +22,6 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 	meta := contextkeys.RequestMetaFromContext(ctx)
 
 	span.SetAttributes(
-		attribute.String("user.username", input.Username),
 		attribute.String("user.email", input.Email),
 	)
 
@@ -40,7 +39,7 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 		return domain.User{}, err
 	}
 
-	user, err := s.Repo.CreateUser(ctx, input.Username, input.Email, &newPasswordHash)
+	user, err := s.Repo.CreateUser(ctx, input.Email, &newPasswordHash)
 	if err != nil {
 		if errors.Is(err, domain.ErrRecordAlreadyExists) {
 			return domain.User{}, ErrUserExists

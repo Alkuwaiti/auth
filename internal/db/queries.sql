@@ -9,13 +9,12 @@ WITH role_cte AS (
 inserted_user AS (
     INSERT INTO users (
         id,
-        username,
         email,
         password_hash,
         created_at,
         updated_at
     )
-    VALUES ($1, $2, $3, $4, NOW(), NOW())
+    VALUES ($1, $2, $3, NOW(), NOW())
     RETURNING *
 ),
 insert_role AS (
