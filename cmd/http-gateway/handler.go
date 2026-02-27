@@ -39,15 +39,42 @@ func (h *Handler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	state := r.URL.Query().Get("state")
 	code := r.URL.Query().Get("code")
 
+	if state == "" || code == "" {
+		http.Error(w, "missing state or code", http.StatusBadRequest)
+		return
+	}
+
 	res, err := h.authClient.CompleteGoogleLogin(ctx, &authv1.CompleteGoogleLoginRequest{
 		Code:  code,
 		State: state,
 	})
 	if err != nil {
-		http.Error(w, "failed to start google login", http.StatusInternalServerError)
-		slog.Error("some error happened", "err", err)
+		slog.Error("google login failed", "err", err)
+		http.Error(w, "authentication failed", http.StatusUnauthorized)
 		return
 	}
 
-	slog.InfoContext(ctx, "this is the response", "res", res)
+	http.SetCookie(w, &http.Cookie{
+		Name:     "access_token",
+		Value:    res.AccessToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   15 * 60,
+	})
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    res.RefreshToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   7 * 24 * 60 * 60,
+	})
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("login successful"))
+
 }
