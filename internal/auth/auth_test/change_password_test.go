@@ -172,3 +172,27 @@ func TestChangePassword_RevokesSessions(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, revokedAt)
 }
+
+func TestChangePassword_NilPasswordHash(t *testing.T) {
+	service, _, cleanup := setupTestAuthService(t)
+	defer cleanup()
+	ctx := context.Background()
+	ctx = testutil.CtxWithRequestMeta(ctx)
+
+	user, err := service.Repo.CreateUser(ctx, "social@example.com", nil)
+	require.NoError(t, err)
+
+	ctx = testutil.CtxWithUserID(ctx, user.ID)
+
+	newPassword := "BrandNewPassword123!"
+	err = service.ChangePassword(ctx, "irrelevantOldPassword", newPassword)
+	require.NoError(t, err)
+
+	updatedUser, err := service.Repo.GetUserByID(ctx, user.ID)
+	require.NoError(t, err)
+	require.NotNil(t, updatedUser.PasswordHash)
+
+	match, err := service.Passwords.Compare(*updatedUser.PasswordHash, newPassword)
+	require.NoError(t, err)
+	require.True(t, match)
+}
