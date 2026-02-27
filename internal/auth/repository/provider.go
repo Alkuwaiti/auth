@@ -2,26 +2,22 @@ package repository
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/google/uuid"
 )
 
-func (r *repo) GetSocialAccountByProviderID(ctx context.Context, provider domain.Provider, providerUserID string) (domain.SocialAccount, error) {
-	socialAccount, err := r.queries.GetUserByProviderID(ctx, postgres.GetUserByProviderIDParams{
+func (r *repo) GetUserByOAuthProvider(ctx context.Context, provider domain.Provider, providerUserID string) (domain.User, error) {
+	user, err := r.queries.GetUserByOAuthProvider(ctx, postgres.GetUserByOAuthProviderParams{
 		Provider:       string(provider),
 		ProviderUserID: providerUserID,
 	})
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return domain.SocialAccount{}, domain.ErrNotFound
-		}
+		return domain.User{}, err
 	}
 
-	return toSocialAccount(socialAccount), nil
+	return toUserModelFromGetUserByOAuthProviderRow(user), nil
 }
 
 func (r *repo) LinkOAuthProvider(ctx context.Context, userID uuid.UUID, provider domain.Provider, providerUserID string) error {
@@ -32,12 +28,10 @@ func (r *repo) LinkOAuthProvider(ctx context.Context, userID uuid.UUID, provider
 	})
 }
 
-func toSocialAccount(row postgres.SocialAccount) domain.SocialAccount {
-	return domain.SocialAccount{
-		ID:             row.ID,
-		UserID:         row.UserID,
-		Provider:       domain.Provider(row.Provider),
-		ProviderUserID: row.ProviderUserID,
-		CreatedAt:      row.CreatedAt,
+func toUserModelFromGetUserByOAuthProviderRow(row postgres.GetUserByOAuthProviderRow) domain.User {
+	return domain.User{
+		ID:    row.ID,
+		Email: row.Email,
+		Roles: row.Roles,
 	}
 }

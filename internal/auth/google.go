@@ -33,23 +33,19 @@ func (s *Service) CompleteGoogleLogin(ctx context.Context, code, state string) (
 		return TokenPair{}, ErrUnverifiedGoogleEmail
 	}
 
-	socialAccount, err := s.Repo.GetSocialAccountByProviderID(
+	user, err := s.Repo.GetUserByOAuthProvider(
 		ctx,
 		domain.ProviderGoogle,
 		googleUser.Subject,
 	)
 	if err == nil {
-		user, err := s.Repo.GetUserByEmail(ctx, googleUser.Email)
-		if err != nil {
-			return TokenPair{}, err
-		}
 		return s.finalizeLogin(ctx, user, audit.ActionGoogleLogin)
 	}
 	if !errors.Is(err, domain.ErrNotFound) {
 		return TokenPair{}, err
 	}
 
-	user, err := s.Repo.GetUserByEmail(ctx, googleUser.Email)
+	user, err = s.Repo.GetUserByEmail(ctx, googleUser.Email)
 	if err != nil && !errors.Is(err, domain.ErrNotFound) {
 		return TokenPair{}, err
 	}

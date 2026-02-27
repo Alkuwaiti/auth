@@ -268,10 +268,18 @@ WHERE user_id = $1
   AND consumed_at IS NULL
   AND expires_at > NOW();
 
--- name: GetUserByProviderID :one
-SELECT * FROM social_accounts
-WHERE provider = $1
-  AND provider_user_id = $2;
+-- name: GetUserByOAuthProvider :one
+SELECT
+    u.id,
+    u.email,
+    ARRAY_AGG(r.name)::text[] AS roles
+FROM social_accounts sa
+JOIN users u ON u.id = sa.user_id
+JOIN user_roles ur ON ur.user_id = u.id
+JOIN roles r ON r.id = ur.role_id
+WHERE sa.provider = $1
+  AND sa.provider_user_id = $2
+GROUP BY u.id, u.email;
 
 -- name: LinkOAuthProvider :exec
 INSERT INTO social_accounts (user_id, provider, provider_user_id)

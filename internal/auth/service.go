@@ -80,7 +80,7 @@ type Repo interface {
 	ConsumeEmailVerificationToken(ctx context.Context, tokenHash string) (uuid.UUID, error)
 	VerifyUserEmail(ctx context.Context, userID uuid.UUID) error
 	InvalidateEmailVerificationTokens(ctx context.Context, userID uuid.UUID) error
-	GetSocialAccountByProviderID(ctx context.Context, provider domain.Provider, providerUserID string) (domain.SocialAccount, error)
+	GetUserByOAuthProvider(ctx context.Context, provider domain.Provider, providerUserID string) (domain.User, error)
 	LinkOAuthProvider(ctx context.Context, userID uuid.UUID, provider domain.Provider, providerUserID string) error
 }
 

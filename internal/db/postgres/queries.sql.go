@@ -692,27 +692,35 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow
 	return i, err
 }
 
-const getUserByProviderID = `-- name: GetUserByProviderID :one
-SELECT id, user_id, provider, provider_user_id, created_at FROM social_accounts
-WHERE provider = $1
-  AND provider_user_id = $2
+const getUserByOAuthProvider = `-- name: GetUserByOAuthProvider :one
+SELECT
+    u.id,
+    u.email,
+    ARRAY_AGG(r.name)::text[] AS roles
+FROM social_accounts sa
+JOIN users u ON u.id = sa.user_id
+JOIN user_roles ur ON ur.user_id = u.id
+JOIN roles r ON r.id = ur.role_id
+WHERE sa.provider = $1
+  AND sa.provider_user_id = $2
+GROUP BY u.id, u.email
 `
 
-type GetUserByProviderIDParams struct {
+type GetUserByOAuthProviderParams struct {
 	Provider       string
 	ProviderUserID string
 }
 
-func (q *Queries) GetUserByProviderID(ctx context.Context, arg GetUserByProviderIDParams) (SocialAccount, error) {
-	row := q.db.QueryRowContext(ctx, getUserByProviderID, arg.Provider, arg.ProviderUserID)
-	var i SocialAccount
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.Provider,
-		&i.ProviderUserID,
-		&i.CreatedAt,
-	)
+type GetUserByOAuthProviderRow struct {
+	ID    uuid.UUID
+	Email string
+	Roles []string
+}
+
+func (q *Queries) GetUserByOAuthProvider(ctx context.Context, arg GetUserByOAuthProviderParams) (GetUserByOAuthProviderRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserByOAuthProvider, arg.Provider, arg.ProviderUserID)
+	var i GetUserByOAuthProviderRow
+	err := row.Scan(&i.ID, &i.Email, pq.Array(&i.Roles))
 	return i, err
 }
 
