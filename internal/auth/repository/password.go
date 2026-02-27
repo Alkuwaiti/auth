@@ -38,7 +38,10 @@ func (r *repo) ConsumePasswordResetToken(ctx context.Context, tokenHash string) 
 
 func (r *repo) UpdatePassword(ctx context.Context, userID uuid.UUID, newPasswordHash string) error {
 	return r.queries.UpdatePassword(ctx, postgres.UpdatePasswordParams{
-		ID:           userID,
-		PasswordHash: newPasswordHash,
+		ID: userID,
+		PasswordHash: sql.NullString{
+			String: newPasswordHash,
+			Valid:  newPasswordHash != "",
+		},
 	})
 }

@@ -34,6 +34,8 @@ const (
 	AuthService_VerifyStepUpChallenge_FullMethodName   = "/auth.v1.AuthService/VerifyStepUpChallenge"
 	AuthService_ForgetPassword_FullMethodName          = "/auth.v1.AuthService/ForgetPassword"
 	AuthService_ResetPassword_FullMethodName           = "/auth.v1.AuthService/ResetPassword"
+	AuthService_BeginGoogleLogin_FullMethodName        = "/auth.v1.AuthService/BeginGoogleLogin"
+	AuthService_CompleteGoogleLogin_FullMethodName     = "/auth.v1.AuthService/CompleteGoogleLogin"
 	AuthService_VerifyEmail_FullMethodName             = "/auth.v1.AuthService/VerifyEmail"
 	AuthService_ResendEmailVerification_FullMethodName = "/auth.v1.AuthService/ResendEmailVerification"
 )
@@ -56,6 +58,8 @@ type AuthServiceClient interface {
 	VerifyStepUpChallenge(ctx context.Context, in *VerifyStepUpChallengeRequest, opts ...grpc.CallOption) (*VerifyStepUpChallengeResponse, error)
 	ForgetPassword(ctx context.Context, in *ForgetPasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	BeginGoogleLogin(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*BeginGoogleLoginRequest, error)
+	CompleteGoogleLogin(ctx context.Context, in *CompleteGoogleLoginRequest, opts ...grpc.CallOption) (*TokenPair, error)
 	VerifyEmail(ctx context.Context, in *VerifyEmailRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	ResendEmailVerification(ctx context.Context, in *ResendEmailVerificationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
@@ -208,6 +212,26 @@ func (c *authServiceClient) ResetPassword(ctx context.Context, in *ResetPassword
 	return out, nil
 }
 
+func (c *authServiceClient) BeginGoogleLogin(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*BeginGoogleLoginRequest, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BeginGoogleLoginRequest)
+	err := c.cc.Invoke(ctx, AuthService_BeginGoogleLogin_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) CompleteGoogleLogin(ctx context.Context, in *CompleteGoogleLoginRequest, opts ...grpc.CallOption) (*TokenPair, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TokenPair)
+	err := c.cc.Invoke(ctx, AuthService_CompleteGoogleLogin_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *authServiceClient) VerifyEmail(ctx context.Context, in *VerifyEmailRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
@@ -246,6 +270,8 @@ type AuthServiceServer interface {
 	VerifyStepUpChallenge(context.Context, *VerifyStepUpChallengeRequest) (*VerifyStepUpChallengeResponse, error)
 	ForgetPassword(context.Context, *ForgetPasswordRequest) (*emptypb.Empty, error)
 	ResetPassword(context.Context, *ResetPasswordRequest) (*emptypb.Empty, error)
+	BeginGoogleLogin(context.Context, *emptypb.Empty) (*BeginGoogleLoginRequest, error)
+	CompleteGoogleLogin(context.Context, *CompleteGoogleLoginRequest) (*TokenPair, error)
 	VerifyEmail(context.Context, *VerifyEmailRequest) (*emptypb.Empty, error)
 	ResendEmailVerification(context.Context, *ResendEmailVerificationRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedAuthServiceServer()
@@ -299,6 +325,12 @@ func (UnimplementedAuthServiceServer) ForgetPassword(context.Context, *ForgetPas
 }
 func (UnimplementedAuthServiceServer) ResetPassword(context.Context, *ResetPasswordRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method ResetPassword not implemented")
+}
+func (UnimplementedAuthServiceServer) BeginGoogleLogin(context.Context, *emptypb.Empty) (*BeginGoogleLoginRequest, error) {
+	return nil, status.Error(codes.Unimplemented, "method BeginGoogleLogin not implemented")
+}
+func (UnimplementedAuthServiceServer) CompleteGoogleLogin(context.Context, *CompleteGoogleLoginRequest) (*TokenPair, error) {
+	return nil, status.Error(codes.Unimplemented, "method CompleteGoogleLogin not implemented")
 }
 func (UnimplementedAuthServiceServer) VerifyEmail(context.Context, *VerifyEmailRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method VerifyEmail not implemented")
@@ -579,6 +611,42 @@ func _AuthService_ResetPassword_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_BeginGoogleLogin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).BeginGoogleLogin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_BeginGoogleLogin_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).BeginGoogleLogin(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_CompleteGoogleLogin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CompleteGoogleLoginRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).CompleteGoogleLogin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_CompleteGoogleLogin_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).CompleteGoogleLogin(ctx, req.(*CompleteGoogleLoginRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AuthService_VerifyEmail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(VerifyEmailRequest)
 	if err := dec(in); err != nil {
@@ -677,6 +745,14 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ResetPassword",
 			Handler:    _AuthService_ResetPassword_Handler,
+		},
+		{
+			MethodName: "BeginGoogleLogin",
+			Handler:    _AuthService_BeginGoogleLogin_Handler,
+		},
+		{
+			MethodName: "CompleteGoogleLogin",
+			Handler:    _AuthService_CompleteGoogleLogin_Handler,
 		},
 		{
 			MethodName: "VerifyEmail",

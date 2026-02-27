@@ -14,6 +14,7 @@ import (
 	"github.com/alkuwaiti/auth/internal/flags"
 	"github.com/alkuwaiti/auth/internal/mfa"
 	"github.com/alkuwaiti/auth/internal/password"
+	googlesocial "github.com/alkuwaiti/auth/internal/social/google"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/alkuwaiti/auth/internal/tokens"
 	"github.com/google/uuid"
@@ -59,7 +60,14 @@ func setupTestAuthService(t *testing.T) (*auth.Service, *sql.DB, func()) {
 		AppName: "MyApp",
 	})
 
-	service := auth.NewService(authRepo, passwordService, auditService, authorizerService, flagsService, tokenManager, multifactor, auth.Config{
+	googleProvider := googlesocial.NewService(googlesocial.Config{
+		ClientID:     "",
+		ClientSecret: "",
+		RedirectURL:  "",
+		StateSecret:  "",
+	})
+
+	service := auth.NewService(authRepo, passwordService, auditService, authorizerService, flagsService, tokenManager, multifactor, googleProvider, auth.Config{
 		MaxChallengeAttempts: 5,
 	})
 
@@ -85,11 +93,10 @@ func (c *noopCrypto) Decrypt(b []byte) ([]byte, error) {
 
 func seedUser(t *testing.T, db *sql.DB, userID uuid.UUID, email string, ctx context.Context) {
 	_, err := db.ExecContext(ctx, `
-		INSERT INTO users (id, username, email, password_hash, created_at)
-		VALUES ($1, $2, $3, $4, now())
+		INSERT INTO users (id, email, password_hash, created_at)
+		VALUES ($1, $2, $3, now())
 	`,
 		userID,
-		"username",
 		email,
 		"password_hash",
 	)

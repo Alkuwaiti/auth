@@ -44,7 +44,7 @@ The schema is centered around the `users` table and branches out into authentica
 
 ### `users`
 
-The core entity of the system. Stores credentials (`email`, `username`, `password_hash`), account state flags (`is_active`, `is_email_verified`, `mfa_enabled`), and soft-deletion fields (`deleted_at`, `deletion_reason`). Almost every other table has a foreign key pointing back to this one.
+The core entity of the system. Stores credentials (`email`, `password_hash`), account state flags (`is_active`, `is_email_verified`, `mfa_enabled`), and soft-deletion fields (`deleted_at`, `deletion_reason`). Almost every other table has a foreign key pointing back to this one.
 
 ### `sessions`
 

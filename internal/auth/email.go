@@ -94,7 +94,7 @@ func (s *Service) ResendEmailVerification(ctx context.Context, email string) err
 		return err
 	}
 
-	// TODO: remove this. for dev only.
+	// TODO: remove this. for dev only. need to emit events here.
 	slog.DebugContext(ctx, "this is the raw verification token", "raw_token", raw)
 
 	return nil

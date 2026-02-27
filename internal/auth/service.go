@@ -8,36 +8,39 @@ import (
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
+	googlesocial "github.com/alkuwaiti/auth/internal/social/google"
 	"github.com/google/uuid"
 	"github.com/pquerna/otp"
 	"go.opentelemetry.io/otel"
 )
 
 type Service struct {
-	Repo         Repo
-	Passwords    passwords
-	auditor      auditor
-	authorizer   authorizer
-	Flags        featureFlags
-	TokenManager tokenManager
-	MFAProvider  MFAProvider
-	Config       Config
+	Repo           Repo
+	Passwords      passwords
+	auditor        auditor
+	authorizer     authorizer
+	Flags          featureFlags
+	TokenManager   tokenManager
+	MFAProvider    MFAProvider
+	googleProvider googleProvider
+	Config         Config
 }
 
 type Config struct {
 	MaxChallengeAttempts int
 }
 
-func NewService(repoI Repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, Config Config) *Service {
+func NewService(repoI Repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, googleProvider googleProvider, Config Config) *Service {
 	return &Service{
-		Repo:         repoI,
-		Passwords:    passwords,
-		auditor:      auditor,
-		authorizer:   authorizer,
-		Flags:        flags,
-		TokenManager: tokenManager,
-		MFAProvider:  MFAProvider,
-		Config:       Config,
+		Repo:           repoI,
+		Passwords:      passwords,
+		auditor:        auditor,
+		authorizer:     authorizer,
+		Flags:          flags,
+		TokenManager:   tokenManager,
+		MFAProvider:    MFAProvider,
+		googleProvider: googleProvider,
+		Config:         Config,
 	}
 }
 
@@ -67,7 +70,7 @@ type Repo interface {
 	MarkSessionsCompromised(ctx context.Context, userID uuid.UUID) error
 	GetUserByEmail(ctx context.Context, email string) (domain.User, error)
 	GetUserByID(ctx context.Context, userID uuid.UUID) (domain.User, error)
-	CreateUser(ctx context.Context, username, email, passwordHash string) (domain.User, error)
+	CreateUser(ctx context.Context, email string, passwordHash *string) (domain.User, error)
 	InsertBackupCodes(ctx context.Context, userID uuid.UUID, hashedCodes []string) error
 	DeleteUserBackupCodes(ctx context.Context, userID uuid.UUID) error
 	CreatePasswordResetToken(ctx context.Context, userID uuid.UUID, tokenHash string, expiresAt time.Time) error
@@ -77,6 +80,8 @@ type Repo interface {
 	ConsumeEmailVerificationToken(ctx context.Context, tokenHash string) (uuid.UUID, error)
 	VerifyUserEmail(ctx context.Context, userID uuid.UUID) error
 	InvalidateEmailVerificationTokens(ctx context.Context, userID uuid.UUID) error
+	GetUserByOAuthProvider(ctx context.Context, provider domain.Provider, providerUserID string) (domain.User, error)
+	LinkOAuthProvider(ctx context.Context, userID uuid.UUID, provider domain.Provider, providerUserID string) error
 }
 
 type auditor interface {
@@ -110,6 +115,13 @@ type MFAProvider interface {
 	GenerateEncryptedSecret(key *otp.Key) ([]byte, error)
 	VerifyTOTP(ctx context.Context, secret, code string) (bool, error)
 	GenerateBackupCodes(n int, hash func(string) (string, error)) (plain []string, hashed []string, err error)
+}
+
+type googleProvider interface {
+	GenerateState() (string, error)
+	ValidateState(state string) error
+	AuthURL(state string) string
+	ExchangeCode(ctx context.Context, code string) (googlesocial.GoogleUser, error)
 }
 
 // TODO: test race condition for all of these methods.

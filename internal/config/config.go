@@ -33,6 +33,11 @@ type Config struct {
 	AESKey               string
 	AppName              string
 	MaxChallengeAttempts int
+	GoogleConfig         googleConfig
+}
+
+type googleConfig struct {
+	ClientID, ClientSecret, RedirectURL, StateSecret string
 }
 
 func Load(env, jur string) Config {

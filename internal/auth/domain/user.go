@@ -9,8 +9,7 @@ import (
 type User struct {
 	ID              uuid.UUID       `json:"id"`
 	Email           string          `json:"email"`
-	Username        string          `json:"Username"`
-	PasswordHash    string          `json:"Password_hash"`
+	PasswordHash    *string         `json:"Password_hash"`
 	IsEmailVerified bool            `json:"is_email_verified"`
 	IsActive        bool            `json:"is_active"`
 	CreatedAt       time.Time       `json:"created_at"`

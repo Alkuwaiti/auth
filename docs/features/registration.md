@@ -5,11 +5,11 @@ The `RegisterUser` operation is responsible for securely creating a new user acc
 ### Flow
 
 1. **Input Validation**
-   - Username, email, and password are validated.
+   - email, and password are validated.
    - Invalid inputs are rejected before any database interaction.
 
 2. **Uniqueness Check**
-   - The service verifies that the username and email are not already in use.
+   - The service verifies that the email is not already in use.
    - Duplicate accounts are rejected with a clear client error.
 
 3. **Password Policy Enforcement**
@@ -39,7 +39,7 @@ The `RegisterUser` operation is responsible for securely creating a new user acc
 ### Security Guarantees
 
 - Passwords are never stored in plaintext.
-- Duplicate usernames or emails are prevented.
+- Duplicate emails are prevented.
 - Account creation is auditable.
 - Sensitive information is not exposed in error responses.
 - All critical steps are traceable via distributed tracing.

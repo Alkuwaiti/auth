@@ -22,7 +22,6 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 	meta := contextkeys.RequestMetaFromContext(ctx)
 
 	span.SetAttributes(
-		attribute.String("user.username", input.Username),
 		attribute.String("user.email", input.Email),
 	)
 
@@ -40,7 +39,7 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 		return domain.User{}, err
 	}
 
-	user, err := s.Repo.CreateUser(ctx, input.Username, input.Email, newPasswordHash)
+	user, err := s.Repo.CreateUser(ctx, input.Email, &newPasswordHash)
 	if err != nil {
 		if errors.Is(err, domain.ErrRecordAlreadyExists) {
 			return domain.User{}, ErrUserExists
@@ -48,13 +47,12 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 		return domain.User{}, err
 	}
 
-	// TODO: emit an event for rawToken
 	rawToken, hashedToken, err := s.TokenManager.GenerateToken()
 	if err != nil {
 		return domain.User{}, err
 	}
 
-	// TODO: remove later on
+	// TODO: emit an event for rawToken
 	slog.InfoContext(ctx, "raw token for email verification for user", "user", user, "raw_token", rawToken)
 
 	if err = s.Repo.CreateEmailVerificationToken(ctx, user.ID, hashedToken, time.Now().Add(30*time.Minute)); err != nil {

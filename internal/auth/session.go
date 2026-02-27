@@ -36,7 +36,7 @@ func (s *Service) Login(ctx context.Context, email, password string) (LoginResul
 		return LoginResult{}, err
 	}
 
-	match, err := s.Passwords.Compare(user.PasswordHash, password)
+	match, err := s.Passwords.Compare(*user.PasswordHash, password)
 	if err != nil {
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email)
 		return LoginResult{}, err
@@ -186,7 +186,6 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 		return TokenPair{}, ErrInvalidCredentials
 	}
 
-	// TODO: maybe return a raw and a hashed version. store the hash, compare incoming raw with hashed...
 	rawToken, hashedToken, err := s.TokenManager.GenerateToken()
 	if err != nil {
 		span.RecordError(err)

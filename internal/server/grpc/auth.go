@@ -101,7 +101,6 @@ func (s *server) RegisterUser(ctx context.Context, req *authv1.RegisterUserReque
 	}
 
 	res, err := s.service.RegisterUser(ctx, auth.RegisterUserInput{
-		Username: req.Username,
 		Email:    req.Email,
 		Password: req.Password,
 	})
@@ -110,9 +109,8 @@ func (s *server) RegisterUser(ctx context.Context, req *authv1.RegisterUserReque
 	}
 
 	return &authv1.User{
-		Id:       res.ID.String(),
-		Username: res.Username,
-		Email:    res.Email,
+		Id:    res.ID.String(),
+		Email: res.Email,
 	}, nil
 }
 
@@ -272,17 +270,52 @@ func (s *server) ResetPassword(ctx context.Context, req *authv1.ResetPasswordReq
 	return &emptypb.Empty{}, nil
 }
 
+func (s *server) BeginGoogleLogin(ctx context.Context, req *emptypb.Empty) (*authv1.BeginGoogleLoginRequest, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+	authURL, err := s.service.BeginGoogleLogin(ctx)
+	if err != nil {
+		return nil, MapError(err)
+	}
+
+	return &authv1.BeginGoogleLoginRequest{
+		AuthUrl: authURL,
+	}, nil
+}
+
 func (s *server) VerifyEmail(ctx context.Context, req *authv1.VerifyEmailRequest) (*emptypb.Empty, error) {
 	if req == nil {
 		slog.ErrorContext(ctx, "Invalid request: request is nil")
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
-
 	if err := s.service.VerifyEmail(ctx, req.Token); err != nil {
 		return nil, MapError(err)
 	}
 
 	return &emptypb.Empty{}, nil
+
+}
+
+func (s *server) CompleteGoogleLogin(ctx context.Context, req *authv1.CompleteGoogleLoginRequest) (*authv1.TokenPair, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	res, err := s.service.CompleteGoogleLogin(ctx, req.Code, req.State)
+	if err != nil {
+		return nil, MapError(err)
+	}
+
+	return &authv1.TokenPair{
+		AccessToken:  res.AccessToken,
+		RefreshToken: res.RefreshToken,
+		ExpiresIn:    res.RefreshExpiresAt.Unix(),
+		TokenType:    "Bearer",
+		UserId:       res.UserID.String(),
+	}, nil
 }
 
 func (s *server) ResendEmailVerification(ctx context.Context, req *authv1.ResendEmailVerificationRequest) (*emptypb.Empty, error) {
@@ -290,7 +323,6 @@ func (s *server) ResendEmailVerification(ctx context.Context, req *authv1.Resend
 		slog.ErrorContext(ctx, "Invalid request: request is nil")
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
-
 	if err := s.service.ResendEmailVerification(ctx, req.Email); err != nil {
 		return nil, MapError(err)
 	}

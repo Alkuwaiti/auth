@@ -17,15 +17,11 @@ type TokenPair struct {
 }
 
 type RegisterUserInput struct {
-	Username, Email, Password string
+	Email, Password string
 }
 
 func (r *RegisterUserInput) validate() error {
 	if err := r.validateEmail(); err != nil {
-		return err
-	}
-
-	if err := r.validateUsername(); err != nil {
 		return err
 	}
 
@@ -39,24 +35,6 @@ func (r *RegisterUserInput) validate() error {
 func (r *RegisterUserInput) validateEmail() error {
 	if _, err := mail.ParseAddress(strings.TrimSpace(r.Email)); err != nil {
 		return ErrInvalidEmail
-	}
-
-	return nil
-}
-
-func (r *RegisterUserInput) validateUsername() error {
-	r.Username = strings.TrimSpace(r.Username)
-
-	if r.Username == "" {
-		return ErrUsernameEmpty
-	}
-
-	if len(r.Username) < 3 {
-		return ErrUsernameTooShort
-	}
-
-	if len(r.Username) > 50 {
-		return ErrUsernameTooLong
 	}
 
 	return nil

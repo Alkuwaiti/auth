@@ -25,6 +25,7 @@ import (
 	"github.com/alkuwaiti/auth/internal/mfa"
 	"github.com/alkuwaiti/auth/internal/password"
 	"github.com/alkuwaiti/auth/internal/server/grpc"
+	googlesocial "github.com/alkuwaiti/auth/internal/social/google"
 	"github.com/alkuwaiti/auth/internal/tokens"
 	"github.com/alkuwaiti/auth/pkg/observability/logging"
 	"github.com/alkuwaiti/auth/pkg/observability/tracing"
@@ -116,9 +117,24 @@ func main() {
 
 	authRepo := repository.NewRepo(dbConn)
 
-	authService := auth.NewService(authRepo, passwords, auditor, authorizer, flags, tokens, multifactor, auth.Config{
-		MaxChallengeAttempts: cfg.MaxChallengeAttempts,
+	googleProvider := googlesocial.NewService(googlesocial.Config{
+		ClientID:     cfg.GoogleConfig.ClientID,
+		ClientSecret: cfg.GoogleConfig.ClientSecret,
+		RedirectURL:  cfg.GoogleConfig.RedirectURL,
+		StateSecret:  cfg.GoogleConfig.StateSecret,
 	})
+
+	authService := auth.NewService(authRepo,
+		passwords,
+		auditor,
+		authorizer,
+		flags,
+		tokens,
+		multifactor,
+		googleProvider,
+		auth.Config{
+			MaxChallengeAttempts: cfg.MaxChallengeAttempts,
+		})
 
 	port := 8081
 

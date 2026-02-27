@@ -22,6 +22,8 @@ service AuthService {
   rpc VerifyStepUpChallenge(VerifyStepUpChallengeRequest) returns (VerifyStepUpChallengeResponse) {}
   rpc ForgetPassword(ForgetPasswordRequest) returns (google.protobuf.Empty) {}
   rpc ResetPassword(ResetPasswordRequest) returns (google.protobuf.Empty) {}
+  rpc BeginGoogleLogin(google.protobuf.Empty) returns (BeginGoogleLoginRequest) {}
+  rpc CompleteGoogleLogin(CompleteGoogleLoginRequest) returns (TokenPair) {}
   rpc VerifyEmail(VerifyEmailRequest) returns (google.protobuf.Empty) {}
   rpc ResendEmailVerification(ResendEmailVerificationRequest) returns (google.protobuf.Empty) {}
 }
@@ -55,7 +57,6 @@ message ChangePasswordRequest {
 }
 
 message RegisterUserRequest {
-  string username = 1;
   string email = 2;
   string password = 3;
 }
@@ -63,7 +64,6 @@ message RegisterUserRequest {
 message User {
   string id = 1;
   string email = 2;
-  string username = 3;
 }
 
 message DeleteUserRequest {
@@ -129,6 +129,15 @@ message ForgetPasswordRequest {
 message ResetPasswordRequest {
   string token = 1;
   string new_password = 2;
+}
+
+message BeginGoogleLoginRequest {
+  string auth_url = 1;
+}
+
+message CompleteGoogleLoginRequest {
+  string code = 1;
+  string state = 2;
 }
 
 message VerifyEmailRequest {

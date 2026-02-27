@@ -23,6 +23,8 @@ var publicMethods = map[string]struct{}{
 	"/auth.v1.AuthService/ResetPassword":           {},
 	"/auth.v1.AuthService/VerifyEmail":             {},
 	"/auth.v1.AuthService/ResendEmailVerification": {},
+	"/auth.v1.AuthService/BeginGoogleLogin":        {},
+	"/auth.v1.AuthService/CompleteGoogleLogin":     {},
 }
 
 type JWTValidator interface {
