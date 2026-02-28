@@ -82,6 +82,7 @@ type Repo interface {
 	InvalidateEmailVerificationTokens(ctx context.Context, userID uuid.UUID) error
 	GetUserByOAuthProvider(ctx context.Context, provider domain.Provider, providerUserID string) (domain.User, error)
 	LinkOAuthProvider(ctx context.Context, userID uuid.UUID, provider domain.Provider, providerUserID string) error
+	CreateOutboxEvent(ctx context.Context, outboxEvent domain.OutboxEvent) error
 }
 
 type auditor interface {

@@ -284,3 +284,7 @@ GROUP BY u.id, u.email;
 -- name: LinkOAuthProvider :exec
 INSERT INTO social_accounts (user_id, provider, provider_user_id)
 VALUES ($1, $2, $3);
+
+-- name: CreateOutboxEvent :exec
+INSERT INTO outbox_events (aggregate_type, aggregate_id, event_type, payload)
+VALUES ($1, $2, $3, $4);

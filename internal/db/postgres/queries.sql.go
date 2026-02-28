@@ -8,6 +8,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -180,6 +181,28 @@ type CreateEmailVerificationTokenParams struct {
 
 func (q *Queries) CreateEmailVerificationToken(ctx context.Context, arg CreateEmailVerificationTokenParams) error {
 	_, err := q.db.ExecContext(ctx, createEmailVerificationToken, arg.UserID, arg.TokenHash, arg.ExpiresAt)
+	return err
+}
+
+const createOutboxEvent = `-- name: CreateOutboxEvent :exec
+INSERT INTO outbox_events (aggregate_type, aggregate_id, event_type, payload)
+VALUES ($1, $2, $3, $4)
+`
+
+type CreateOutboxEventParams struct {
+	AggregateType string
+	AggregateID   string
+	EventType     string
+	Payload       json.RawMessage
+}
+
+func (q *Queries) CreateOutboxEvent(ctx context.Context, arg CreateOutboxEventParams) error {
+	_, err := q.db.ExecContext(ctx, createOutboxEvent,
+		arg.AggregateType,
+		arg.AggregateID,
+		arg.EventType,
+		arg.Payload,
+	)
 	return err
 }
 

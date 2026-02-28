@@ -6,6 +6,7 @@ package postgres
 
 import (
 	"database/sql"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -50,6 +51,16 @@ type MfaChallenge struct {
 	CreatedAt     time.Time
 	Scope         string
 	Attempts      int32
+}
+
+type OutboxEvent struct {
+	ID            uuid.UUID
+	AggregateType string
+	AggregateID   string
+	EventType     string
+	Payload       json.RawMessage
+	CreatedAt     time.Time
+	PublishedAt   sql.NullTime
 }
 
 type PasswordResetToken struct {

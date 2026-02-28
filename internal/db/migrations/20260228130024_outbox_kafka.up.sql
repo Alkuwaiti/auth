@@ -3,6 +3,7 @@ CREATE TABLE outbox_events (
   aggregate_type TEXT NOT NULL,
   aggregate_id TEXT NOT NULL,
   event_type TEXT NOT NULL,
+  payload JSONB NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
   published_at TIMESTAMPTZ
 );
