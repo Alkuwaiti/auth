@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"time"
@@ -39,24 +40,48 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 		return domain.User{}, err
 	}
 
-	user, err := s.Repo.CreateUser(ctx, input.Email, &newPasswordHash)
-	if err != nil {
-		if errors.Is(err, domain.ErrRecordAlreadyExists) {
-			return domain.User{}, ErrUserExists
+	var user domain.User
+	if err = s.Repo.WithTx(ctx, func(r Repo) error {
+		user, err = r.CreateUser(ctx, input.Email, &newPasswordHash)
+		if err != nil {
+			if errors.Is(err, domain.ErrRecordAlreadyExists) {
+				return ErrUserExists
+			}
+			return err
 		}
-		return domain.User{}, err
-	}
 
-	rawToken, hashedToken, err := s.TokenManager.GenerateToken()
-	if err != nil {
-		return domain.User{}, err
-	}
+		rawToken, hashedToken, genErr := s.TokenManager.GenerateToken()
+		if genErr != nil {
+			return genErr
+		}
 
-	// TODO: emit an event for rawToken
-	slog.InfoContext(ctx, "raw token for email verification for user", "user", user, "raw_token", rawToken)
+		if err = r.CreateEmailVerificationToken(ctx, user.ID, hashedToken, time.Now().Add(30*time.Minute)); err != nil {
+			slog.ErrorContext(ctx, "failed to create email verification token", "err", err)
+			return err
+		}
 
-	if err = s.Repo.CreateEmailVerificationToken(ctx, user.ID, hashedToken, time.Now().Add(30*time.Minute)); err != nil {
-		slog.ErrorContext(ctx, "failed to create email verification token", "err", err)
+		event := userRegistered{
+			UserID:                 user.ID,
+			Email:                  user.Email,
+			EmailVerificationToken: rawToken,
+		}
+
+		payload, marshalErr := json.Marshal(event)
+		if marshalErr != nil {
+			return marshalErr
+		}
+
+		if marshalErr = r.CreateOutboxEvent(ctx, domain.OutboxEvent{
+			AggregateType: "user",
+			AggregateID:   user.ID.String(),
+			EventType:     event.eventType(),
+			Payload:       payload,
+		}); marshalErr != nil {
+			return marshalErr
+		}
+
+		return nil
+	}); err != nil {
 		return domain.User{}, err
 	}
 
