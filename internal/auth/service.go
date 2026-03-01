@@ -7,7 +7,6 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
-	authz "github.com/alkuwaiti/auth/internal/authorization"
 	googlesocial "github.com/alkuwaiti/auth/internal/social/google"
 	"github.com/google/uuid"
 	"github.com/pquerna/otp"
@@ -18,7 +17,6 @@ type Service struct {
 	Repo           Repo
 	Passwords      passwords
 	auditor        auditor
-	authorizer     authorizer
 	Flags          featureFlags
 	TokenManager   tokenManager
 	MFAProvider    MFAProvider
@@ -30,12 +28,11 @@ type Config struct {
 	MaxChallengeAttempts int
 }
 
-func NewService(repoI Repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, googleProvider googleProvider, Config Config) *Service {
+func NewService(repoI Repo, passwords passwords, auditor auditor, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, googleProvider googleProvider, Config Config) *Service {
 	return &Service{
 		Repo:           repoI,
 		Passwords:      passwords,
 		auditor:        auditor,
-		authorizer:     authorizer,
 		Flags:          flags,
 		TokenManager:   tokenManager,
 		MFAProvider:    MFAProvider,
@@ -94,10 +91,6 @@ type passwords interface {
 	Validate(password string) error
 	Hash(password string) (string, error)
 	Compare(hash string, password string) (bool, error)
-}
-
-type authorizer interface {
-	CanWithRoles(roles []string, cap authz.Capability) bool
 }
 
 type featureFlags interface {

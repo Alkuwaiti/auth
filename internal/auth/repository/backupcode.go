@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (r *repo) GetUserBackupCodes(ctx context.Context, userID uuid.UUID) ([]domain.MFABackupCode, error) {
+func (r *Repo) GetUserBackupCodes(ctx context.Context, userID uuid.UUID) ([]domain.MFABackupCode, error) {
 	postgresCodes, err := r.queries.GetUserBackupCodes(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -19,18 +19,18 @@ func (r *repo) GetUserBackupCodes(ctx context.Context, userID uuid.UUID) ([]doma
 	return toMFABackupCode(postgresCodes), nil
 }
 
-func (r *repo) ConsumeBackupCode(ctx context.Context, codeID uuid.UUID) error {
+func (r *Repo) ConsumeBackupCode(ctx context.Context, codeID uuid.UUID) error {
 	return r.queries.ConsumeBackupCode(ctx, codeID)
 }
 
-func (r *repo) InsertBackupCodes(ctx context.Context, userID uuid.UUID, hashedCodes []string) error {
+func (r *Repo) InsertBackupCodes(ctx context.Context, userID uuid.UUID, hashedCodes []string) error {
 	return r.queries.InsertBackupCodes(ctx, postgres.InsertBackupCodesParams{
 		UserID:  userID,
 		Column2: hashedCodes,
 	})
 }
 
-func (r *repo) DeleteUserBackupCodes(ctx context.Context, userID uuid.UUID) error {
+func (r *Repo) DeleteUserBackupCodes(ctx context.Context, userID uuid.UUID) error {
 	return r.queries.DeleteUserBackupCodes(ctx, userID)
 }
 

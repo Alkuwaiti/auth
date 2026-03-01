@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (r *repo) UserHasActiveMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) (bool, error) {
+func (r *Repo) UserHasActiveMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) (bool, error) {
 	exists, err := r.queries.UserHasActiveMFAMethodByType(ctx, postgres.UserHasActiveMFAMethodByTypeParams{
 		UserID: userID,
 		Type:   string(methodType),
@@ -21,14 +21,14 @@ func (r *repo) UserHasActiveMFAMethodByType(ctx context.Context, userID uuid.UUI
 	return exists, nil
 }
 
-func (r *repo) DeleteExpiredUnconfirmedMethods(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) error {
+func (r *Repo) DeleteExpiredUnconfirmedMethods(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) error {
 	return r.queries.DeleteExpiredUnconfirmedMethods(ctx, postgres.DeleteExpiredUnconfirmedMethodsParams{
 		UserID: userID,
 		Type:   string(methodType),
 	})
 }
 
-func (r *repo) CreateUserMFAMethod(ctx context.Context, userID uuid.UUID, secret []byte, methodType domain.MFAMethodType) (domain.MFAMethod, error) {
+func (r *Repo) CreateUserMFAMethod(ctx context.Context, userID uuid.UUID, secret []byte, methodType domain.MFAMethodType) (domain.MFAMethod, error) {
 	postgresMFAMethod, err := r.queries.CreateUserMFAMethod(ctx, postgres.CreateUserMFAMethodParams{
 		UserID:           userID,
 		Type:             methodType.String(),
@@ -41,7 +41,7 @@ func (r *repo) CreateUserMFAMethod(ctx context.Context, userID uuid.UUID, secret
 	return toMFAMethod(postgresMFAMethod), nil
 }
 
-func (r *repo) GetUserMFAMethodByID(ctx context.Context, methodID, userID uuid.UUID) (domain.MFAMethod, error) {
+func (r *Repo) GetUserMFAMethodByID(ctx context.Context, methodID, userID uuid.UUID) (domain.MFAMethod, error) {
 	postgresMethod, err := r.queries.GetUserMFAMethodByID(ctx, postgres.GetUserMFAMethodByIDParams{
 		UserID: userID,
 		ID:     methodID,
@@ -53,11 +53,11 @@ func (r *repo) GetUserMFAMethodByID(ctx context.Context, methodID, userID uuid.U
 	return toMFAMethod(postgresMethod), nil
 }
 
-func (r *repo) ConfirmUserMFAMethod(ctx context.Context, methodID uuid.UUID) error {
+func (r *Repo) ConfirmUserMFAMethod(ctx context.Context, methodID uuid.UUID) error {
 	return r.queries.ConfirmUserMFAMethod(ctx, methodID)
 }
 
-func (r *repo) GetMFAMethodsConfirmedByUser(ctx context.Context, userID uuid.UUID) ([]domain.MFAMethod, error) {
+func (r *Repo) GetMFAMethodsConfirmedByUser(ctx context.Context, userID uuid.UUID) ([]domain.MFAMethod, error) {
 	rows, err := r.queries.GetMFAMethodsConfirmedByUser(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -71,7 +71,7 @@ func (r *repo) GetMFAMethodsConfirmedByUser(ctx context.Context, userID uuid.UUI
 	return methods, nil
 }
 
-func (r *repo) GetConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) (domain.MFAMethod, error) {
+func (r *Repo) GetConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) (domain.MFAMethod, error) {
 	method, err := r.queries.GetConfirmedMFAMethodByType(ctx, postgres.GetConfirmedMFAMethodByTypeParams{
 		UserID: userID,
 		Type:   string(methodType),
@@ -83,7 +83,7 @@ func (r *repo) GetConfirmedMFAMethodByType(ctx context.Context, userID uuid.UUID
 	return toMFAMethod(method), nil
 }
 
-func (r *repo) UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error) {
+func (r *Repo) UserHasActiveMFAMethod(ctx context.Context, userID uuid.UUID) (bool, error) {
 	exists, err := r.queries.UserHasActiveMFAMethod(ctx, userID)
 	if err != nil {
 		return false, err

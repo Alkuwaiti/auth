@@ -7,7 +7,7 @@ import (
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 )
 
-func (r *repo) CreateOutboxEvent(ctx context.Context, outboxEvent domain.OutboxEvent) error {
+func (r *Repo) CreateOutboxEvent(ctx context.Context, outboxEvent domain.OutboxEvent) error {
 	return r.queries.CreateOutboxEvent(ctx, postgres.CreateOutboxEventParams{
 		AggregateType: string(outboxEvent.AggregateType),
 		AggregateID:   outboxEvent.AggregateID,

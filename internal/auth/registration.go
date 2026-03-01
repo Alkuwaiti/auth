@@ -107,7 +107,7 @@ func (s *Service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 		return err
 	}
 
-	if !s.authorizer.CanWithRoles(roles, authz.CanDeleteUser) {
+	if !authz.CanWithRoles(roles, authz.CanDeleteUser) {
 		userID, _ := contextkeys.UserIDFromContext(ctx)
 		slog.ErrorContext(ctx, "forbidden user attempt", "user_id", userID)
 		return ErrForbidden

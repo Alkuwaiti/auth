@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (r *repo) CreateSession(ctx context.Context, userID uuid.UUID, expiry time.Time, refreshToken, IPAddress, userAgent string) (domain.Session, error) {
+func (r *Repo) CreateSession(ctx context.Context, userID uuid.UUID, expiry time.Time, refreshToken, IPAddress, userAgent string) (domain.Session, error) {
 	session, err := r.queries.CreateSession(ctx, postgres.CreateSessionParams{
 		UserID:       userID,
 		RefreshToken: refreshToken,
@@ -32,7 +32,7 @@ func (r *repo) CreateSession(ctx context.Context, userID uuid.UUID, expiry time.
 	return toSessionModel(session), nil
 }
 
-func (r *repo) GetSessionByRefreshToken(ctx context.Context, refreshToken string) (domain.Session, error) {
+func (r *Repo) GetSessionByRefreshToken(ctx context.Context, refreshToken string) (domain.Session, error) {
 	session, err := r.queries.GetSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -44,7 +44,7 @@ func (r *repo) GetSessionByRefreshToken(ctx context.Context, refreshToken string
 	return toSessionModel(session), err
 }
 
-func (r *repo) RevokeSession(ctx context.Context, SessionID uuid.UUID, revocationReason domain.RevocationReason) error {
+func (r *Repo) RevokeSession(ctx context.Context, SessionID uuid.UUID, revocationReason domain.RevocationReason) error {
 	return r.queries.RevokeSession(ctx, postgres.RevokeSessionParams{
 		ID: SessionID,
 		RevocationReason: sql.NullString{
@@ -54,7 +54,7 @@ func (r *repo) RevokeSession(ctx context.Context, SessionID uuid.UUID, revocatio
 	})
 }
 
-func (r *repo) RevokeSessions(ctx context.Context, userID uuid.UUID, revocationReason domain.RevocationReason) error {
+func (r *Repo) RevokeSessions(ctx context.Context, userID uuid.UUID, revocationReason domain.RevocationReason) error {
 	return r.queries.RevokeSessions(ctx, postgres.RevokeSessionsParams{
 		UserID: userID,
 		RevocationReason: sql.NullString{
@@ -64,7 +64,7 @@ func (r *repo) RevokeSessions(ctx context.Context, userID uuid.UUID, revocationR
 	})
 }
 
-func (r *repo) MarkSessionsCompromised(ctx context.Context, userID uuid.UUID) error {
+func (r *Repo) MarkSessionsCompromised(ctx context.Context, userID uuid.UUID) error {
 	return r.queries.MarkSessionsCompromised(ctx, userID)
 }
 

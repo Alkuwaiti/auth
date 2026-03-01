@@ -16,7 +16,6 @@ import (
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/auth/repository"
-	authz "github.com/alkuwaiti/auth/internal/authorization"
 	"github.com/alkuwaiti/auth/internal/config"
 	"github.com/alkuwaiti/auth/internal/crypto"
 	"github.com/alkuwaiti/auth/internal/db"
@@ -96,8 +95,6 @@ func main() {
 		RefreshTokensEnabled: cfg.RefreshEnabled,
 	})
 
-	authorizer := authz.New()
-
 	tokens := tokens.New(tokens.Config{
 		JWTKey:   []byte(cfg.JWTKey),
 		Issuer:   name,
@@ -127,7 +124,6 @@ func main() {
 	authService := auth.NewService(authRepo,
 		passwords,
 		auditor,
-		authorizer,
 		flags,
 		tokens,
 		multifactor,
