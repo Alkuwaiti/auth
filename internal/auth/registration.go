@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
-	"time"
 
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
@@ -50,20 +49,11 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 			return err
 		}
 
-		rawToken, hashedToken, genErr := s.TokenManager.GenerateToken()
-		if genErr != nil {
-			return genErr
-		}
-
-		if err = r.CreateEmailVerificationToken(ctx, user.ID, hashedToken, time.Now().Add(30*time.Minute)); err != nil {
-			slog.ErrorContext(ctx, "failed to create email verification token", "err", err)
-			return err
-		}
+		// TODO: future design: emit userRegisteredEvent, Email service calls auth for token generation instead of creating on user registration.
 
 		event := userRegistered{
-			UserID:                 user.ID,
-			Email:                  user.Email,
-			EmailVerificationToken: rawToken,
+			UserID: user.ID,
+			Email:  user.Email,
 		}
 
 		payload, marshalErr := json.Marshal(event)
