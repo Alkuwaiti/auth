@@ -14,12 +14,14 @@ import (
 type worker struct {
 	Repo     repo
 	Config   Config
-	producer *kafka.Producer
-	interval time.Duration
+	Producer *kafka.Producer
 }
 
 func NewWorker(repo repo, Config Config) *worker {
-	Config.DLQTopic = Config.Topic + ".dlq"
+	if Config.DLQTopic == "" {
+		Config.DLQTopic = Config.Topic + ".dlq"
+	}
+
 	return &worker{
 		Repo:   repo,
 		Config: Config,
@@ -36,10 +38,11 @@ type repo interface {
 type Config struct {
 	Topic    string
 	DLQTopic string
+	Interval time.Duration
 }
 
 func (w *worker) Start(ctx context.Context) {
-	ticker := time.NewTicker(w.interval)
+	ticker := time.NewTicker(w.Config.Interval)
 	defer ticker.Stop()
 
 	for {
@@ -60,13 +63,13 @@ func (w *worker) process(ctx context.Context) {
 	}
 
 	for _, e := range events {
-		if err = w.producer.Publish(ctx, w.Config.Topic, e.AggregateID, e.Payload); err != nil {
+		if err = w.Producer.Publish(ctx, w.Config.Topic, e.AggregateID, e.Payload); err != nil {
 			if retryErr := w.Repo.IncrementRetry(ctx, e.ID, err); retryErr != nil {
 				slog.ErrorContext(ctx, "error incrementing retry", "err", err)
 			}
 
 			if e.RetryCount+1 >= 5 {
-				w.producer.Publish(ctx, w.Config.DLQTopic, e.AggregateID, e.Payload)
+				w.Producer.Publish(ctx, w.Config.DLQTopic, e.AggregateID, e.Payload)
 				w.Repo.MarkAsFailed(ctx, e.ID)
 			}
 		}
