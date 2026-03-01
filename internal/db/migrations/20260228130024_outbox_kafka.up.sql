@@ -5,7 +5,10 @@ CREATE TABLE outbox_events (
   event_type TEXT NOT NULL,
   payload JSONB NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
-  published_at TIMESTAMPTZ
+  published_at TIMESTAMPTZ,
+  retry_count INT NOT NULL DEFAULT 0,
+  last_error TEXT,
+  failed_at TIMESTAMPTZ
 );
 
 CREATE INDEX idx_outbox_unpublished ON outbox_events (published_at)

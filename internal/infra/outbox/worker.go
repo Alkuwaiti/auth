@@ -6,8 +6,9 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/auth"
+	"github.com/alkuwaiti/auth/internal/auth/repository"
 	"github.com/alkuwaiti/auth/internal/infra/kafka"
+	"github.com/google/uuid"
 )
 
 type worker struct {
@@ -18,6 +19,7 @@ type worker struct {
 }
 
 func NewWorker(repo repo, Config Config) *worker {
+	Config.DLQTopic = Config.Topic + ".dlq"
 	return &worker{
 		Repo:   repo,
 		Config: Config,
@@ -25,12 +27,15 @@ func NewWorker(repo repo, Config Config) *worker {
 }
 
 type repo interface {
-	GetUnpublishedEvents(ctx context.Context, numberOfEvents int) ([]auth.Event, error)
-	MarkAsPublished(ctx context.Context, aggregateID string) error
+	GetUnpublishedEvents(ctx context.Context, numberOfEvents int) ([]repository.Event, error)
+	MarkAsPublished(ctx context.Context, eventID uuid.UUID) error
+	MarkAsFailed(ctx context.Context, eventID uuid.UUID) error
+	IncrementRetry(ctx context.Context, eventID uuid.UUID, err error) error
 }
 
 type Config struct {
-	Topic string
+	Topic    string
+	DLQTopic string
 }
 
 func (w *worker) Start(ctx context.Context) {
@@ -56,10 +61,17 @@ func (w *worker) process(ctx context.Context) {
 
 	for _, e := range events {
 		if err = w.producer.Publish(ctx, w.Config.Topic, e.AggregateID, e.Payload); err != nil {
-			slog.ErrorContext(ctx, "failed to publish event", "err", err)
+			if retryErr := w.Repo.IncrementRetry(ctx, e.ID, err); retryErr != nil {
+				slog.ErrorContext(ctx, "error incrementing retry", "err", err)
+			}
+
+			if e.RetryCount+1 >= 5 {
+				w.producer.Publish(ctx, w.Config.DLQTopic, e.AggregateID, e.Payload)
+				w.Repo.MarkAsFailed(ctx, e.ID)
+			}
 		}
 
-		if err = w.Repo.MarkAsPublished(ctx, e.AggregateID); err != nil {
+		if err = w.Repo.MarkAsPublished(ctx, e.ID); err != nil {
 			slog.ErrorContext(ctx, "failed to mark event as published", "err", err)
 		}
 	}

@@ -285,6 +285,12 @@ GROUP BY u.id, u.email;
 INSERT INTO social_accounts (user_id, provider, provider_user_id)
 VALUES ($1, $2, $3);
 
+-- Outbox 
+
 -- name: CreateOutboxEvent :exec
 INSERT INTO outbox_events (aggregate_type, aggregate_id, event_type, payload)
 VALUES ($1, $2, $3, $4);
+
+-- name: GetUnpublishedEvents :many 
+SELECT * FROM outbox_events
+WHERE published_at IS NULL;
