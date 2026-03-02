@@ -32,12 +32,12 @@ func (r *Repo) GetUnpublishedEvents(ctx context.Context, numberOfEvents int) ([]
 
 	events := make([]Event, len(dbEvents))
 
-	for i, e := range events {
+	for i, e := range dbEvents {
 		events[i] = Event{
 			ID:          e.ID,
 			AggregateID: e.AggregateID,
 			Payload:     e.Payload,
-			RetryCount:  e.RetryCount,
+			RetryCount:  int(e.RetryCount),
 		}
 	}
 

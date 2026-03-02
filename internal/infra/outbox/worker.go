@@ -49,6 +49,7 @@ func (w *worker) Start(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
+			slog.Info("processing...")
 			w.process(ctx)
 		case <-ctx.Done():
 			return
@@ -72,7 +73,11 @@ func (w *worker) process(ctx context.Context) {
 		if err != nil {
 
 			if e.RetryCount+1 >= 5 {
-				_ = w.Producer.Publish(ctx, w.Config.DLQTopic, e.AggregateID, e.Payload)
+				err = w.Producer.Publish(ctx, w.Config.DLQTopic, e.AggregateID, e.Payload)
+				if err != nil {
+					slog.Error("error occured when publishing", "err", err)
+					panic("failed to publish events")
+				}
 				toFail = append(toFail, e.ID)
 			} else {
 				toRetry = append(toRetry, e.ID)

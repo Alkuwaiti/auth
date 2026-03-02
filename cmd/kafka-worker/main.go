@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/alkuwaiti/auth/internal/auth/repository"
 	"github.com/alkuwaiti/auth/internal/config"
@@ -49,8 +50,12 @@ func main() {
 	worker := outbox.NewWorker(repo, producer, outbox.Config{
 		Topic:    cfg.KafkaConfig.Topic,
 		DLQTopic: cfg.KafkaConfig.DLQTopic,
-		Interval: 5,
+		Interval: 5 * time.Second,
 	})
 
-	worker.Start(context.Background())
+	ctx := context.Background()
+
+	slog.InfoContext(ctx, "starting kafka worker")
+
+	worker.Start(ctx)
 }
