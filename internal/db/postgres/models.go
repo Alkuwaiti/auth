@@ -61,6 +61,9 @@ type OutboxEvent struct {
 	Payload       json.RawMessage
 	CreatedAt     time.Time
 	PublishedAt   sql.NullTime
+	RetryCount    int32
+	LastError     sql.NullString
+	FailedAt      sql.NullTime
 }
 
 type PasswordResetToken struct {

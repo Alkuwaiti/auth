@@ -23,3 +23,35 @@ func (r *Repo) CreateOutboxEvent(ctx context.Context, outboxEvent domain.OutboxE
 		Payload:       outboxEvent.Payload,
 	})
 }
+
+func (r *Repo) GetUnpublishedEvents(ctx context.Context, numberOfEvents int) ([]Event, error) {
+	dbEvents, err := r.queries.GetUnpublishedEvents(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	events := make([]Event, len(dbEvents))
+
+	for i, e := range events {
+		events[i] = Event{
+			ID:          e.ID,
+			AggregateID: e.AggregateID,
+			Payload:     e.Payload,
+			RetryCount:  e.RetryCount,
+		}
+	}
+
+	return events, nil
+}
+
+func (r *Repo) MarkBatchAsPublished(ctx context.Context, uuids []uuid.UUID) error {
+	return r.queries.MarkBatchAsPublished(ctx, uuids)
+}
+
+func (r *Repo) MarkBatchAsFailed(ctx context.Context, uuids []uuid.UUID) error {
+	return r.queries.MarkBatchAsFailed(ctx, uuids)
+}
+
+func (r *Repo) BatchIncrementRetry(ctx context.Context, uuids []uuid.UUID) error {
+	return r.queries.BatchIncrementRetry(ctx, uuids)
+}

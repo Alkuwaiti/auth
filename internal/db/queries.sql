@@ -294,3 +294,20 @@ VALUES ($1, $2, $3, $4);
 -- name: GetUnpublishedEvents :many 
 SELECT * FROM outbox_events
 WHERE published_at IS NULL;
+
+-- name: MarkBatchAsPublished :exec
+UPDATE outbox_events
+SET published_at = NOW()
+WHERE id = ANY($1::uuid[])
+  AND published_at IS NULL;
+
+-- name: MarkBatchAsFailed :exec
+UPDATE outbox_events
+SET failed_at = NOW()
+WHERE id = ANY($1::uuid[])
+  AND failed_at IS NULL;
+
+-- name: BatchIncrementRetry :exec
+UPDATE outbox_events
+SET retry_count = retry_count + 1
+WHERE id = ANY($1::uuid[]);

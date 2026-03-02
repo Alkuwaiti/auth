@@ -31,9 +31,9 @@ func NewWorker(repo repo, producer *kafka.Producer, config Config) *worker {
 
 type repo interface {
 	GetUnpublishedEvents(ctx context.Context, numberOfEvents int) ([]repository.Event, error)
-	MarkAsPublished(ctx context.Context, eventID uuid.UUID) error
-	MarkAsFailed(ctx context.Context, eventID uuid.UUID) error
-	IncrementRetry(ctx context.Context, eventID uuid.UUID, err error) error
+	MarkBatchAsPublished(ctx context.Context, uuids []uuid.UUID) error
+	MarkBatchAsFailed(ctx context.Context, uuids []uuid.UUID) error
+	BatchIncrementRetry(ctx context.Context, uuids []uuid.UUID) error
 }
 
 type Config struct {
@@ -63,20 +63,36 @@ func (w *worker) process(ctx context.Context) {
 		return
 	}
 
+	var toPublish []uuid.UUID
+	var toFail []uuid.UUID
+	var toRetry []uuid.UUID
+
 	for _, e := range events {
-		if err = w.Producer.Publish(ctx, w.Config.Topic, e.AggregateID, e.Payload); err != nil {
-			if retryErr := w.Repo.IncrementRetry(ctx, e.ID, err); retryErr != nil {
-				slog.ErrorContext(ctx, "error incrementing retry", "err", err)
-			}
+		err := w.Producer.Publish(ctx, w.Config.Topic, e.AggregateID, e.Payload)
+		if err != nil {
 
 			if e.RetryCount+1 >= 5 {
-				w.Producer.Publish(ctx, w.Config.DLQTopic, e.AggregateID, e.Payload)
-				w.Repo.MarkAsFailed(ctx, e.ID)
+				_ = w.Producer.Publish(ctx, w.Config.DLQTopic, e.AggregateID, e.Payload)
+				toFail = append(toFail, e.ID)
+			} else {
+				toRetry = append(toRetry, e.ID)
 			}
+
+			continue
 		}
 
-		if err = w.Repo.MarkAsPublished(ctx, e.ID); err != nil {
-			slog.ErrorContext(ctx, "failed to mark event as published", "err", err)
-		}
+		toPublish = append(toPublish, e.ID)
+	}
+
+	if len(toPublish) > 0 {
+		_ = w.Repo.MarkBatchAsPublished(ctx, toPublish)
+	}
+
+	if len(toRetry) > 0 {
+		_ = w.Repo.BatchIncrementRetry(ctx, toRetry)
+	}
+
+	if len(toFail) > 0 {
+		_ = w.Repo.MarkBatchAsFailed(ctx, toFail)
 	}
 }
