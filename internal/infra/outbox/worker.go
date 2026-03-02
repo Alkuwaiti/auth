@@ -76,7 +76,6 @@ func (w *worker) process(ctx context.Context) {
 				err = w.Producer.Publish(ctx, w.Config.DLQTopic, e.AggregateID, e.Payload)
 				if err != nil {
 					slog.Error("error occured when publishing", "err", err)
-					panic("failed to publish events")
 				}
 				toFail = append(toFail, e.ID)
 			} else {
