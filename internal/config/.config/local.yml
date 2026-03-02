@@ -7,3 +7,9 @@ googleconfig:
   redirecturl: "http://localhost:8080/auth/google/callback"
   clientid:
   clientsecret:
+kafkaconfig:
+  brokers: 
+    - "localhost:9092"
+  topic: "auth.events"
+  dlqtopic: "auth.events.dlq"
+  interval: 5

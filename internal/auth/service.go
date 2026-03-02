@@ -7,7 +7,6 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
-	authz "github.com/alkuwaiti/auth/internal/authorization"
 	googlesocial "github.com/alkuwaiti/auth/internal/social/google"
 	"github.com/google/uuid"
 	"github.com/pquerna/otp"
@@ -18,7 +17,6 @@ type Service struct {
 	Repo           Repo
 	Passwords      passwords
 	auditor        auditor
-	authorizer     authorizer
 	Flags          featureFlags
 	TokenManager   tokenManager
 	MFAProvider    MFAProvider
@@ -30,12 +28,11 @@ type Config struct {
 	MaxChallengeAttempts int
 }
 
-func NewService(repoI Repo, passwords passwords, auditor auditor, authorizer authorizer, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, googleProvider googleProvider, Config Config) *Service {
+func NewService(repoI Repo, passwords passwords, auditor auditor, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, googleProvider googleProvider, Config Config) *Service {
 	return &Service{
 		Repo:           repoI,
 		Passwords:      passwords,
 		auditor:        auditor,
-		authorizer:     authorizer,
 		Flags:          flags,
 		TokenManager:   tokenManager,
 		MFAProvider:    MFAProvider,
@@ -76,12 +73,14 @@ type Repo interface {
 	CreatePasswordResetToken(ctx context.Context, userID uuid.UUID, tokenHash string, expiresAt time.Time) error
 	DeleteUserPasswordResetTokens(ctx context.Context, userID uuid.UUID) error
 	ConsumePasswordResetToken(ctx context.Context, tokenHash string) (uuid.UUID, error)
+	// TODO: Use in its own endpoint.
 	CreateEmailVerificationToken(ctx context.Context, userID uuid.UUID, tokenHash string, ExpiresAt time.Time) error
 	ConsumeEmailVerificationToken(ctx context.Context, tokenHash string) (uuid.UUID, error)
 	VerifyUserEmail(ctx context.Context, userID uuid.UUID) error
 	InvalidateEmailVerificationTokens(ctx context.Context, userID uuid.UUID) error
 	GetUserByOAuthProvider(ctx context.Context, provider domain.Provider, providerUserID string) (domain.User, error)
 	LinkOAuthProvider(ctx context.Context, userID uuid.UUID, provider domain.Provider, providerUserID string) error
+	CreateOutboxEvent(ctx context.Context, outboxEvent domain.OutboxEvent) error
 }
 
 type auditor interface {
@@ -92,10 +91,6 @@ type passwords interface {
 	Validate(password string) error
 	Hash(password string) (string, error)
 	Compare(hash string, password string) (bool, error)
-}
-
-type authorizer interface {
-	CanWithRoles(roles []string, cap authz.Capability) bool
 }
 
 type featureFlags interface {

@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (r *repo) CreateEmailVerificationToken(ctx context.Context, userID uuid.UUID, tokenHash string, ExpiresAt time.Time) error {
+func (r *Repo) CreateEmailVerificationToken(ctx context.Context, userID uuid.UUID, tokenHash string, ExpiresAt time.Time) error {
 	return r.queries.CreateEmailVerificationToken(ctx, postgres.CreateEmailVerificationTokenParams{
 		UserID:    userID,
 		TokenHash: tokenHash,
@@ -19,7 +19,7 @@ func (r *repo) CreateEmailVerificationToken(ctx context.Context, userID uuid.UUI
 	})
 }
 
-func (r *repo) ConsumeEmailVerificationToken(ctx context.Context, tokenHash string) (uuid.UUID, error) {
+func (r *Repo) ConsumeEmailVerificationToken(ctx context.Context, tokenHash string) (uuid.UUID, error) {
 	userID, err := r.queries.ConsumeEmailVerificationToken(ctx, tokenHash)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -32,10 +32,10 @@ func (r *repo) ConsumeEmailVerificationToken(ctx context.Context, tokenHash stri
 	return userID, nil
 }
 
-func (r *repo) VerifyUserEmail(ctx context.Context, userID uuid.UUID) error {
+func (r *Repo) VerifyUserEmail(ctx context.Context, userID uuid.UUID) error {
 	return r.queries.VerifyUserEmail(ctx, userID)
 }
 
-func (r *repo) InvalidateEmailVerificationTokens(ctx context.Context, userID uuid.UUID) error {
+func (r *Repo) InvalidateEmailVerificationTokens(ctx context.Context, userID uuid.UUID) error {
 	return r.queries.InvalidateEmailVerificationTokens(ctx, userID)
 }

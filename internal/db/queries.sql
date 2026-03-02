@@ -284,3 +284,30 @@ GROUP BY u.id, u.email;
 -- name: LinkOAuthProvider :exec
 INSERT INTO social_accounts (user_id, provider, provider_user_id)
 VALUES ($1, $2, $3);
+
+-- Outbox 
+
+-- name: CreateOutboxEvent :exec
+INSERT INTO outbox_events (aggregate_type, aggregate_id, event_type, payload)
+VALUES ($1, $2, $3, $4);
+
+-- name: GetUnpublishedEvents :many 
+SELECT * FROM outbox_events
+WHERE published_at IS NULL;
+
+-- name: MarkBatchAsPublished :exec
+UPDATE outbox_events
+SET published_at = NOW()
+WHERE id = ANY($1::uuid[])
+  AND published_at IS NULL;
+
+-- name: MarkBatchAsFailed :exec
+UPDATE outbox_events
+SET failed_at = NOW()
+WHERE id = ANY($1::uuid[])
+  AND failed_at IS NULL;
+
+-- name: BatchIncrementRetry :exec
+UPDATE outbox_events
+SET retry_count = retry_count + 1
+WHERE id = ANY($1::uuid[]);

@@ -34,10 +34,18 @@ type Config struct {
 	AppName              string
 	MaxChallengeAttempts int
 	GoogleConfig         googleConfig
+	KafkaConfig          kafkaConfig
 }
 
 type googleConfig struct {
 	ClientID, ClientSecret, RedirectURL, StateSecret string
+}
+
+type kafkaConfig struct {
+	Brokers  []string
+	Topic    string
+	DLQTopic string
+	Interval int
 }
 
 func Load(env, jur string) Config {

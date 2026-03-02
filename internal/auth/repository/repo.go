@@ -8,25 +8,25 @@ import (
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 )
 
-type repo struct {
+type Repo struct {
 	db      *sql.DB
 	queries *postgres.Queries
 }
 
-func NewRepo(db *sql.DB) *repo {
-	return &repo{
+func NewRepo(db *sql.DB) *Repo {
+	return &Repo{
 		db:      db,
 		queries: postgres.New(db),
 	}
 }
 
-func (r *repo) WithTx(ctx context.Context, fn func(auth.Repo) error) error {
+func (r *Repo) WithTx(ctx context.Context, fn func(auth.Repo) error) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 
-	txRepo := &repo{
+	txRepo := &Repo{
 		db:      r.db,
 		queries: r.queries.WithTx(tx),
 	}

@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (r *repo) GetUserByOAuthProvider(ctx context.Context, provider domain.Provider, providerUserID string) (domain.User, error) {
+func (r *Repo) GetUserByOAuthProvider(ctx context.Context, provider domain.Provider, providerUserID string) (domain.User, error) {
 	user, err := r.queries.GetUserByOAuthProvider(ctx, postgres.GetUserByOAuthProviderParams{
 		Provider:       string(provider),
 		ProviderUserID: providerUserID,
@@ -25,7 +25,7 @@ func (r *repo) GetUserByOAuthProvider(ctx context.Context, provider domain.Provi
 	return toUserModelFromGetUserByOAuthProviderRow(user), nil
 }
 
-func (r *repo) LinkOAuthProvider(ctx context.Context, userID uuid.UUID, provider domain.Provider, providerUserID string) error {
+func (r *Repo) LinkOAuthProvider(ctx context.Context, userID uuid.UUID, provider domain.Provider, providerUserID string) error {
 	return r.queries.LinkOAuthProvider(ctx, postgres.LinkOAuthProviderParams{
 		UserID:         userID,
 		Provider:       string(provider),

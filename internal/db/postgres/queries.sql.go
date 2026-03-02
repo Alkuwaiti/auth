@@ -8,6 +8,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -27,6 +28,17 @@ type AssignRoleToUserParams struct {
 
 func (q *Queries) AssignRoleToUser(ctx context.Context, arg AssignRoleToUserParams) error {
 	_, err := q.db.ExecContext(ctx, assignRoleToUser, arg.UserID, arg.RoleID)
+	return err
+}
+
+const batchIncrementRetry = `-- name: BatchIncrementRetry :exec
+UPDATE outbox_events
+SET retry_count = retry_count + 1
+WHERE id = ANY($1::uuid[])
+`
+
+func (q *Queries) BatchIncrementRetry(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, batchIncrementRetry, pq.Array(dollar_1))
 	return err
 }
 
@@ -180,6 +192,30 @@ type CreateEmailVerificationTokenParams struct {
 
 func (q *Queries) CreateEmailVerificationToken(ctx context.Context, arg CreateEmailVerificationTokenParams) error {
 	_, err := q.db.ExecContext(ctx, createEmailVerificationToken, arg.UserID, arg.TokenHash, arg.ExpiresAt)
+	return err
+}
+
+const createOutboxEvent = `-- name: CreateOutboxEvent :exec
+
+INSERT INTO outbox_events (aggregate_type, aggregate_id, event_type, payload)
+VALUES ($1, $2, $3, $4)
+`
+
+type CreateOutboxEventParams struct {
+	AggregateType string
+	AggregateID   string
+	EventType     string
+	Payload       json.RawMessage
+}
+
+// Outbox
+func (q *Queries) CreateOutboxEvent(ctx context.Context, arg CreateOutboxEventParams) error {
+	_, err := q.db.ExecContext(ctx, createOutboxEvent,
+		arg.AggregateType,
+		arg.AggregateID,
+		arg.EventType,
+		arg.Payload,
+	)
 	return err
 }
 
@@ -570,6 +606,45 @@ func (q *Queries) GetSessionByRefreshToken(ctx context.Context, refreshToken str
 	return i, err
 }
 
+const getUnpublishedEvents = `-- name: GetUnpublishedEvents :many
+SELECT id, aggregate_type, aggregate_id, event_type, payload, created_at, published_at, retry_count, last_error, failed_at FROM outbox_events
+WHERE published_at IS NULL
+`
+
+func (q *Queries) GetUnpublishedEvents(ctx context.Context) ([]OutboxEvent, error) {
+	rows, err := q.db.QueryContext(ctx, getUnpublishedEvents)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []OutboxEvent
+	for rows.Next() {
+		var i OutboxEvent
+		if err := rows.Scan(
+			&i.ID,
+			&i.AggregateType,
+			&i.AggregateID,
+			&i.EventType,
+			&i.Payload,
+			&i.CreatedAt,
+			&i.PublishedAt,
+			&i.RetryCount,
+			&i.LastError,
+			&i.FailedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUserBackupCodes = `-- name: GetUserBackupCodes :many
 SELECT id, user_id, code_hash, consumed_at, created_at FROM mfa_backup_codes
 WHERE user_id = $1 AND consumed_at IS NULL
@@ -802,6 +877,30 @@ type LinkOAuthProviderParams struct {
 
 func (q *Queries) LinkOAuthProvider(ctx context.Context, arg LinkOAuthProviderParams) error {
 	_, err := q.db.ExecContext(ctx, linkOAuthProvider, arg.UserID, arg.Provider, arg.ProviderUserID)
+	return err
+}
+
+const markBatchAsFailed = `-- name: MarkBatchAsFailed :exec
+UPDATE outbox_events
+SET failed_at = NOW()
+WHERE id = ANY($1::uuid[])
+  AND failed_at IS NULL
+`
+
+func (q *Queries) MarkBatchAsFailed(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, markBatchAsFailed, pq.Array(dollar_1))
+	return err
+}
+
+const markBatchAsPublished = `-- name: MarkBatchAsPublished :exec
+UPDATE outbox_events
+SET published_at = NOW()
+WHERE id = ANY($1::uuid[])
+  AND published_at IS NULL
+`
+
+func (q *Queries) MarkBatchAsPublished(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, markBatchAsPublished, pq.Array(dollar_1))
 	return err
 }
 

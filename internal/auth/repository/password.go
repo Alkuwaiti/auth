@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (r *repo) CreatePasswordResetToken(ctx context.Context, userID uuid.UUID, tokenHash string, expiresAt time.Time) error {
+func (r *Repo) CreatePasswordResetToken(ctx context.Context, userID uuid.UUID, tokenHash string, expiresAt time.Time) error {
 	return r.queries.CreatePasswordResetToken(ctx, postgres.CreatePasswordResetTokenParams{
 		UserID:    userID,
 		TokenHash: tokenHash,
@@ -19,11 +19,11 @@ func (r *repo) CreatePasswordResetToken(ctx context.Context, userID uuid.UUID, t
 	})
 }
 
-func (r *repo) DeleteUserPasswordResetTokens(ctx context.Context, userID uuid.UUID) error {
+func (r *Repo) DeleteUserPasswordResetTokens(ctx context.Context, userID uuid.UUID) error {
 	return r.queries.DeleteUserPasswordResetTokens(ctx, userID)
 }
 
-func (r *repo) ConsumePasswordResetToken(ctx context.Context, tokenHash string) (uuid.UUID, error) {
+func (r *Repo) ConsumePasswordResetToken(ctx context.Context, tokenHash string) (uuid.UUID, error) {
 	userID, err := r.queries.ConsumePasswordResetToken(ctx, tokenHash)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -36,7 +36,7 @@ func (r *repo) ConsumePasswordResetToken(ctx context.Context, tokenHash string) 
 	return userID, nil
 }
 
-func (r *repo) UpdatePassword(ctx context.Context, userID uuid.UUID, newPasswordHash string) error {
+func (r *Repo) UpdatePassword(ctx context.Context, userID uuid.UUID, newPasswordHash string) error {
 	return r.queries.UpdatePassword(ctx, postgres.UpdatePasswordParams{
 		ID: userID,
 		PasswordHash: sql.NullString{

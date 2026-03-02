@@ -86,3 +86,6 @@ rollback-last-migration:
 
 sqlc:
 	sqlc generate
+
+run-kafka-poller:
+	go run ./cmd/kafka-worker

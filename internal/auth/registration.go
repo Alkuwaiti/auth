@@ -2,9 +2,9 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
-	"time"
 
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
@@ -39,24 +39,39 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 		return domain.User{}, err
 	}
 
-	user, err := s.Repo.CreateUser(ctx, input.Email, &newPasswordHash)
-	if err != nil {
-		if errors.Is(err, domain.ErrRecordAlreadyExists) {
-			return domain.User{}, ErrUserExists
+	var user domain.User
+	if err = s.Repo.WithTx(ctx, func(r Repo) error {
+		user, err = r.CreateUser(ctx, input.Email, &newPasswordHash)
+		if err != nil {
+			if errors.Is(err, domain.ErrRecordAlreadyExists) {
+				return ErrUserExists
+			}
+			return err
 		}
-		return domain.User{}, err
-	}
 
-	rawToken, hashedToken, err := s.TokenManager.GenerateToken()
-	if err != nil {
-		return domain.User{}, err
-	}
+		// TODO: future design: emit userRegisteredEvent, Email service calls auth for token generation instead of creating on user registration.
 
-	// TODO: emit an event for rawToken
-	slog.InfoContext(ctx, "raw token for email verification for user", "user", user, "raw_token", rawToken)
+		event := userRegistered{
+			UserID: user.ID,
+			Email:  user.Email,
+		}
 
-	if err = s.Repo.CreateEmailVerificationToken(ctx, user.ID, hashedToken, time.Now().Add(30*time.Minute)); err != nil {
-		slog.ErrorContext(ctx, "failed to create email verification token", "err", err)
+		payload, marshalErr := json.Marshal(event)
+		if marshalErr != nil {
+			return marshalErr
+		}
+
+		if marshalErr = r.CreateOutboxEvent(ctx, domain.OutboxEvent{
+			AggregateType: "user",
+			AggregateID:   user.ID.String(),
+			EventType:     event.eventType(),
+			Payload:       payload,
+		}); marshalErr != nil {
+			return marshalErr
+		}
+
+		return nil
+	}); err != nil {
 		return domain.User{}, err
 	}
 
@@ -92,7 +107,7 @@ func (s *Service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 		return err
 	}
 
-	if !s.authorizer.CanWithRoles(roles, authz.CanDeleteUser) {
+	if !authz.CanWithRoles(roles, authz.CanDeleteUser) {
 		userID, _ := contextkeys.UserIDFromContext(ctx)
 		slog.ErrorContext(ctx, "forbidden user attempt", "user_id", userID)
 		return ErrForbidden

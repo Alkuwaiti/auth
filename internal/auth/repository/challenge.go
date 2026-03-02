@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (r *repo) CreateChallenge(ctx context.Context, challenge domain.MFAChallenge) (domain.MFAChallenge, error) {
+func (r *Repo) CreateChallenge(ctx context.Context, challenge domain.MFAChallenge) (domain.MFAChallenge, error) {
 	postgresChallenge, err := r.queries.CreateChallenge(ctx, postgres.CreateChallengeParams{
 		UserID:        challenge.UserID,
 		MfaMethodID:   challenge.MethodID,
@@ -26,7 +26,7 @@ func (r *repo) CreateChallenge(ctx context.Context, challenge domain.MFAChalleng
 	return toMFAChallenge(postgresChallenge), nil
 }
 
-func (r *repo) GetChallengeByID(ctx context.Context, challengeID uuid.UUID) (domain.MFAChallenge, error) {
+func (r *Repo) GetChallengeByID(ctx context.Context, challengeID uuid.UUID) (domain.MFAChallenge, error) {
 	challenge, err := r.queries.GetChallengeByID(ctx, challengeID)
 	if err != nil {
 		return domain.MFAChallenge{}, err
@@ -35,7 +35,7 @@ func (r *repo) GetChallengeByID(ctx context.Context, challengeID uuid.UUID) (dom
 	return toMFAChallenge(challenge), nil
 }
 
-func (r *repo) GetActiveTOTPChallengeForUpdate(ctx context.Context, challengeID uuid.UUID) (domain.ActiveTOTPChallenge, error) {
+func (r *Repo) GetActiveTOTPChallengeForUpdate(ctx context.Context, challengeID uuid.UUID) (domain.ActiveTOTPChallenge, error) {
 	row, err := r.queries.GetActiveTOTPChallengeForUpdate(ctx, challengeID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -53,11 +53,11 @@ func (r *repo) GetActiveTOTPChallengeForUpdate(ctx context.Context, challengeID 
 	}, nil
 }
 
-func (r *repo) IncrementChallengeAttempts(ctx context.Context, challengeID uuid.UUID) error {
+func (r *Repo) IncrementChallengeAttempts(ctx context.Context, challengeID uuid.UUID) error {
 	return r.queries.IncrementChallengeAttempts(ctx, challengeID)
 }
 
-func (r *repo) ConsumeChallenge(ctx context.Context, challengeID uuid.UUID) error {
+func (r *Repo) ConsumeChallenge(ctx context.Context, challengeID uuid.UUID) error {
 	return r.queries.ConsumeChallenge(ctx, challengeID)
 }
 

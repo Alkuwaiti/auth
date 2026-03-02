@@ -13,7 +13,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (r *repo) GetUserByEmail(ctx context.Context, email string) (domain.User, error) {
+func (r *Repo) GetUserByEmail(ctx context.Context, email string) (domain.User, error) {
 	user, err := r.queries.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -25,7 +25,7 @@ func (r *repo) GetUserByEmail(ctx context.Context, email string) (domain.User, e
 	return toUserModelFromEmailRow(user), nil
 }
 
-func (r *repo) GetUserByID(ctx context.Context, userID uuid.UUID) (domain.User, error) {
+func (r *Repo) GetUserByID(ctx context.Context, userID uuid.UUID) (domain.User, error) {
 	user, err := r.queries.GetUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -37,7 +37,7 @@ func (r *repo) GetUserByID(ctx context.Context, userID uuid.UUID) (domain.User, 
 	return toUserModelFromIDRow(user), nil
 }
 
-func (r *repo) CreateUser(ctx context.Context, email string, passwordHash *string) (domain.User, error) {
+func (r *Repo) CreateUser(ctx context.Context, email string, passwordHash *string) (domain.User, error) {
 	userID, err := uuid.NewV7()
 	if err != nil {
 		return domain.User{}, err
@@ -73,7 +73,7 @@ func (r *repo) CreateUser(ctx context.Context, email string, passwordHash *strin
 	return toUserModel(user), nil
 }
 
-func (r *repo) DeleteUser(ctx context.Context, userID uuid.UUID, deletionReason domain.DeletionReason) error {
+func (r *Repo) DeleteUser(ctx context.Context, userID uuid.UUID, deletionReason domain.DeletionReason) error {
 	rows, err := r.queries.DeleteUser(ctx, postgres.DeleteUserParams{
 		ID: userID,
 		DeletionReason: sql.NullString{

@@ -9,7 +9,6 @@ import (
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/auth/repository"
-	authz "github.com/alkuwaiti/auth/internal/authorization"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/alkuwaiti/auth/internal/flags"
 	"github.com/alkuwaiti/auth/internal/mfa"
@@ -42,8 +41,6 @@ func setupTestAuthService(t *testing.T) (*auth.Service, *sql.DB, func()) {
 
 	auditService := audit.New(auditRepo)
 
-	authorizerService := authz.New()
-
 	flagsService := flags.New(flags.Config{
 		RefreshTokensEnabled: true,
 	})
@@ -67,7 +64,7 @@ func setupTestAuthService(t *testing.T) (*auth.Service, *sql.DB, func()) {
 		StateSecret:  "",
 	})
 
-	service := auth.NewService(authRepo, passwordService, auditService, authorizerService, flagsService, tokenManager, multifactor, googleProvider, auth.Config{
+	service := auth.NewService(authRepo, passwordService, auditService, flagsService, tokenManager, multifactor, googleProvider, auth.Config{
 		MaxChallengeAttempts: 5,
 	})
 
