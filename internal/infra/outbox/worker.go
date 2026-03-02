@@ -17,14 +17,15 @@ type worker struct {
 	Producer *kafka.Producer
 }
 
-func NewWorker(repo repo, Config Config) *worker {
-	if Config.DLQTopic == "" {
-		Config.DLQTopic = Config.Topic + ".dlq"
+func NewWorker(repo repo, producer *kafka.Producer, config Config) *worker {
+	if config.DLQTopic == "" {
+		config.DLQTopic = config.Topic + ".dlq"
 	}
 
 	return &worker{
-		Repo:   repo,
-		Config: Config,
+		Repo:     repo,
+		Config:   config,
+		Producer: producer,
 	}
 }
 
