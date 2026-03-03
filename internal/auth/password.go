@@ -133,15 +133,30 @@ func (s *Service) ForgetPassword(ctx context.Context, email string) error {
 		return nil
 	}
 
-	if err = s.Repo.DeleteUserPasswordResetTokens(ctx, user.ID); err != nil {
-		slog.ErrorContext(ctx, "error deleting user password reset tokens", "err", err)
-		return nil
-	}
-
 	if err = s.Repo.CreatePasswordResetToken(ctx, user.ID, hashedToken, time.Now().Add(20*time.Minute)); err != nil {
 		slog.ErrorContext(ctx, "error inserting password reset token", "err", err)
 		return nil
 	}
+
+	// event := userVerifiedEmail{
+	// 	UserID: userID,
+	// 	Email:  email,
+	// }
+	//
+	// payload, marshalErr := json.Marshal(event)
+	// if marshalErr != nil {
+	// 	return marshalErr
+	// }
+	//
+	// if err = r.CreateOutboxEvent(ctx, domain.OutboxEvent{
+	// 	AggregateType: "user",
+	// 	AggregateID:   userID.String(),
+	// 	EventType:     "user.verified",
+	// 	Payload:       payload,
+	// }); err != nil {
+	// 	slog.ErrorContext(ctx, "error creating outbox event", "err", err)
+	// 	return err
+	// }
 
 	// TODO: remove, logging for dev
 	slog.InfoContext(ctx, "forget password function returned", "raw_token", rawToken)

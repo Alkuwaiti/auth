@@ -371,25 +371,6 @@ func (q *Queries) CreateUserMFAMethod(ctx context.Context, arg CreateUserMFAMeth
 	return i, err
 }
 
-const deleteExpiredUnconfirmedMethods = `-- name: DeleteExpiredUnconfirmedMethods :exec
-DELETE FROM user_mfa_methods
-WHERE
-  user_id = $1
-  AND type = $2
-  AND confirmed_at IS NULL
-  AND expires_at < now()
-`
-
-type DeleteExpiredUnconfirmedMethodsParams struct {
-	UserID uuid.UUID
-	Type   string
-}
-
-func (q *Queries) DeleteExpiredUnconfirmedMethods(ctx context.Context, arg DeleteExpiredUnconfirmedMethodsParams) error {
-	_, err := q.db.ExecContext(ctx, deleteExpiredUnconfirmedMethods, arg.UserID, arg.Type)
-	return err
-}
-
 const deleteUser = `-- name: DeleteUser :execrows
 UPDATE users
 SET
@@ -419,16 +400,6 @@ WHERE user_id = $1
 
 func (q *Queries) DeleteUserBackupCodes(ctx context.Context, userID uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, deleteUserBackupCodes, userID)
-	return err
-}
-
-const deleteUserPasswordResetTokens = `-- name: DeleteUserPasswordResetTokens :exec
-DELETE FROM password_reset_tokens
-WHERE user_id = $1
-`
-
-func (q *Queries) DeleteUserPasswordResetTokens(ctx context.Context, userID uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteUserPasswordResetTokens, userID)
 	return err
 }
 

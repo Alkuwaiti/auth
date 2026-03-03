@@ -50,7 +50,6 @@ type Repo interface {
 	IncrementChallengeAttempts(ctx context.Context, challengeID uuid.UUID) error
 	ConsumeChallenge(ctx context.Context, challengeID uuid.UUID) error
 	UserHasActiveMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) (bool, error)
-	DeleteExpiredUnconfirmedMethods(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) error
 	CreateUserMFAMethod(ctx context.Context, userID uuid.UUID, secret []byte, methodType domain.MFAMethodType) (domain.MFAMethod, error)
 	GetUserMFAMethodByID(ctx context.Context, methodID, userID uuid.UUID) (domain.MFAMethod, error)
 	ConfirmUserMFAMethod(ctx context.Context, methodID uuid.UUID) error
@@ -71,9 +70,7 @@ type Repo interface {
 	InsertBackupCodes(ctx context.Context, userID uuid.UUID, hashedCodes []string) error
 	DeleteUserBackupCodes(ctx context.Context, userID uuid.UUID) error
 	CreatePasswordResetToken(ctx context.Context, userID uuid.UUID, tokenHash string, expiresAt time.Time) error
-	DeleteUserPasswordResetTokens(ctx context.Context, userID uuid.UUID) error
 	ConsumePasswordResetToken(ctx context.Context, tokenHash string) (uuid.UUID, error)
-	// TODO: Use in its own endpoint.
 	CreateEmailVerificationToken(ctx context.Context, userID uuid.UUID, tokenHash string, ExpiresAt time.Time) error
 	ConsumeEmailVerificationToken(ctx context.Context, tokenHash string) (uuid.UUID, error)
 	VerifyUserEmail(ctx context.Context, userID uuid.UUID) (string, error)

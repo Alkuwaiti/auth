@@ -47,33 +47,6 @@ func TestForgetPassword_Success(t *testing.T) {
 	require.Nil(t, consumedAt)
 }
 
-func TestForgetPassword_ReplacesExistingTokens(t *testing.T) {
-	service, db, cleanup := setupTestAuthService(t)
-	defer cleanup()
-
-	ctx := context.Background()
-	ctx = testutil.CtxWithRequestMeta(ctx)
-
-	user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Email:    "multi@example.com",
-		Password: "Password123!",
-	})
-	require.NoError(t, err)
-
-	require.NoError(t, service.ForgetPassword(ctx, user.Email))
-	require.NoError(t, service.ForgetPassword(ctx, user.Email))
-
-	var count int
-	err = db.QueryRow(`
-		SELECT COUNT(*)
-		FROM password_reset_tokens
-		WHERE user_id = $1
-	`, user.ID).Scan(&count)
-
-	require.NoError(t, err)
-	require.Equal(t, 1, count)
-}
-
 func TestForgetPassword_UserDoesNotExist(t *testing.T) {
 	service, _, cleanup := setupTestAuthService(t)
 	defer cleanup()

@@ -128,14 +128,6 @@ INSERT INTO user_mfa_methods (
 VALUES ($1, $2, $3, now() + interval '10 minutes')
 RETURNING *;
 
--- name: DeleteExpiredUnconfirmedMethods :exec
-DELETE FROM user_mfa_methods
-WHERE
-  user_id = $1
-  AND type = $2
-  AND confirmed_at IS NULL
-  AND expires_at < now();
-
 -- name: GetMFAMethodsConfirmedByUser :many
 SELECT id, user_id, type, confirmed_at, created_at
 FROM user_mfa_methods
@@ -237,10 +229,6 @@ WHERE id = $1
 -- name: CreatePasswordResetToken :exec
 INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
 VALUES ($1, $2, $3);
-
--- name: DeleteUserPasswordResetTokens :exec
-DELETE FROM password_reset_tokens
-WHERE user_id = $1;
 
 -- name: ConsumePasswordResetToken :one
 UPDATE password_reset_tokens
