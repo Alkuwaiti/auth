@@ -51,9 +51,8 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 
 		// TODO: future design: emit userRegisteredEvent, Email service calls auth for token generation instead of creating on user registration.
 		event := userRegistered{
-			UserID:    user.ID,
-			Email:     user.Email,
-			EventType: "user.registered",
+			UserID: user.ID,
+			Email:  user.Email,
 		}
 
 		payload, marshalErr := json.Marshal(event)
@@ -61,13 +60,13 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 			return marshalErr
 		}
 
-		if marshalErr = r.CreateOutboxEvent(ctx, domain.OutboxEvent{
+		if err = r.CreateOutboxEvent(ctx, domain.OutboxEvent{
 			AggregateType: "user",
 			AggregateID:   user.ID.String(),
-			EventType:     string(event.EventType),
+			EventType:     "user.registered",
 			Payload:       payload,
-		}); marshalErr != nil {
-			return marshalErr
+		}); err != nil {
+			return err
 		}
 
 		return nil
@@ -134,6 +133,26 @@ func (s *Service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 			return err
 		}
 
+		event := userDeleted{
+			UserID: input.UserID,
+			Reason: input.DeletionReason.String(),
+		}
+
+		payload, marshalErr := json.Marshal(event)
+		if marshalErr != nil {
+			return marshalErr
+		}
+
+		if err = r.CreateOutboxEvent(ctx, domain.OutboxEvent{
+			AggregateType: "user",
+			AggregateID:   input.UserID.String(),
+			EventType:     "user.deleted",
+			Payload:       payload,
+		}); err != nil {
+			slog.ErrorContext(ctx, "error creating outbox event", "err", err)
+			return err
+		}
+
 		return nil
 
 	}); err != nil {
@@ -149,7 +168,7 @@ func (s *Service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 		UserAgent: &meta.UserAgent,
 		Context: audit.AuditContext{
 			"deletion": map[string]any{
-				"reason": string(input.DeletionReason),
+				"reason": input.DeletionReason,
 				"note":   input.Note,
 			},
 		},
