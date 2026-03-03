@@ -69,6 +69,7 @@ func TestChangePassword(t *testing.T) {
 
 			ctx := context.Background()
 			ctx = testutil.CtxWithRequestMeta(ctx)
+			ctx = testutil.CtxWithEmail(ctx, "dummy@email.com")
 
 			var userID uuid.UUID
 			if tt.setupUser {

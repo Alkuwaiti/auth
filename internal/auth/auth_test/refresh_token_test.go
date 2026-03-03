@@ -216,6 +216,7 @@ func TestRefreshToken_AfterPasswordChange(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 	ctx = testutil.CtxWithRequestMeta(ctx)
+	ctx = testutil.CtxWithEmail(ctx, "dummy@email.com")
 
 	user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
 		Email:    "test@example.com",
