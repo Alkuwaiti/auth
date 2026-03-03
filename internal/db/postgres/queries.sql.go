@@ -97,19 +97,26 @@ func (q *Queries) ConsumeEmailVerificationToken(ctx context.Context, tokenHash s
 }
 
 const consumePasswordResetToken = `-- name: ConsumePasswordResetToken :one
-UPDATE password_reset_tokens
+UPDATE password_reset_tokens t
 SET consumed_at = NOW()
-WHERE token_hash = $1
-  AND consumed_at IS NULL
-  AND expires_at > NOW()
-RETURNING user_id
+FROM users u
+WHERE t.token_hash = $1
+  AND t.consumed_at IS NULL
+  AND t.expires_at > NOW()
+  AND u.id = t.user_id
+RETURNING t.user_id, u.email
 `
 
-func (q *Queries) ConsumePasswordResetToken(ctx context.Context, tokenHash string) (uuid.UUID, error) {
+type ConsumePasswordResetTokenRow struct {
+	UserID uuid.UUID
+	Email  string
+}
+
+func (q *Queries) ConsumePasswordResetToken(ctx context.Context, tokenHash string) (ConsumePasswordResetTokenRow, error) {
 	row := q.db.QueryRowContext(ctx, consumePasswordResetToken, tokenHash)
-	var user_id uuid.UUID
-	err := row.Scan(&user_id)
-	return user_id, err
+	var i ConsumePasswordResetTokenRow
+	err := row.Scan(&i.UserID, &i.Email)
+	return i, err
 }
 
 const createAuditLog = `-- name: CreateAuditLog :exec

@@ -231,12 +231,14 @@ INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
 VALUES ($1, $2, $3);
 
 -- name: ConsumePasswordResetToken :one
-UPDATE password_reset_tokens
+UPDATE password_reset_tokens t
 SET consumed_at = NOW()
-WHERE token_hash = $1
-  AND consumed_at IS NULL
-  AND expires_at > NOW()
-RETURNING user_id;
+FROM users u
+WHERE t.token_hash = $1
+  AND t.consumed_at IS NULL
+  AND t.expires_at > NOW()
+  AND u.id = t.user_id
+RETURNING t.user_id, u.email;
 
 -- name: CreateEmailVerificationToken :exec
 INSERT INTO email_verification_tokens (user_id, token_hash, expires_at)

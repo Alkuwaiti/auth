@@ -1,6 +1,10 @@
 package auth
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type userRegistered struct {
 	UserID uuid.UUID
@@ -21,4 +25,14 @@ type userEmailVerificationRequested struct {
 type userVerifiedEmail struct {
 	UserID uuid.UUID
 	Email  string
+}
+
+type userForgetPassword struct {
+	Email string
+	Token string
+}
+
+type userChangePassword struct {
+	Email     string
+	ChangedAt time.Time
 }

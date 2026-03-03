@@ -70,7 +70,7 @@ type Repo interface {
 	InsertBackupCodes(ctx context.Context, userID uuid.UUID, hashedCodes []string) error
 	DeleteUserBackupCodes(ctx context.Context, userID uuid.UUID) error
 	CreatePasswordResetToken(ctx context.Context, userID uuid.UUID, tokenHash string, expiresAt time.Time) error
-	ConsumePasswordResetToken(ctx context.Context, tokenHash string) (uuid.UUID, error)
+	ConsumePasswordResetToken(ctx context.Context, tokenHash string) (uuid.UUID, string, error)
 	CreateEmailVerificationToken(ctx context.Context, userID uuid.UUID, tokenHash string, ExpiresAt time.Time) error
 	ConsumeEmailVerificationToken(ctx context.Context, tokenHash string) (uuid.UUID, error)
 	VerifyUserEmail(ctx context.Context, userID uuid.UUID) (string, error)
