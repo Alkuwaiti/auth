@@ -50,10 +50,10 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 		}
 
 		// TODO: future design: emit userRegisteredEvent, Email service calls auth for token generation instead of creating on user registration.
-
 		event := userRegistered{
-			UserID: user.ID,
-			Email:  user.Email,
+			UserID:    user.ID,
+			Email:     user.Email,
+			EventType: "user.registered",
 		}
 
 		payload, marshalErr := json.Marshal(event)
@@ -64,7 +64,7 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 		if marshalErr = r.CreateOutboxEvent(ctx, domain.OutboxEvent{
 			AggregateType: "user",
 			AggregateID:   user.ID.String(),
-			EventType:     event.eventType(),
+			EventType:     string(event.EventType),
 			Payload:       payload,
 		}); marshalErr != nil {
 			return marshalErr
