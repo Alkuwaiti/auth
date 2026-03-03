@@ -318,12 +318,12 @@ func (s *server) CompleteGoogleLogin(ctx context.Context, req *authv1.CompleteGo
 	}, nil
 }
 
-func (s *server) ResendEmailVerification(ctx context.Context, req *authv1.ResendEmailVerificationRequest) (*emptypb.Empty, error) {
+func (s *server) CreateEmailVerificationToken(ctx context.Context, req *authv1.CreateEmailVerificationTokenRequest) (*emptypb.Empty, error) {
 	if req == nil {
 		slog.ErrorContext(ctx, "Invalid request: request is nil")
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
-	if err := s.service.ResendEmailVerification(ctx, req.Email); err != nil {
+	if err := s.service.CreateEmailVerificationToken(ctx, req.Email); err != nil {
 		return nil, MapError(err)
 	}
 

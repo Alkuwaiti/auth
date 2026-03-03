@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"time"
@@ -26,20 +27,41 @@ func (s *Service) VerifyEmail(ctx context.Context, rawToken string) error {
 			return err
 		}
 
-		if err = r.VerifyUserEmail(ctx, userID); err != nil {
+		email, err := r.VerifyUserEmail(ctx, userID)
+		if err != nil {
 			slog.ErrorContext(ctx, "failed to verify user email", "err", err)
 			return err
 		}
 
 		meta := contextkeys.RequestMetaFromContext(ctx)
 
-		if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+		if err = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
 			UserID:    &userID,
 			Action:    audit.ActionVerifyEmail,
 			IPAddress: &meta.IPAddress,
 			UserAgent: &meta.UserAgent,
 		}); err != nil {
 			slog.ErrorContext(ctx, "failed to create audit log", "err", err)
+			return err
+		}
+
+		event := userVerifiedEmail{
+			UserID: userID,
+			Email:  email,
+		}
+
+		payload, marshalErr := json.Marshal(event)
+		if marshalErr != nil {
+			return marshalErr
+		}
+
+		if err = r.CreateOutboxEvent(ctx, domain.OutboxEvent{
+			AggregateType: "user",
+			AggregateID:   userID.String(),
+			EventType:     "user.verified",
+			Payload:       payload,
+		}); err != nil {
+			slog.ErrorContext(ctx, "error creating outbox event", "err", err)
 			return err
 		}
 
@@ -54,7 +76,7 @@ func (s *Service) VerifyEmail(ctx context.Context, rawToken string) error {
 
 // TODO: write tests for this.
 
-func (s *Service) ResendEmailVerification(ctx context.Context, email string) error {
+func (s *Service) CreateEmailVerificationToken(ctx context.Context, email string) error {
 	user, err := s.Repo.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
@@ -80,12 +102,28 @@ func (s *Service) ResendEmailVerification(ctx context.Context, email string) err
 			return err
 		}
 
-		if err = r.CreateEmailVerificationToken(
-			ctx,
-			user.ID,
-			hash,
-			time.Now().Add(24*time.Hour),
-		); err != nil {
+		if err = r.CreateEmailVerificationToken(ctx, user.ID, hash, time.Now().Add(30*time.Minute)); err != nil {
+			return err
+		}
+
+		event := userEmailVerificationRequested{
+			UserID: user.ID,
+			Email:  user.Email,
+			Token:  raw,
+		}
+
+		payload, marshalErr := json.Marshal(event)
+		if marshalErr != nil {
+			return marshalErr
+		}
+
+		if err = r.CreateOutboxEvent(ctx, domain.OutboxEvent{
+			AggregateType: "user",
+			AggregateID:   user.ID.String(),
+			EventType:     "user.verification.requested",
+			Payload:       payload,
+		}); err != nil {
+			slog.ErrorContext(ctx, "error creating outbox event", "err", err)
 			return err
 		}
 
@@ -93,9 +131,6 @@ func (s *Service) ResendEmailVerification(ctx context.Context, email string) err
 	}); err != nil {
 		return err
 	}
-
-	// TODO: remove this. for dev only. need to emit events here.
-	slog.DebugContext(ctx, "this is the raw verification token", "raw_token", raw)
 
 	return nil
 }

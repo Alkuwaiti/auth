@@ -21,13 +21,6 @@ func (r *Repo) UserHasActiveMFAMethodByType(ctx context.Context, userID uuid.UUI
 	return exists, nil
 }
 
-func (r *Repo) DeleteExpiredUnconfirmedMethods(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) error {
-	return r.queries.DeleteExpiredUnconfirmedMethods(ctx, postgres.DeleteExpiredUnconfirmedMethodsParams{
-		UserID: userID,
-		Type:   string(methodType),
-	})
-}
-
 func (r *Repo) CreateUserMFAMethod(ctx context.Context, userID uuid.UUID, secret []byte, methodType domain.MFAMethodType) (domain.MFAMethod, error) {
 	postgresMFAMethod, err := r.queries.CreateUserMFAMethod(ctx, postgres.CreateUserMFAMethodParams{
 		UserID:           userID,

@@ -1227,27 +1227,27 @@ func (x *VerifyEmailRequest) GetToken() string {
 	return ""
 }
 
-type ResendEmailVerificationRequest struct {
+type CreateEmailVerificationTokenRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ResendEmailVerificationRequest) Reset() {
-	*x = ResendEmailVerificationRequest{}
+func (x *CreateEmailVerificationTokenRequest) Reset() {
+	*x = CreateEmailVerificationTokenRequest{}
 	mi := &file___proto_auth_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ResendEmailVerificationRequest) String() string {
+func (x *CreateEmailVerificationTokenRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ResendEmailVerificationRequest) ProtoMessage() {}
+func (*CreateEmailVerificationTokenRequest) ProtoMessage() {}
 
-func (x *ResendEmailVerificationRequest) ProtoReflect() protoreflect.Message {
+func (x *CreateEmailVerificationTokenRequest) ProtoReflect() protoreflect.Message {
 	mi := &file___proto_auth_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1259,12 +1259,12 @@ func (x *ResendEmailVerificationRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ResendEmailVerificationRequest.ProtoReflect.Descriptor instead.
-func (*ResendEmailVerificationRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateEmailVerificationTokenRequest.ProtoReflect.Descriptor instead.
+func (*CreateEmailVerificationTokenRequest) Descriptor() ([]byte, []int) {
 	return file___proto_auth_proto_rawDescGZIP(), []int{23}
 }
 
-func (x *ResendEmailVerificationRequest) GetEmail() string {
+func (x *CreateEmailVerificationTokenRequest) GetEmail() string {
 	if x != nil {
 		return x.Email
 	}
@@ -1352,9 +1352,9 @@ const file___proto_auth_proto_rawDesc = "" +
 	"\x04code\x18\x01 \x01(\tR\x04code\x12\x14\n" +
 	"\x05state\x18\x02 \x01(\tR\x05state\"*\n" +
 	"\x12VerifyEmailRequest\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\"6\n" +
-	"\x1eResendEmailVerificationRequest\x12\x14\n" +
-	"\x05email\x18\x01 \x01(\tR\x05email2\x85\v\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\";\n" +
+	"#CreateEmailVerificationTokenRequest\x12\x14\n" +
+	"\x05email\x18\x01 \x01(\tR\x05email2\x8f\v\n" +
 	"\vAuthService\x128\n" +
 	"\x04Ping\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x00\x128\n" +
 	"\x05Login\x12\x15.auth.v1.LoginRequest\x1a\x16.auth.v1.LoginResponse\"\x00\x12B\n" +
@@ -1373,8 +1373,8 @@ const file___proto_auth_proto_rawDesc = "" +
 	"\rResetPassword\x12\x1d.auth.v1.ResetPasswordRequest\x1a\x16.google.protobuf.Empty\"\x00\x12N\n" +
 	"\x10BeginGoogleLogin\x12\x16.google.protobuf.Empty\x1a .auth.v1.BeginGoogleLoginRequest\"\x00\x12P\n" +
 	"\x13CompleteGoogleLogin\x12#.auth.v1.CompleteGoogleLoginRequest\x1a\x12.auth.v1.TokenPair\"\x00\x12D\n" +
-	"\vVerifyEmail\x12\x1b.auth.v1.VerifyEmailRequest\x1a\x16.google.protobuf.Empty\"\x00\x12\\\n" +
-	"\x17ResendEmailVerification\x12'.auth.v1.ResendEmailVerificationRequest\x1a\x16.google.protobuf.Empty\"\x00B/Z-github.com/alkuwaiti/auth/pb/pbauth/v1;authv1b\x06proto3"
+	"\vVerifyEmail\x12\x1b.auth.v1.VerifyEmailRequest\x1a\x16.google.protobuf.Empty\"\x00\x12f\n" +
+	"\x1cCreateEmailVerificationToken\x12,.auth.v1.CreateEmailVerificationTokenRequest\x1a\x16.google.protobuf.Empty\"\x00B/Z-github.com/alkuwaiti/auth/pb/pbauth/v1;authv1b\x06proto3"
 
 var (
 	file___proto_auth_proto_rawDescOnce sync.Once
@@ -1390,32 +1390,32 @@ func file___proto_auth_proto_rawDescGZIP() []byte {
 
 var file___proto_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file___proto_auth_proto_goTypes = []any{
-	(*LoginRequest)(nil),                   // 0: auth.v1.LoginRequest
-	(*LoginResponse)(nil),                  // 1: auth.v1.LoginResponse
-	(*TokenPair)(nil),                      // 2: auth.v1.TokenPair
-	(*RefreshTokenRequest)(nil),            // 3: auth.v1.RefreshTokenRequest
-	(*ChangePasswordRequest)(nil),          // 4: auth.v1.ChangePasswordRequest
-	(*RegisterUserRequest)(nil),            // 5: auth.v1.RegisterUserRequest
-	(*User)(nil),                           // 6: auth.v1.User
-	(*DeleteUserRequest)(nil),              // 7: auth.v1.DeleteUserRequest
-	(*EnrollMFAMethodRequest)(nil),         // 8: auth.v1.EnrollMFAMethodRequest
-	(*MFAMethod)(nil),                      // 9: auth.v1.MFAMethod
-	(*EnrollMFAMethodResponse)(nil),        // 10: auth.v1.EnrollMFAMethodResponse
-	(*ConfirmMFAMethodRequest)(nil),        // 11: auth.v1.ConfirmMFAMethodRequest
-	(*ConfirmMFAMethodResponse)(nil),       // 12: auth.v1.ConfirmMFAMethodResponse
-	(*CompleteLoginMFARequest)(nil),        // 13: auth.v1.CompleteLoginMFARequest
-	(*CreateStepUpChallengeRequest)(nil),   // 14: auth.v1.CreateStepUpChallengeRequest
-	(*CreateStepUpChallengeResponse)(nil),  // 15: auth.v1.CreateStepUpChallengeResponse
-	(*VerifyStepUpChallengeRequest)(nil),   // 16: auth.v1.VerifyStepUpChallengeRequest
-	(*VerifyStepUpChallengeResponse)(nil),  // 17: auth.v1.VerifyStepUpChallengeResponse
-	(*ForgetPasswordRequest)(nil),          // 18: auth.v1.ForgetPasswordRequest
-	(*ResetPasswordRequest)(nil),           // 19: auth.v1.ResetPasswordRequest
-	(*BeginGoogleLoginRequest)(nil),        // 20: auth.v1.BeginGoogleLoginRequest
-	(*CompleteGoogleLoginRequest)(nil),     // 21: auth.v1.CompleteGoogleLoginRequest
-	(*VerifyEmailRequest)(nil),             // 22: auth.v1.VerifyEmailRequest
-	(*ResendEmailVerificationRequest)(nil), // 23: auth.v1.ResendEmailVerificationRequest
-	(*timestamppb.Timestamp)(nil),          // 24: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),                  // 25: google.protobuf.Empty
+	(*LoginRequest)(nil),                        // 0: auth.v1.LoginRequest
+	(*LoginResponse)(nil),                       // 1: auth.v1.LoginResponse
+	(*TokenPair)(nil),                           // 2: auth.v1.TokenPair
+	(*RefreshTokenRequest)(nil),                 // 3: auth.v1.RefreshTokenRequest
+	(*ChangePasswordRequest)(nil),               // 4: auth.v1.ChangePasswordRequest
+	(*RegisterUserRequest)(nil),                 // 5: auth.v1.RegisterUserRequest
+	(*User)(nil),                                // 6: auth.v1.User
+	(*DeleteUserRequest)(nil),                   // 7: auth.v1.DeleteUserRequest
+	(*EnrollMFAMethodRequest)(nil),              // 8: auth.v1.EnrollMFAMethodRequest
+	(*MFAMethod)(nil),                           // 9: auth.v1.MFAMethod
+	(*EnrollMFAMethodResponse)(nil),             // 10: auth.v1.EnrollMFAMethodResponse
+	(*ConfirmMFAMethodRequest)(nil),             // 11: auth.v1.ConfirmMFAMethodRequest
+	(*ConfirmMFAMethodResponse)(nil),            // 12: auth.v1.ConfirmMFAMethodResponse
+	(*CompleteLoginMFARequest)(nil),             // 13: auth.v1.CompleteLoginMFARequest
+	(*CreateStepUpChallengeRequest)(nil),        // 14: auth.v1.CreateStepUpChallengeRequest
+	(*CreateStepUpChallengeResponse)(nil),       // 15: auth.v1.CreateStepUpChallengeResponse
+	(*VerifyStepUpChallengeRequest)(nil),        // 16: auth.v1.VerifyStepUpChallengeRequest
+	(*VerifyStepUpChallengeResponse)(nil),       // 17: auth.v1.VerifyStepUpChallengeResponse
+	(*ForgetPasswordRequest)(nil),               // 18: auth.v1.ForgetPasswordRequest
+	(*ResetPasswordRequest)(nil),                // 19: auth.v1.ResetPasswordRequest
+	(*BeginGoogleLoginRequest)(nil),             // 20: auth.v1.BeginGoogleLoginRequest
+	(*CompleteGoogleLoginRequest)(nil),          // 21: auth.v1.CompleteGoogleLoginRequest
+	(*VerifyEmailRequest)(nil),                  // 22: auth.v1.VerifyEmailRequest
+	(*CreateEmailVerificationTokenRequest)(nil), // 23: auth.v1.CreateEmailVerificationTokenRequest
+	(*timestamppb.Timestamp)(nil),               // 24: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),                       // 25: google.protobuf.Empty
 }
 var file___proto_auth_proto_depIdxs = []int32{
 	2,  // 0: auth.v1.LoginResponse.tokens:type_name -> auth.v1.TokenPair
@@ -1439,7 +1439,7 @@ var file___proto_auth_proto_depIdxs = []int32{
 	25, // 18: auth.v1.AuthService.BeginGoogleLogin:input_type -> google.protobuf.Empty
 	21, // 19: auth.v1.AuthService.CompleteGoogleLogin:input_type -> auth.v1.CompleteGoogleLoginRequest
 	22, // 20: auth.v1.AuthService.VerifyEmail:input_type -> auth.v1.VerifyEmailRequest
-	23, // 21: auth.v1.AuthService.ResendEmailVerification:input_type -> auth.v1.ResendEmailVerificationRequest
+	23, // 21: auth.v1.AuthService.CreateEmailVerificationToken:input_type -> auth.v1.CreateEmailVerificationTokenRequest
 	25, // 22: auth.v1.AuthService.Ping:output_type -> google.protobuf.Empty
 	1,  // 23: auth.v1.AuthService.Login:output_type -> auth.v1.LoginResponse
 	2,  // 24: auth.v1.AuthService.RefreshToken:output_type -> auth.v1.TokenPair
@@ -1457,7 +1457,7 @@ var file___proto_auth_proto_depIdxs = []int32{
 	20, // 36: auth.v1.AuthService.BeginGoogleLogin:output_type -> auth.v1.BeginGoogleLoginRequest
 	2,  // 37: auth.v1.AuthService.CompleteGoogleLogin:output_type -> auth.v1.TokenPair
 	25, // 38: auth.v1.AuthService.VerifyEmail:output_type -> google.protobuf.Empty
-	25, // 39: auth.v1.AuthService.ResendEmailVerification:output_type -> google.protobuf.Empty
+	25, // 39: auth.v1.AuthService.CreateEmailVerificationToken:output_type -> google.protobuf.Empty
 	22, // [22:40] is the sub-list for method output_type
 	4,  // [4:22] is the sub-list for method input_type
 	4,  // [4:4] is the sub-list for extension type_name

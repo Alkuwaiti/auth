@@ -97,19 +97,26 @@ func (q *Queries) ConsumeEmailVerificationToken(ctx context.Context, tokenHash s
 }
 
 const consumePasswordResetToken = `-- name: ConsumePasswordResetToken :one
-UPDATE password_reset_tokens
+UPDATE password_reset_tokens t
 SET consumed_at = NOW()
-WHERE token_hash = $1
-  AND consumed_at IS NULL
-  AND expires_at > NOW()
-RETURNING user_id
+FROM users u
+WHERE t.token_hash = $1
+  AND t.consumed_at IS NULL
+  AND t.expires_at > NOW()
+  AND u.id = t.user_id
+RETURNING t.user_id, u.email
 `
 
-func (q *Queries) ConsumePasswordResetToken(ctx context.Context, tokenHash string) (uuid.UUID, error) {
+type ConsumePasswordResetTokenRow struct {
+	UserID uuid.UUID
+	Email  string
+}
+
+func (q *Queries) ConsumePasswordResetToken(ctx context.Context, tokenHash string) (ConsumePasswordResetTokenRow, error) {
 	row := q.db.QueryRowContext(ctx, consumePasswordResetToken, tokenHash)
-	var user_id uuid.UUID
-	err := row.Scan(&user_id)
-	return user_id, err
+	var i ConsumePasswordResetTokenRow
+	err := row.Scan(&i.UserID, &i.Email)
+	return i, err
 }
 
 const createAuditLog = `-- name: CreateAuditLog :exec
@@ -371,25 +378,6 @@ func (q *Queries) CreateUserMFAMethod(ctx context.Context, arg CreateUserMFAMeth
 	return i, err
 }
 
-const deleteExpiredUnconfirmedMethods = `-- name: DeleteExpiredUnconfirmedMethods :exec
-DELETE FROM user_mfa_methods
-WHERE
-  user_id = $1
-  AND type = $2
-  AND confirmed_at IS NULL
-  AND expires_at < now()
-`
-
-type DeleteExpiredUnconfirmedMethodsParams struct {
-	UserID uuid.UUID
-	Type   string
-}
-
-func (q *Queries) DeleteExpiredUnconfirmedMethods(ctx context.Context, arg DeleteExpiredUnconfirmedMethodsParams) error {
-	_, err := q.db.ExecContext(ctx, deleteExpiredUnconfirmedMethods, arg.UserID, arg.Type)
-	return err
-}
-
 const deleteUser = `-- name: DeleteUser :execrows
 UPDATE users
 SET
@@ -419,16 +407,6 @@ WHERE user_id = $1
 
 func (q *Queries) DeleteUserBackupCodes(ctx context.Context, userID uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, deleteUserBackupCodes, userID)
-	return err
-}
-
-const deleteUserPasswordResetTokens = `-- name: DeleteUserPasswordResetTokens :exec
-DELETE FROM password_reset_tokens
-WHERE user_id = $1
-`
-
-func (q *Queries) DeleteUserPasswordResetTokens(ctx context.Context, userID uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteUserPasswordResetTokens, userID)
 	return err
 }
 
@@ -1004,14 +982,17 @@ func (q *Queries) UserHasActiveMFAMethodByType(ctx context.Context, arg UserHasA
 	return exists, err
 }
 
-const verifyUserEmail = `-- name: VerifyUserEmail :exec
+const verifyUserEmail = `-- name: VerifyUserEmail :one
 UPDATE users
 SET is_email_verified = true
 WHERE id = $1
   AND is_email_verified = false
+RETURNING email
 `
 
-func (q *Queries) VerifyUserEmail(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, verifyUserEmail, id)
-	return err
+func (q *Queries) VerifyUserEmail(ctx context.Context, id uuid.UUID) (string, error) {
+	row := q.db.QueryRowContext(ctx, verifyUserEmail, id)
+	var email string
+	err := row.Scan(&email)
+	return email, err
 }

@@ -21,7 +21,7 @@ func main() {
 		}
 	}()
 
-	res, err := client.ResendEmailVerification(ctx, &authv1.ResendEmailVerificationRequest{
+	res, err := client.CreateEmailVerificationToken(ctx, &authv1.CreateEmailVerificationTokenRequest{
 		Email: "qasimm@gmail.com",
 	})
 	if err != nil {

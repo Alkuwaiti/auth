@@ -40,11 +40,6 @@ func (s *Service) EnrollMFAMethod(ctx context.Context, methodType domain.MFAMeth
 		return EnrollmentResult{}, ErrInvalidMFAMethodType
 	}
 
-	// TODO: remove, better as a cron job
-	if err = s.Repo.DeleteExpiredUnconfirmedMethods(ctx, userID, methodType); err != nil {
-		return EnrollmentResult{}, err
-	}
-
 	key, err := s.MFAProvider.GenerateTOTPKey(userEmail)
 	if err != nil {
 		span.RecordError(err)
@@ -63,6 +58,7 @@ func (s *Service) EnrollMFAMethod(ctx context.Context, methodType domain.MFAMeth
 		return EnrollmentResult{}, err
 	}
 
+	// TODO: expires at logic in db level, move that up to service.
 	method, err := s.Repo.CreateUserMFAMethod(ctx, userID, encryptedSecret, methodType)
 	if err != nil {
 		slog.ErrorContext(ctx, "error when creating a user mfa method", "err", err)

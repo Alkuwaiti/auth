@@ -136,14 +136,14 @@ func main() {
 
 	authInterceptor := grpc.NewAuthInterceptor(tokens)
 
-	requestMetaInterceptor := grpc.NewRequestMetaInterceptor()
+	requestMetaInterceptor := grpc.RequestMetaUnaryInterceptor
 
 	stepUpInterceptor := grpc.NewStepUpInterceptor(tokens, authService)
 
 	srv := grpc.NewServer(authService, grpc.Config{
 		Host: "", // listen on all interfaces ":8081"
 		Port: port,
-	}, authInterceptor.Unary(), requestMetaInterceptor.Unary(), stepUpInterceptor.Unary())
+	}, authInterceptor.Unary(), requestMetaInterceptor(), stepUpInterceptor.Unary())
 
 	slog.InfoContext(ctx, "starting grpc server", "port", port, "commit", commit, "ref", ref, "version", version)
 	go func(ctx context.Context) {

@@ -8,13 +8,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-type RequestMetaInterceptor struct{}
-
-func NewRequestMetaInterceptor() *RequestMetaInterceptor {
-	return &RequestMetaInterceptor{}
-}
-
-func (i *RequestMetaInterceptor) Unary() grpc.UnaryServerInterceptor {
+func RequestMetaUnaryInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		ctx = withRequestMeta(ctx, info.FullMethod)
 		return handler(ctx, req)

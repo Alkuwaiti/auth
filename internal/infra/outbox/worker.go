@@ -57,6 +57,8 @@ func (w *worker) Start(ctx context.Context) {
 	}
 }
 
+const EventType string = "EventType"
+
 func (w *worker) process(ctx context.Context) {
 	events, err := w.Repo.GetUnpublishedEvents(ctx, 100)
 	if err != nil {
@@ -69,11 +71,15 @@ func (w *worker) process(ctx context.Context) {
 	var toRetry []uuid.UUID
 
 	for _, e := range events {
-		err := w.Producer.Publish(ctx, w.Config.Topic, e.AggregateID, e.Payload)
+		err := w.Producer.Publish(ctx, w.Config.Topic, e.AggregateID, e.Payload, map[string]string{
+			EventType: e.EventType,
+		})
 		if err != nil {
 
 			if e.RetryCount+1 >= 5 {
-				err = w.Producer.Publish(ctx, w.Config.DLQTopic, e.AggregateID, e.Payload)
+				err = w.Producer.Publish(ctx, w.Config.DLQTopic, e.AggregateID, e.Payload, map[string]string{
+					EventType: e.EventType,
+				})
 				if err != nil {
 					slog.Error("error occured when publishing", "err", err)
 				}

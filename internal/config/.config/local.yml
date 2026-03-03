@@ -12,4 +12,4 @@ kafkaconfig:
     - "localhost:9092"
   topic: "auth.events"
   dlqtopic: "auth.events.dlq"
-  interval: 5
+  interval: 10

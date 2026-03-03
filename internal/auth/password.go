@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"time"
@@ -9,19 +10,23 @@ import (
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/pkg/contextkeys"
+	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 )
 
 var dummyBcryptHash = "$2b$12$C6UzMDM.H6dfI/f/IKcEeOe2x7yZ0pniS3pSDOMkMt2rt7V6F2i4G"
 
-// TODO: check the impact of nullifying the password hash with the introduction of social login.
-
 func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword string) error {
 	ctx, span := tracer.Start(ctx, "AuthService.ChangePassword")
 	defer span.End()
 
 	userID, err := contextkeys.UserIDFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	email, err := contextkeys.UserEmailFromContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -91,6 +96,26 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 			return txErr
 		}
 
+		event := userChangePassword{
+			Email:     email,
+			ChangedAt: time.Now(),
+		}
+
+		payload, marshalErr := json.Marshal(event)
+		if marshalErr != nil {
+			return marshalErr
+		}
+
+		if err = r.CreateOutboxEvent(ctx, domain.OutboxEvent{
+			AggregateType: "user",
+			AggregateID:   user.ID.String(),
+			EventType:     "user.change.password",
+			Payload:       payload,
+		}); err != nil {
+			slog.ErrorContext(ctx, "error creating outbox event", "err", err)
+			return err
+		}
+
 		return nil
 	}); err != nil {
 		slog.ErrorContext(ctx, "error in transaction", "err", err)
@@ -133,18 +158,36 @@ func (s *Service) ForgetPassword(ctx context.Context, email string) error {
 		return nil
 	}
 
-	if err = s.Repo.DeleteUserPasswordResetTokens(ctx, user.ID); err != nil {
-		slog.ErrorContext(ctx, "error deleting user password reset tokens", "err", err)
-		return nil
-	}
+	if err = s.Repo.WithTx(ctx, func(r Repo) error {
+		if err = r.CreatePasswordResetToken(ctx, user.ID, hashedToken, time.Now().Add(20*time.Minute)); err != nil {
+			slog.ErrorContext(ctx, "error inserting password reset token", "err", err)
+			return nil
+		}
 
-	if err = s.Repo.CreatePasswordResetToken(ctx, user.ID, hashedToken, time.Now().Add(20*time.Minute)); err != nil {
-		slog.ErrorContext(ctx, "error inserting password reset token", "err", err)
-		return nil
-	}
+		event := userForgetPassword{
+			Email: email,
+			Token: rawToken,
+		}
 
-	// TODO: remove, logging for dev
-	slog.InfoContext(ctx, "forget password function returned", "raw_token", rawToken)
+		payload, marshalErr := json.Marshal(event)
+		if marshalErr != nil {
+			return marshalErr
+		}
+
+		if err = r.CreateOutboxEvent(ctx, domain.OutboxEvent{
+			AggregateType: "user",
+			AggregateID:   user.ID.String(),
+			EventType:     "user.forget.password",
+			Payload:       payload,
+		}); err != nil {
+			slog.ErrorContext(ctx, "error creating outbox event", "err", err)
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -152,14 +195,19 @@ func (s *Service) ForgetPassword(ctx context.Context, email string) error {
 // TODO: add tests
 
 func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) error {
+	var (
+		userID uuid.UUID
+		email  string
+		err    error
+	)
 	hashedToken := s.TokenManager.Hash(token)
 
-	if err := s.Passwords.Validate(newPassword); err != nil {
+	if err = s.Passwords.Validate(newPassword); err != nil {
 		return err
 	}
 
-	if err := s.Repo.WithTx(ctx, func(r Repo) error {
-		userID, err := r.ConsumePasswordResetToken(ctx, hashedToken)
+	if err = s.Repo.WithTx(ctx, func(r Repo) error {
+		userID, email, err = r.ConsumePasswordResetToken(ctx, hashedToken)
 		if err != nil {
 			if errors.Is(err, domain.ErrNotFound) {
 				return ErrInvalidResetToken
@@ -167,34 +215,55 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 			return err
 		}
 
-		hashedPassword, err := s.Passwords.Hash(newPassword)
+		var hashedPassword string
+		hashedPassword, err = s.Passwords.Hash(newPassword)
 		if err != nil {
 			return err
 		}
 
-		if err := r.UpdatePassword(ctx, userID, hashedPassword); err != nil {
+		if err = r.UpdatePassword(ctx, userID, hashedPassword); err != nil {
 			return err
 		}
 
-		if err := r.RevokeSessions(ctx, userID, domain.RevocationPasswordChange); err != nil {
+		if err = r.RevokeSessions(ctx, userID, domain.RevocationPasswordChange); err != nil {
 			return err
 		}
 
-		meta := contextkeys.RequestMetaFromContext(ctx)
+		event := userChangePassword{
+			Email:     email,
+			ChangedAt: time.Now(),
+		}
 
-		if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
-			UserID:    &userID,
-			Action:    audit.ActionPasswordReset,
-			IPAddress: &meta.IPAddress,
-			UserAgent: &meta.UserAgent,
+		payload, marshalErr := json.Marshal(event)
+		if marshalErr != nil {
+			return marshalErr
+		}
+
+		if err = r.CreateOutboxEvent(ctx, domain.OutboxEvent{
+			AggregateType: "user",
+			AggregateID:   userID.String(),
+			EventType:     "user.reset.password",
+			Payload:       payload,
 		}); err != nil {
-			slog.ErrorContext(ctx, "failed to create audit log", "err", err)
+			slog.ErrorContext(ctx, "error creating outbox event", "err", err)
 			return err
 		}
 
 		return nil
 
 	}); err != nil {
+		return err
+	}
+
+	meta := contextkeys.RequestMetaFromContext(ctx)
+
+	if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+		UserID:    &userID,
+		Action:    audit.ActionPasswordReset,
+		IPAddress: &meta.IPAddress,
+		UserAgent: &meta.UserAgent,
+	}); err != nil {
+		slog.ErrorContext(ctx, "failed to create audit log", "err", err)
 		return err
 	}
 

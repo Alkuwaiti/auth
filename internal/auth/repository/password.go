@@ -19,21 +19,17 @@ func (r *Repo) CreatePasswordResetToken(ctx context.Context, userID uuid.UUID, t
 	})
 }
 
-func (r *Repo) DeleteUserPasswordResetTokens(ctx context.Context, userID uuid.UUID) error {
-	return r.queries.DeleteUserPasswordResetTokens(ctx, userID)
-}
-
-func (r *Repo) ConsumePasswordResetToken(ctx context.Context, tokenHash string) (uuid.UUID, error) {
-	userID, err := r.queries.ConsumePasswordResetToken(ctx, tokenHash)
+func (r *Repo) ConsumePasswordResetToken(ctx context.Context, tokenHash string) (uuid.UUID, string, error) {
+	row, err := r.queries.ConsumePasswordResetToken(ctx, tokenHash)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return uuid.Nil, domain.ErrNotFound
+			return uuid.Nil, "", domain.ErrNotFound
 		}
 
-		return uuid.Nil, err
+		return uuid.Nil, "", err
 	}
 
-	return userID, nil
+	return row.UserID, row.Email, nil
 }
 
 func (r *Repo) UpdatePassword(ctx context.Context, userID uuid.UUID, newPasswordHash string) error {

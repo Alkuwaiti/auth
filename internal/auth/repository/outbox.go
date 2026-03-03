@@ -13,6 +13,7 @@ type Event struct {
 	AggregateID string
 	Payload     []byte
 	RetryCount  int
+	EventType   string
 }
 
 func (r *Repo) CreateOutboxEvent(ctx context.Context, outboxEvent domain.OutboxEvent) error {
@@ -38,6 +39,7 @@ func (r *Repo) GetUnpublishedEvents(ctx context.Context, numberOfEvents int) ([]
 			AggregateID: e.AggregateID,
 			Payload:     e.Payload,
 			RetryCount:  int(e.RetryCount),
+			EventType:   e.EventType,
 		}
 	}
 

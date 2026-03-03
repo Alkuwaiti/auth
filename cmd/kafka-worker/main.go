@@ -50,7 +50,7 @@ func main() {
 	worker := outbox.NewWorker(repo, producer, outbox.Config{
 		Topic:    cfg.KafkaConfig.Topic,
 		DLQTopic: cfg.KafkaConfig.DLQTopic,
-		Interval: 5 * time.Second,
+		Interval: time.Duration(cfg.KafkaConfig.Interval) * time.Second,
 	})
 
 	ctx := context.Background()
