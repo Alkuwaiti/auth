@@ -25,7 +25,7 @@ service AuthService {
   rpc BeginGoogleLogin(google.protobuf.Empty) returns (BeginGoogleLoginRequest) {}
   rpc CompleteGoogleLogin(CompleteGoogleLoginRequest) returns (TokenPair) {}
   rpc VerifyEmail(VerifyEmailRequest) returns (google.protobuf.Empty) {}
-  rpc ResendEmailVerification(ResendEmailVerificationRequest) returns (google.protobuf.Empty) {}
+  rpc CreateEmailVerificationToken(CreateEmailVerificationTokenRequest) returns (google.protobuf.Empty) {}
 }
 
 message LoginRequest {
@@ -144,6 +144,6 @@ message VerifyEmailRequest {
   string token = 1;
 }
 
-message ResendEmailVerificationRequest {
+message CreateEmailVerificationTokenRequest {
   string email = 1;
 }

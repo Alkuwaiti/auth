@@ -76,7 +76,7 @@ type Repo interface {
 	// TODO: Use in its own endpoint.
 	CreateEmailVerificationToken(ctx context.Context, userID uuid.UUID, tokenHash string, ExpiresAt time.Time) error
 	ConsumeEmailVerificationToken(ctx context.Context, tokenHash string) (uuid.UUID, error)
-	VerifyUserEmail(ctx context.Context, userID uuid.UUID) error
+	VerifyUserEmail(ctx context.Context, userID uuid.UUID) (string, error)
 	InvalidateEmailVerificationTokens(ctx context.Context, userID uuid.UUID) error
 	GetUserByOAuthProvider(ctx context.Context, provider domain.Provider, providerUserID string) (domain.User, error)
 	LinkOAuthProvider(ctx context.Context, userID uuid.UUID, provider domain.Provider, providerUserID string) error

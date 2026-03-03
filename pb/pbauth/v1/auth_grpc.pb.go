@@ -20,24 +20,24 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_Ping_FullMethodName                    = "/auth.v1.AuthService/Ping"
-	AuthService_Login_FullMethodName                   = "/auth.v1.AuthService/Login"
-	AuthService_RefreshToken_FullMethodName            = "/auth.v1.AuthService/RefreshToken"
-	AuthService_Logout_FullMethodName                  = "/auth.v1.AuthService/Logout"
-	AuthService_ChangePassword_FullMethodName          = "/auth.v1.AuthService/ChangePassword"
-	AuthService_RegisterUser_FullMethodName            = "/auth.v1.AuthService/RegisterUser"
-	AuthService_DeleteUser_FullMethodName              = "/auth.v1.AuthService/DeleteUser"
-	AuthService_EnrollMFAMethod_FullMethodName         = "/auth.v1.AuthService/EnrollMFAMethod"
-	AuthService_ConfirmMFAMethod_FullMethodName        = "/auth.v1.AuthService/ConfirmMFAMethod"
-	AuthService_CompleteLoginMFA_FullMethodName        = "/auth.v1.AuthService/CompleteLoginMFA"
-	AuthService_CreateStepUpChallenge_FullMethodName   = "/auth.v1.AuthService/CreateStepUpChallenge"
-	AuthService_VerifyStepUpChallenge_FullMethodName   = "/auth.v1.AuthService/VerifyStepUpChallenge"
-	AuthService_ForgetPassword_FullMethodName          = "/auth.v1.AuthService/ForgetPassword"
-	AuthService_ResetPassword_FullMethodName           = "/auth.v1.AuthService/ResetPassword"
-	AuthService_BeginGoogleLogin_FullMethodName        = "/auth.v1.AuthService/BeginGoogleLogin"
-	AuthService_CompleteGoogleLogin_FullMethodName     = "/auth.v1.AuthService/CompleteGoogleLogin"
-	AuthService_VerifyEmail_FullMethodName             = "/auth.v1.AuthService/VerifyEmail"
-	AuthService_ResendEmailVerification_FullMethodName = "/auth.v1.AuthService/ResendEmailVerification"
+	AuthService_Ping_FullMethodName                         = "/auth.v1.AuthService/Ping"
+	AuthService_Login_FullMethodName                        = "/auth.v1.AuthService/Login"
+	AuthService_RefreshToken_FullMethodName                 = "/auth.v1.AuthService/RefreshToken"
+	AuthService_Logout_FullMethodName                       = "/auth.v1.AuthService/Logout"
+	AuthService_ChangePassword_FullMethodName               = "/auth.v1.AuthService/ChangePassword"
+	AuthService_RegisterUser_FullMethodName                 = "/auth.v1.AuthService/RegisterUser"
+	AuthService_DeleteUser_FullMethodName                   = "/auth.v1.AuthService/DeleteUser"
+	AuthService_EnrollMFAMethod_FullMethodName              = "/auth.v1.AuthService/EnrollMFAMethod"
+	AuthService_ConfirmMFAMethod_FullMethodName             = "/auth.v1.AuthService/ConfirmMFAMethod"
+	AuthService_CompleteLoginMFA_FullMethodName             = "/auth.v1.AuthService/CompleteLoginMFA"
+	AuthService_CreateStepUpChallenge_FullMethodName        = "/auth.v1.AuthService/CreateStepUpChallenge"
+	AuthService_VerifyStepUpChallenge_FullMethodName        = "/auth.v1.AuthService/VerifyStepUpChallenge"
+	AuthService_ForgetPassword_FullMethodName               = "/auth.v1.AuthService/ForgetPassword"
+	AuthService_ResetPassword_FullMethodName                = "/auth.v1.AuthService/ResetPassword"
+	AuthService_BeginGoogleLogin_FullMethodName             = "/auth.v1.AuthService/BeginGoogleLogin"
+	AuthService_CompleteGoogleLogin_FullMethodName          = "/auth.v1.AuthService/CompleteGoogleLogin"
+	AuthService_VerifyEmail_FullMethodName                  = "/auth.v1.AuthService/VerifyEmail"
+	AuthService_CreateEmailVerificationToken_FullMethodName = "/auth.v1.AuthService/CreateEmailVerificationToken"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -61,7 +61,7 @@ type AuthServiceClient interface {
 	BeginGoogleLogin(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*BeginGoogleLoginRequest, error)
 	CompleteGoogleLogin(ctx context.Context, in *CompleteGoogleLoginRequest, opts ...grpc.CallOption) (*TokenPair, error)
 	VerifyEmail(ctx context.Context, in *VerifyEmailRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	ResendEmailVerification(ctx context.Context, in *ResendEmailVerificationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	CreateEmailVerificationToken(ctx context.Context, in *CreateEmailVerificationTokenRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type authServiceClient struct {
@@ -242,10 +242,10 @@ func (c *authServiceClient) VerifyEmail(ctx context.Context, in *VerifyEmailRequ
 	return out, nil
 }
 
-func (c *authServiceClient) ResendEmailVerification(ctx context.Context, in *ResendEmailVerificationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *authServiceClient) CreateEmailVerificationToken(ctx context.Context, in *CreateEmailVerificationTokenRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, AuthService_ResendEmailVerification_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AuthService_CreateEmailVerificationToken_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -273,7 +273,7 @@ type AuthServiceServer interface {
 	BeginGoogleLogin(context.Context, *emptypb.Empty) (*BeginGoogleLoginRequest, error)
 	CompleteGoogleLogin(context.Context, *CompleteGoogleLoginRequest) (*TokenPair, error)
 	VerifyEmail(context.Context, *VerifyEmailRequest) (*emptypb.Empty, error)
-	ResendEmailVerification(context.Context, *ResendEmailVerificationRequest) (*emptypb.Empty, error)
+	CreateEmailVerificationToken(context.Context, *CreateEmailVerificationTokenRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -335,8 +335,8 @@ func (UnimplementedAuthServiceServer) CompleteGoogleLogin(context.Context, *Comp
 func (UnimplementedAuthServiceServer) VerifyEmail(context.Context, *VerifyEmailRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method VerifyEmail not implemented")
 }
-func (UnimplementedAuthServiceServer) ResendEmailVerification(context.Context, *ResendEmailVerificationRequest) (*emptypb.Empty, error) {
-	return nil, status.Error(codes.Unimplemented, "method ResendEmailVerification not implemented")
+func (UnimplementedAuthServiceServer) CreateEmailVerificationToken(context.Context, *CreateEmailVerificationTokenRequest) (*emptypb.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateEmailVerificationToken not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -665,20 +665,20 @@ func _AuthService_VerifyEmail_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthService_ResendEmailVerification_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ResendEmailVerificationRequest)
+func _AuthService_CreateEmailVerificationToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateEmailVerificationTokenRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthServiceServer).ResendEmailVerification(ctx, in)
+		return srv.(AuthServiceServer).CreateEmailVerificationToken(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AuthService_ResendEmailVerification_FullMethodName,
+		FullMethod: AuthService_CreateEmailVerificationToken_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).ResendEmailVerification(ctx, req.(*ResendEmailVerificationRequest))
+		return srv.(AuthServiceServer).CreateEmailVerificationToken(ctx, req.(*CreateEmailVerificationTokenRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -759,8 +759,8 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _AuthService_VerifyEmail_Handler,
 		},
 		{
-			MethodName: "ResendEmailVerification",
-			Handler:    _AuthService_ResendEmailVerification_Handler,
+			MethodName: "CreateEmailVerificationToken",
+			Handler:    _AuthService_CreateEmailVerificationToken_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

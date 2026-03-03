@@ -1004,14 +1004,17 @@ func (q *Queries) UserHasActiveMFAMethodByType(ctx context.Context, arg UserHasA
 	return exists, err
 }
 
-const verifyUserEmail = `-- name: VerifyUserEmail :exec
+const verifyUserEmail = `-- name: VerifyUserEmail :one
 UPDATE users
 SET is_email_verified = true
 WHERE id = $1
   AND is_email_verified = false
+RETURNING email
 `
 
-func (q *Queries) VerifyUserEmail(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, verifyUserEmail, id)
-	return err
+func (q *Queries) VerifyUserEmail(ctx context.Context, id uuid.UUID) (string, error) {
+	row := q.db.QueryRowContext(ctx, verifyUserEmail, id)
+	var email string
+	err := row.Scan(&email)
+	return email, err
 }

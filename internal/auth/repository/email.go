@@ -32,7 +32,7 @@ func (r *Repo) ConsumeEmailVerificationToken(ctx context.Context, tokenHash stri
 	return userID, nil
 }
 
-func (r *Repo) VerifyUserEmail(ctx context.Context, userID uuid.UUID) error {
+func (r *Repo) VerifyUserEmail(ctx context.Context, userID uuid.UUID) (string, error) {
 	return r.queries.VerifyUserEmail(ctx, userID)
 }
 

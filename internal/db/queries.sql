@@ -52,11 +52,12 @@ UPDATE users
 SET password_hash = $1
 WHERE id = $2;
 
--- name: VerifyUserEmail :exec
+-- name: VerifyUserEmail :one
 UPDATE users
 SET is_email_verified = true
 WHERE id = $1
-  AND is_email_verified = false;
+  AND is_email_verified = false
+RETURNING email;
 
 -- name: DeleteUser :execrows
 UPDATE users
