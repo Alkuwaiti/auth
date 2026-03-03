@@ -69,7 +69,7 @@ func TestChangePassword(t *testing.T) {
 
 			ctx := context.Background()
 			ctx = testutil.CtxWithRequestMeta(ctx)
-			ctx = testutil.CtxWithEmail(ctx, "dummy@email.com")
+			ctx = testutil.CtxWithEmail(ctx, "test@example.com")
 
 			var userID uuid.UUID
 			if tt.setupUser {
@@ -120,6 +120,7 @@ func TestChangePassword_CreatesAuditLog(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 	ctx = testutil.CtxWithRequestMeta(ctx)
+	ctx = testutil.CtxWithEmail(ctx, "test@example.com")
 
 	user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
 		Email:    "test@example.com",
@@ -147,6 +148,7 @@ func TestChangePassword_RevokesSessions(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 	ctx = testutil.CtxWithRequestMeta(ctx)
+	ctx = testutil.CtxWithEmail(ctx, "test@example.com")
 
 	user, err := service.RegisterUser(ctx, auth.RegisterUserInput{
 		Email:    "test@example.com",
@@ -179,6 +181,7 @@ func TestChangePassword_NilPasswordHash(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 	ctx = testutil.CtxWithRequestMeta(ctx)
+	ctx = testutil.CtxWithEmail(ctx, "test@example.com")
 
 	user, err := service.Repo.CreateUser(ctx, "social@example.com", nil)
 	require.NoError(t, err)
