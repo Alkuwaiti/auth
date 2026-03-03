@@ -17,8 +17,6 @@ import (
 
 var dummyBcryptHash = "$2b$12$C6UzMDM.H6dfI/f/IKcEeOe2x7yZ0pniS3pSDOMkMt2rt7V6F2i4G"
 
-// TODO: check the impact of nullifying the password hash with the introduction of social login.
-
 func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword string) error {
 	ctx, span := tracer.Start(ctx, "AuthService.ChangePassword")
 	defer span.End()
