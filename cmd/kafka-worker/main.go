@@ -19,10 +19,9 @@ import (
 func main() {
 
 	envFlag := flag.String("env", "local", "environment to use (local, dev, staging, prod)")
-	jurFlag := flag.String("jur", "", "jur to use (bhr, uae, tur)")
 	flag.Parse()
 
-	cfg := config.Load(strings.ToLower(*envFlag), strings.ToLower(*jurFlag))
+	cfg := config.Load(strings.ToLower(*envFlag))
 
 	level := slog.LevelInfo
 	if n, err := strconv.Atoi(cfg.LogLevel); err == nil {

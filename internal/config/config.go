@@ -23,7 +23,6 @@ var (
 
 type Config struct {
 	Environment          string
-	Jurisdiction         string
 	LogLevel             string
 	TracingCollector     string
 	DatabaseURL          string
@@ -48,20 +47,12 @@ type kafkaConfig struct {
 	Interval int
 }
 
-func Load(env, jur string) Config {
+func Load(env string) Config {
 	if !loaded {
 		switch env {
 		case "local", "dev", "staging", "prod":
 		default:
 			panic(fmt.Sprintf("Invalid env provided: %s", env))
-		}
-
-		if jur != "" {
-			switch jur {
-			case "bhr":
-			default:
-				panic(fmt.Sprintf("Invalid jur provided: %s", jur))
-			}
 		}
 
 		v := viper.NewWithOptions(
@@ -80,18 +71,9 @@ func Load(env, jur string) Config {
 		envFile := fmt.Sprintf(".config/%s.yml", env)
 		mergeConfigFile(v, envFile)
 
-		if jur != "" {
-			jurFile := fmt.Sprintf(".config/%s.yml", jur)
-			mergeConfigFile(v, jurFile)
-
-			envJurFile := fmt.Sprintf(".config/%s_%s.yml", env, jur)
-			mergeConfigFile(v, envJurFile)
-		}
-
 		v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 		v.AutomaticEnv()
 		v.Set("Environment", env)
-		v.Set("Jurisdiction", jur)
 
 		if err := v.Unmarshal(&cfg); err != nil {
 			panic(err)
