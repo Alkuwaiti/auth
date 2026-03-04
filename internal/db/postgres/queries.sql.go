@@ -149,10 +149,10 @@ func (q *Queries) CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) 
 
 const createChallenge = `-- name: CreateChallenge :one
 INSERT INTO mfa_challenges (
-  user_id, mfa_method_id, challenge_type, expires_at, scope
+  user_id, mfa_method_id, challenge_type, expires_at, scope, remember_me
 )
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, user_id, mfa_method_id, challenge_type, expires_at, consumed_at, created_at, scope, attempts
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, user_id, mfa_method_id, challenge_type, expires_at, consumed_at, created_at, scope, attempts, remember_me
 `
 
 type CreateChallengeParams struct {
@@ -161,6 +161,7 @@ type CreateChallengeParams struct {
 	ChallengeType string
 	ExpiresAt     time.Time
 	Scope         string
+	RememberMe    bool
 }
 
 func (q *Queries) CreateChallenge(ctx context.Context, arg CreateChallengeParams) (MfaChallenge, error) {
@@ -170,6 +171,7 @@ func (q *Queries) CreateChallenge(ctx context.Context, arg CreateChallengeParams
 		arg.ChallengeType,
 		arg.ExpiresAt,
 		arg.Scope,
+		arg.RememberMe,
 	)
 	var i MfaChallenge
 	err := row.Scan(
@@ -182,6 +184,7 @@ func (q *Queries) CreateChallenge(ctx context.Context, arg CreateChallengeParams
 		&i.CreatedAt,
 		&i.Scope,
 		&i.Attempts,
+		&i.RememberMe,
 	)
 	return i, err
 }
@@ -415,6 +418,7 @@ SELECT
   c.id            AS challenge_id,
   c.user_id,
   c.attempts,
+  c.remember_me,
   m.id            AS method_id,
   m.secret_ciphertext
 FROM mfa_challenges c
@@ -434,6 +438,7 @@ type GetActiveTOTPChallengeForUpdateRow struct {
 	ChallengeID      uuid.UUID
 	UserID           uuid.UUID
 	Attempts         int32
+	RememberMe       bool
 	MethodID         uuid.UUID
 	SecretCiphertext []byte
 }
@@ -445,6 +450,7 @@ func (q *Queries) GetActiveTOTPChallengeForUpdate(ctx context.Context, id uuid.U
 		&i.ChallengeID,
 		&i.UserID,
 		&i.Attempts,
+		&i.RememberMe,
 		&i.MethodID,
 		&i.SecretCiphertext,
 	)
@@ -452,7 +458,7 @@ func (q *Queries) GetActiveTOTPChallengeForUpdate(ctx context.Context, id uuid.U
 }
 
 const getChallengeByID = `-- name: GetChallengeByID :one
-SELECT id, user_id, mfa_method_id, challenge_type, expires_at, consumed_at, created_at, scope, attempts
+SELECT id, user_id, mfa_method_id, challenge_type, expires_at, consumed_at, created_at, scope, attempts, remember_me
 FROM mfa_challenges
 WHERE id = $1
 `
@@ -470,6 +476,7 @@ func (q *Queries) GetChallengeByID(ctx context.Context, id uuid.UUID) (MfaChalle
 		&i.CreatedAt,
 		&i.Scope,
 		&i.Attempts,
+		&i.RememberMe,
 	)
 	return i, err
 }

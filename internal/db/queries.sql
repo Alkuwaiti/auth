@@ -144,9 +144,9 @@ WHERE id = $1
 
 -- name: CreateChallenge :one
 INSERT INTO mfa_challenges (
-  user_id, mfa_method_id, challenge_type, expires_at, scope
+  user_id, mfa_method_id, challenge_type, expires_at, scope, remember_me
 )
-VALUES ($1, $2, $3, $4, $5)
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
 -- name: GetChallengeByID :one
@@ -194,6 +194,7 @@ SELECT
   c.id            AS challenge_id,
   c.user_id,
   c.attempts,
+  c.remember_me,
   m.id            AS method_id,
   m.secret_ciphertext
 FROM mfa_challenges c

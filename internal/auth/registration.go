@@ -49,7 +49,6 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 			return err
 		}
 
-		// TODO: future design: emit userRegisteredEvent, Email service calls auth for token generation instead of creating on user registration.
 		event := userRegistered{
 			UserID: user.ID,
 			Email:  user.Email,

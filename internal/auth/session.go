@@ -71,6 +71,7 @@ func (s *Service) Login(ctx context.Context, email string, password string, reme
 			UserID:        user.ID,
 			Scope:         domain.ScopeLogin,
 			ChallengeType: domain.ChallengeLogin,
+			RememberMe:    rememberMe,
 		})
 		if err != nil {
 			return LoginResult{}, err

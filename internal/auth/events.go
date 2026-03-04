@@ -13,7 +13,7 @@ type userRegistered struct {
 
 type userDeleted struct {
 	UserID uuid.UUID `json:"user_id"`
-	Reason string
+	Reason string    `json:"reason"`
 }
 
 type userEmailVerificationRequested struct {

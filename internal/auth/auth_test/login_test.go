@@ -5,6 +5,7 @@ package auth_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/flags"
@@ -179,4 +180,62 @@ func TestLogin_Disabled(t *testing.T) {
 	require.Error(t, err)
 
 	require.ErrorIs(t, err, auth.ErrRefreshDisabled)
+}
+
+func TestLogin_RememberMe_False_Sets7DayExpiry(t *testing.T) {
+	service, _, cleanup := setupTestAuthService(t)
+	defer cleanup()
+
+	ctx := context.Background()
+
+	_, err := service.RegisterUser(ctx, auth.RegisterUserInput{
+		Email:    "test@example.com",
+		Password: "StrongPassword123!",
+	})
+	require.NoError(t, err)
+
+	before := time.Now()
+
+	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!", false)
+	require.NoError(t, err)
+
+	after := time.Now()
+
+	expectedMin := before.Add(7 * 24 * time.Hour)
+	expectedMax := after.Add(7 * 24 * time.Hour)
+
+	require.True(t,
+		res.Tokens.RefreshExpiresAt.After(expectedMin) &&
+			res.Tokens.RefreshExpiresAt.Before(expectedMax),
+		"expected refresh expiry to be ~7 days",
+	)
+}
+
+func TestLogin_RememberMe_True_Sets30DayExpiry(t *testing.T) {
+	service, _, cleanup := setupTestAuthService(t)
+	defer cleanup()
+
+	ctx := context.Background()
+
+	_, err := service.RegisterUser(ctx, auth.RegisterUserInput{
+		Email:    "test@example.com",
+		Password: "StrongPassword123!",
+	})
+	require.NoError(t, err)
+
+	before := time.Now()
+
+	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!", true)
+	require.NoError(t, err)
+
+	after := time.Now()
+
+	expectedMin := before.Add(30 * 24 * time.Hour)
+	expectedMax := after.Add(30 * 24 * time.Hour)
+
+	require.True(t,
+		res.Tokens.RefreshExpiresAt.After(expectedMin) &&
+			res.Tokens.RefreshExpiresAt.Before(expectedMax),
+		"expected refresh expiry to be ~30 days",
+	)
 }
