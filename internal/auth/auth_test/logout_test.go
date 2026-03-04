@@ -24,7 +24,7 @@ func TestLogout_Success(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!", false)
 	require.NoError(t, err)
 
 	err = service.Logout(ctx, res.Tokens.RefreshToken)
@@ -64,7 +64,7 @@ func TestLogout_PreventsRefreshReuse(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!", false)
 	require.NoError(t, err)
 
 	err = service.Logout(ctx, res.Tokens.RefreshToken)
@@ -87,7 +87,7 @@ func TestLogout_CreatesAuditLog(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!", false)
 	require.NoError(t, err)
 
 	err = service.Logout(ctx, res.Tokens.RefreshToken)
@@ -119,10 +119,10 @@ func TestLogout_MultiDeviceIsolation(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	device1, err := service.Login(ctx1, "test@example.com", "StrongPassword123!")
+	device1, err := service.Login(ctx1, "test@example.com", "StrongPassword123!", false)
 	require.NoError(t, err)
 
-	device2, err := service.Login(ctx2, "test@example.com", "StrongPassword123!")
+	device2, err := service.Login(ctx2, "test@example.com", "StrongPassword123!", false)
 	require.NoError(t, err)
 
 	err = service.Logout(ctx1, device1.Tokens.RefreshToken)

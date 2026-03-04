@@ -20,7 +20,7 @@ type LoginResult struct {
 	Tokens      *TokenPair
 }
 
-func (s *Service) Login(ctx context.Context, email, password string) (LoginResult, error) {
+func (s *Service) Login(ctx context.Context, email string, password string, rememberMe bool) (LoginResult, error) {
 	if !s.Flags.RefreshTokensEnabled(ctx) {
 		return LoginResult{}, ErrRefreshDisabled
 	}
@@ -83,7 +83,7 @@ func (s *Service) Login(ctx context.Context, email, password string) (LoginResul
 		}, nil
 	}
 
-	tokenPair, err := s.finalizeLogin(ctx, user, audit.ActionLogin)
+	tokenPair, err := s.finalizeLogin(ctx, user, audit.ActionLogin, rememberMe)
 	if err != nil {
 		return LoginResult{}, err
 	}
@@ -264,7 +264,7 @@ func (s *Service) Logout(ctx context.Context, refreshToken string) error {
 	return nil
 }
 
-func (s *Service) finalizeLogin(ctx context.Context, user domain.User, action audit.AuditAction) (TokenPair, error) {
+func (s *Service) finalizeLogin(ctx context.Context, user domain.User, action audit.AuditAction, rememberMe bool) (TokenPair, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.finalizeLogin")
 	defer span.End()
 
@@ -286,7 +286,13 @@ func (s *Service) finalizeLogin(ctx context.Context, user domain.User, action au
 
 	meta := contextkeys.RequestMetaFromContext(ctx)
 
-	expiresAt := time.Now().Add(7 * 24 * time.Hour)
+	var expiresAt time.Time
+	if rememberMe {
+		expiresAt = time.Now().Add(30 * 24 * time.Hour)
+	} else {
+		expiresAt = time.Now().Add(7 * 24 * time.Hour)
+	}
+
 	if _, err = s.Repo.CreateSession(
 		ctx,
 		user.ID,

@@ -27,7 +27,7 @@ func TestRefreshToken_Success(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!", false)
 	require.NoError(t, err)
 
 	refreshed, err := service.RefreshToken(ctx, res.Tokens.RefreshToken)
@@ -84,7 +84,7 @@ func TestRefreshToken_ExpiredSession(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!", false)
 	require.NoError(t, err)
 
 	hashedToken := service.TokenManager.Hash(res.Tokens.RefreshToken)
@@ -112,7 +112,7 @@ func TestRefreshToken_RevokedTokenReuse(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!", false)
 	require.NoError(t, err)
 
 	hashedToken := service.TokenManager.Hash(res.Tokens.RefreshToken)
@@ -151,7 +151,7 @@ func TestRefreshToken_AlreadyCompromised(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!", false)
 	require.NoError(t, err)
 
 	hashedToken := service.TokenManager.Hash(res.Tokens.RefreshToken)
@@ -179,7 +179,7 @@ func TestRefreshToken_ConcurrentRace(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!", false)
 	require.NoError(t, err)
 
 	var wg sync.WaitGroup
@@ -226,7 +226,7 @@ func TestRefreshToken_AfterPasswordChange(t *testing.T) {
 
 	ctx = testutil.CtxWithUserID(ctx, user.ID)
 
-	res, err := service.Login(ctx, "test@example.com", "OldPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "OldPassword123!", false)
 	require.NoError(t, err)
 
 	err = service.ChangePassword(ctx, "OldPassword123!", "NewPassword123!")
@@ -249,7 +249,7 @@ func TestRefreshToken_AfterLogout(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!", false)
 	require.NoError(t, err)
 
 	err = service.Logout(ctx, res.Tokens.RefreshToken)
@@ -272,7 +272,7 @@ func TestRefreshToken_LogoutThenReplay(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!", false)
 	require.NoError(t, err)
 
 	refreshed, err := service.RefreshToken(ctx, res.Tokens.RefreshToken)
@@ -300,10 +300,10 @@ func TestRefreshToken_MultiDeviceIsolation(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	device1, err := service.Login(ctx1, "test@example.com", "StrongPassword123!")
+	device1, err := service.Login(ctx1, "test@example.com", "StrongPassword123!", false)
 	require.NoError(t, err)
 
-	device2, err := service.Login(ctx2, "test@example.com", "StrongPassword123!")
+	device2, err := service.Login(ctx2, "test@example.com", "StrongPassword123!", false)
 	require.NoError(t, err)
 
 	// compromise device 1
@@ -327,7 +327,7 @@ func TestRefreshToken_DeletedUser(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!", false)
 	require.NoError(t, err)
 
 	require.NoError(t, err)

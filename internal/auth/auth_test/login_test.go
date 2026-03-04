@@ -23,7 +23,7 @@ func TestLogin_Success(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "StrongPassword123!", false)
 	require.NoError(t, err)
 
 	require.NotEmpty(t, res.Tokens.AccessToken)
@@ -38,7 +38,7 @@ func TestLogin_InvalidEmail(t *testing.T) {
 
 	ctx := context.Background()
 
-	_, err := service.Login(ctx, "doesnotexist@example.com", "whatever")
+	_, err := service.Login(ctx, "doesnotexist@example.com", "whatever", false)
 
 	require.Error(t, err)
 	require.IsType(t, auth.ErrInvalidCredentials, err)
@@ -56,7 +56,7 @@ func TestLogin_InvalidPassword(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = service.Login(ctx, "test@example.com", "WrongPassword!")
+	_, err = service.Login(ctx, "test@example.com", "WrongPassword!", false)
 
 	require.Error(t, err)
 	require.IsType(t, auth.ErrInvalidCredentials, err)
@@ -79,7 +79,7 @@ func TestLogin_InactiveUser(t *testing.T) {
 	`, user.ID)
 	require.NoError(t, err)
 
-	_, err = service.Login(ctx, "test@example.com", "StrongPassword123!")
+	_, err = service.Login(ctx, "test@example.com", "StrongPassword123!", false)
 
 	require.Error(t, err)
 	require.IsType(t, auth.ErrInvalidCredentials, err)
@@ -97,7 +97,7 @@ func TestLogin_CreatesSession(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = service.Login(ctx, "test@example.com", "StrongPassword123!")
+	_, err = service.Login(ctx, "test@example.com", "StrongPassword123!", false)
 	require.NoError(t, err)
 
 	var count int
@@ -120,7 +120,7 @@ func TestLogin_CreatesAuditLog(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = service.Login(ctx, "test@example.com", "StrongPassword123!")
+	_, err = service.Login(ctx, "test@example.com", "StrongPassword123!", false)
 	require.NoError(t, err)
 
 	var count int
@@ -156,7 +156,7 @@ func TestLogin_DeletedUser(t *testing.T) {
 	`, user.ID)
 	require.NoError(t, err)
 
-	_, err = service.Login(ctx, email, password)
+	_, err = service.Login(ctx, email, password, false)
 	require.Error(t, err)
 	require.IsType(t, auth.ErrInvalidCredentials, err)
 }
@@ -174,7 +174,7 @@ func TestLogin_Disabled(t *testing.T) {
 		Flags: flagsService,
 	}
 
-	_, err := svc.Login(ctx, "some_email", "some_password")
+	_, err := svc.Login(ctx, "some_email", "some_password", false)
 
 	require.Error(t, err)
 
