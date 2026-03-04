@@ -12,8 +12,6 @@ import (
 	"github.com/alkuwaiti/auth/pkg/contextkeys"
 )
 
-// TODO: write tests for this.
-
 func (s *Service) VerifyEmail(ctx context.Context, rawToken string) error {
 	hashedToken := s.TokenManager.Hash(rawToken)
 
@@ -98,10 +96,6 @@ func (s *Service) CreateEmailVerificationToken(ctx context.Context, email string
 	}
 
 	if err = s.Repo.WithTx(ctx, func(r Repo) error {
-		if err = r.InvalidateEmailVerificationTokens(ctx, user.ID); err != nil {
-			return err
-		}
-
 		if err = r.CreateEmailVerificationToken(ctx, user.ID, hash, time.Now().Add(30*time.Minute)); err != nil {
 			return err
 		}
