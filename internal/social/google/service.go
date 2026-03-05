@@ -4,7 +4,6 @@ package googlesocial
 import (
 	"context"
 	"errors"
-	"log/slog"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -57,9 +56,6 @@ func (s *service) ExchangeCode(ctx context.Context, code string) (GoogleUser, er
 	if err != nil {
 		return GoogleUser{}, err
 	}
-
-	slog.InfoContext(ctx, "this is the payload", "payload", payload)
-	slog.InfoContext(ctx, "this is the payload claims", "payload", payload.Claims)
 
 	email := payload.Claims["email"].(string)
 	emailVerified := payload.Claims["email_verified"].(bool)

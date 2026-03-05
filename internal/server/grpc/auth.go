@@ -20,7 +20,7 @@ func (s *server) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.L
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	res, err := s.service.Login(ctx, req.Email, req.Password)
+	res, err := s.service.Login(ctx, req.Email, req.Password, req.RememberMe)
 	if err != nil {
 		return nil, MapError(err)
 	}

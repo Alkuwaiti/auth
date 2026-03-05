@@ -171,7 +171,7 @@ func (s *Service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, c
 		return TokenPair{}, err
 	}
 
-	return s.finalizeLogin(ctx, user, audit.ActionLoginMFA)
+	return s.finalizeLogin(ctx, user, audit.ActionLoginMFA, challenge.RememberMe)
 }
 
 type CreateStepUpChallengeResponse struct {

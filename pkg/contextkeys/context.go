@@ -41,8 +41,6 @@ func UserEmailFromContext(ctx context.Context) (string, error) {
 	return email, nil
 }
 
-// TODO: move ctx key here.
-
 func RequestMetaFromContext(ctx context.Context) RequestMeta {
 	meta, ok := ctx.Value(RequestMetaKeyType{}).(RequestMeta)
 	if !ok {

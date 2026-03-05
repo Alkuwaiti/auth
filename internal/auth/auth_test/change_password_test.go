@@ -102,12 +102,12 @@ func TestChangePassword(t *testing.T) {
 
 				if tt.checkLogin {
 					// login with old password fails
-					_, err = service.Login(ctx, "test@example.com", "OldPassword123!")
+					_, err = service.Login(ctx, "test@example.com", "OldPassword123!", false)
 					require.Error(t, err)
 					require.IsType(t, auth.ErrInvalidCredentials, err)
 
 					// login with new password succeeds
-					_, err = service.Login(ctx, "test@example.com", tt.newPassword)
+					_, err = service.Login(ctx, "test@example.com", tt.newPassword, false)
 					require.NoError(t, err)
 				}
 			}
@@ -159,7 +159,7 @@ func TestChangePassword_RevokesSessions(t *testing.T) {
 	ctx = testutil.CtxWithUserID(ctx, user.ID)
 
 	// login generates a session
-	res, err := service.Login(ctx, "test@example.com", "OldPassword123!")
+	res, err := service.Login(ctx, "test@example.com", "OldPassword123!", false)
 	require.NoError(t, err)
 
 	err = service.ChangePassword(ctx, "OldPassword123!", "NewPassword123!")

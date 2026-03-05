@@ -24,6 +24,7 @@ type MFAChallenge struct {
 	ExpiresAt     time.Time
 	ConsumedAt    *time.Time
 	Attempts      int
+	RememberMe    bool
 }
 
 type ActiveTOTPChallenge struct {
@@ -32,6 +33,7 @@ type ActiveTOTPChallenge struct {
 	MethodID         uuid.UUID
 	Attempts         int
 	SecretCiphertext []byte
+	RememberMe       bool
 }
 
 type ChallengeType string

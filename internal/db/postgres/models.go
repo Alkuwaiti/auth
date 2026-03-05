@@ -51,6 +51,7 @@ type MfaChallenge struct {
 	CreatedAt     time.Time
 	Scope         string
 	Attempts      int32
+	RememberMe    bool
 }
 
 type OutboxEvent struct {

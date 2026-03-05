@@ -36,7 +36,7 @@ func (s *Service) CompleteGoogleLogin(ctx context.Context, code, state string) (
 
 	user, err := s.Repo.GetUserByOAuthProvider(ctx, domain.ProviderGoogle, googleUser.Subject)
 	if err == nil {
-		return s.finalizeLogin(ctx, user, audit.ActionGoogleLogin)
+		return s.finalizeLogin(ctx, user, audit.ActionGoogleLogin, true)
 	}
 
 	if !errors.Is(err, domain.ErrNotFound) {
@@ -63,5 +63,5 @@ func (s *Service) CompleteGoogleLogin(ctx context.Context, code, state string) (
 		return TokenPair{}, err
 	}
 
-	return s.finalizeLogin(ctx, user, audit.ActionGoogleRegisteration)
+	return s.finalizeLogin(ctx, user, audit.ActionGoogleRegisteration, true)
 }

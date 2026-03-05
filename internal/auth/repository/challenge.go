@@ -18,6 +18,7 @@ func (r *Repo) CreateChallenge(ctx context.Context, challenge domain.MFAChalleng
 		Scope:         challenge.Scope.String(),
 		ChallengeType: challenge.ChallengeType.String(),
 		ExpiresAt:     time.Now().Add(5 * time.Minute),
+		RememberMe:    challenge.RememberMe,
 	})
 	if err != nil {
 		return domain.MFAChallenge{}, err
@@ -50,6 +51,7 @@ func (r *Repo) GetActiveTOTPChallengeForUpdate(ctx context.Context, challengeID 
 		MethodID:         row.MethodID,
 		Attempts:         int(row.Attempts),
 		SecretCiphertext: row.SecretCiphertext,
+		RememberMe:       row.RememberMe,
 	}, nil
 }
 
