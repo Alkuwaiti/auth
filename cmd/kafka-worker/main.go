@@ -17,7 +17,6 @@ import (
 )
 
 func main() {
-
 	envFlag := flag.String("env", "local", "environment to use (local, dev, staging, prod)")
 	flag.Parse()
 
