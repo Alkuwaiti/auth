@@ -50,7 +50,7 @@ type Config struct {
 }
 
 func (c Config) String() string {
-	return fmt.Sprintf("%s: %d", c.Host, c.Port)
+	return fmt.Sprintf("%s:%d", c.Host, c.Port)
 }
 
 func NewServer(
