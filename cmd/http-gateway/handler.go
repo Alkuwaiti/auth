@@ -7,6 +7,7 @@ import (
 	"time"
 
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -79,8 +80,20 @@ func (h *Handler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) StartPasskeyGeneration(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
-	defer cancel()
+	bearer := r.URL.Query().Get("bearer")
+
+	ctx := context.Background()
+
+	md := metadata.New(map[string]string{
+		"authorization":       "Bearer " + bearer,
+		"x-forwarded-for":     "203.0.113.10",
+		"x-client-user-agent": "auth-cli/1.0",
+		"request-id":          "req-123456",
+		"x-client-ip":         "2.2.2.2",
+		"X-Step-Up-Token":     "",
+	})
+
+	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	res, err := h.authClient.StartPasskeyGeneration(ctx, &emptypb.Empty{})
 	if err != nil {
@@ -94,11 +107,10 @@ func (h *Handler) StartPasskeyGeneration(w http.ResponseWriter, r *http.Request)
 	}.Marshal(res)
 	if err != nil {
 		http.Error(w, "failed to marshal response", http.StatusInternalServerError)
-		slog.Error("failed to marshal passkey generation response", "err", err)
+		slog.ErrorContext(ctx, "failed to marshal passkey generation response", "err", err)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(out)
+	w.Write([]byte(out))
 }
