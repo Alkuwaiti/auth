@@ -42,6 +42,7 @@ type service interface {
 	CompleteGoogleLogin(ctx context.Context, code, state string) (auth.TokenPair, error)
 	VerifyEmail(ctx context.Context, rawToken string) error
 	CreateEmailVerificationToken(ctx context.Context, email string) error
+	StartPasskeyGeneration(ctx context.Context) (auth.Options, error)
 }
 
 type Config struct {

@@ -1394,7 +1394,7 @@ func (x *UserEntity) GetDisplayName() string {
 type PubKeyCredParam struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
-	Alg           string                 `protobuf:"bytes,2,opt,name=alg,proto3" json:"alg,omitempty"`
+	Alg           int32                  `protobuf:"varint,2,opt,name=alg,proto3" json:"alg,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1436,11 +1436,11 @@ func (x *PubKeyCredParam) GetType() string {
 	return ""
 }
 
-func (x *PubKeyCredParam) GetAlg() string {
+func (x *PubKeyCredParam) GetAlg() int32 {
 	if x != nil {
 		return x.Alg
 	}
-	return ""
+	return 0
 }
 
 type AuthenticatorSelection struct {
@@ -1550,7 +1550,7 @@ func (x *ExcludeCredential) GetType() string {
 type StartPasskeyGenerationResponse struct {
 	state                  protoimpl.MessageState  `protogen:"open.v1"`
 	Challenge              string                  `protobuf:"bytes,1,opt,name=challenge,proto3" json:"challenge,omitempty"`
-	RP                     *RP                     `protobuf:"bytes,2,opt,name=RP,proto3" json:"RP,omitempty"`
+	Rp                     *RP                     `protobuf:"bytes,2,opt,name=rp,proto3" json:"rp,omitempty"`
 	User                   *UserEntity             `protobuf:"bytes,3,opt,name=user,proto3" json:"user,omitempty"`
 	PubKeyCredParams       []*PubKeyCredParam      `protobuf:"bytes,4,rep,name=pub_key_cred_params,json=pubKeyCredParams,proto3" json:"pub_key_cred_params,omitempty"`
 	Timeout                int64                   `protobuf:"varint,5,opt,name=timeout,proto3" json:"timeout,omitempty"`
@@ -1598,9 +1598,9 @@ func (x *StartPasskeyGenerationResponse) GetChallenge() string {
 	return ""
 }
 
-func (x *StartPasskeyGenerationResponse) GetRP() *RP {
+func (x *StartPasskeyGenerationResponse) GetRp() *RP {
 	if x != nil {
-		return x.RP
+		return x.Rp
 	}
 	return nil
 }
@@ -1743,7 +1743,7 @@ const file___proto_auth_proto_rawDesc = "" +
 	"\fdisplay_name\x18\x03 \x01(\tR\vdisplayName\"7\n" +
 	"\x0fPubKeyCredParam\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12\x10\n" +
-	"\x03alg\x18\x02 \x01(\tR\x03alg\"h\n" +
+	"\x03alg\x18\x02 \x01(\x05R\x03alg\"h\n" +
 	"\x16AuthenticatorSelection\x12!\n" +
 	"\fresident_key\x18\x01 \x01(\tR\vresidentKey\x12+\n" +
 	"\x11user_verification\x18\x02 \x01(\tR\x10userVerification\"7\n" +
@@ -1752,7 +1752,7 @@ const file___proto_auth_proto_rawDesc = "" +
 	"\x04type\x18\x02 \x01(\tR\x04type\"\xb0\x03\n" +
 	"\x1eStartPasskeyGenerationResponse\x12\x1c\n" +
 	"\tchallenge\x18\x01 \x01(\tR\tchallenge\x12\x1b\n" +
-	"\x02RP\x18\x02 \x01(\v2\v.auth.v1.RPR\x02RP\x12'\n" +
+	"\x02rp\x18\x02 \x01(\v2\v.auth.v1.RPR\x02rp\x12'\n" +
 	"\x04user\x18\x03 \x01(\v2\x13.auth.v1.UserEntityR\x04user\x12G\n" +
 	"\x13pub_key_cred_params\x18\x04 \x03(\v2\x18.auth.v1.PubKeyCredParamR\x10pubKeyCredParams\x12\x18\n" +
 	"\atimeout\x18\x05 \x01(\x03R\atimeout\x12 \n" +
@@ -1833,7 +1833,7 @@ var file___proto_auth_proto_depIdxs = []int32{
 	30, // 1: auth.v1.MFAMethod.created_at:type_name -> google.protobuf.Timestamp
 	9,  // 2: auth.v1.EnrollMFAMethodResponse.method:type_name -> auth.v1.MFAMethod
 	30, // 3: auth.v1.CreateStepUpChallengeResponse.expires_at:type_name -> google.protobuf.Timestamp
-	24, // 4: auth.v1.StartPasskeyGenerationResponse.RP:type_name -> auth.v1.RP
+	24, // 4: auth.v1.StartPasskeyGenerationResponse.rp:type_name -> auth.v1.RP
 	25, // 5: auth.v1.StartPasskeyGenerationResponse.user:type_name -> auth.v1.UserEntity
 	26, // 6: auth.v1.StartPasskeyGenerationResponse.pub_key_cred_params:type_name -> auth.v1.PubKeyCredParam
 	27, // 7: auth.v1.StartPasskeyGenerationResponse.authenticator_selection:type_name -> auth.v1.AuthenticatorSelection

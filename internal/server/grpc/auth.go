@@ -323,9 +323,60 @@ func (s *server) CreateEmailVerificationToken(ctx context.Context, req *authv1.C
 		slog.ErrorContext(ctx, "Invalid request: request is nil")
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
+
 	if err := s.service.CreateEmailVerificationToken(ctx, req.Email); err != nil {
 		return nil, MapError(err)
 	}
 
 	return &emptypb.Empty{}, nil
+}
+
+func (s *server) StartPasskeyGeneration(ctx context.Context, req *emptypb.Empty) (*authv1.StartPasskeyGenerationResponse, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	res, err := s.service.StartPasskeyGeneration(ctx)
+	if err != nil {
+		return nil, MapError(err)
+	}
+
+	params := make([]*authv1.PubKeyCredParam, len(res.PubKeyCredParams))
+	for i, p := range res.PubKeyCredParams {
+		params[i] = &authv1.PubKeyCredParam{
+			Type: p.Type,
+			Alg:  int32(p.Alg),
+		}
+	}
+
+	credentials := make([]*authv1.ExcludeCredential, len(res.ExcludeCredentials))
+	for i, c := range res.ExcludeCredentials {
+		credentials[i] = &authv1.ExcludeCredential{
+			Id:   c.ID,
+			Type: c.Type,
+		}
+	}
+
+	return &authv1.StartPasskeyGenerationResponse{
+		Challenge: string(res.Challenge),
+		Rp: &authv1.RP{
+			Id:   res.RP.ID,
+			Name: res.RP.Name,
+		},
+		User: &authv1.UserEntity{
+			Id:          res.User.ID,
+			Name:        res.User.Name,
+			DisplayName: res.User.DisplayName,
+		},
+		PubKeyCredParams: params,
+		Timeout:          res.Timeout,
+		Attestation:      res.Attestation,
+		AuthenticatorSelection: &authv1.AuthenticatorSelection{
+			ResidentKey:      res.AuthenticatorSelection.ResidentKey,
+			UserVerification: res.AuthenticatorSelection.UserVerification,
+		},
+		ExcludeCredentials: credentials,
+	}, nil
+
 }
