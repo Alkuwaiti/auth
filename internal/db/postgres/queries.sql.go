@@ -381,6 +381,22 @@ func (q *Queries) CreateUserMFAMethod(ctx context.Context, arg CreateUserMFAMeth
 	return i, err
 }
 
+const createWebAuthnChallenge = `-- name: CreateWebAuthnChallenge :exec
+INSERT INTO webauthn_challenges (challenge, user_id, expires_at)
+VALUES ($1, $2, $3)
+`
+
+type CreateWebAuthnChallengeParams struct {
+	Challenge string
+	UserID    uuid.UUID
+	ExpiresAt time.Time
+}
+
+func (q *Queries) CreateWebAuthnChallenge(ctx context.Context, arg CreateWebAuthnChallengeParams) error {
+	_, err := q.db.ExecContext(ctx, createWebAuthnChallenge, arg.Challenge, arg.UserID, arg.ExpiresAt)
+	return err
+}
+
 const deleteUser = `-- name: DeleteUser :execrows
 UPDATE users
 SET
@@ -863,6 +879,35 @@ type LinkOAuthProviderParams struct {
 func (q *Queries) LinkOAuthProvider(ctx context.Context, arg LinkOAuthProviderParams) error {
 	_, err := q.db.ExecContext(ctx, linkOAuthProvider, arg.UserID, arg.Provider, arg.ProviderUserID)
 	return err
+}
+
+const listPasskeysByUserID = `-- name: ListPasskeysByUserID :many
+
+SELECT credential_id FROM passkeys WHERE user_id = $1
+`
+
+// Passkeys
+func (q *Queries) ListPasskeysByUserID(ctx context.Context, userID uuid.UUID) ([][]byte, error) {
+	rows, err := q.db.QueryContext(ctx, listPasskeysByUserID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items [][]byte
+	for rows.Next() {
+		var credential_id []byte
+		if err := rows.Scan(&credential_id); err != nil {
+			return nil, err
+		}
+		items = append(items, credential_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const markBatchAsFailed = `-- name: MarkBatchAsFailed :exec

@@ -78,6 +78,8 @@ type Repo interface {
 	GetUserByOAuthProvider(ctx context.Context, provider domain.Provider, providerUserID string) (domain.User, error)
 	LinkOAuthProvider(ctx context.Context, userID uuid.UUID, provider domain.Provider, providerUserID string) error
 	CreateOutboxEvent(ctx context.Context, outboxEvent domain.OutboxEvent) error
+	ListPasskeysByUserID(ctx context.Context, userID uuid.UUID) ([][]byte, error)
+	CreateWebAuthnChallenge(ctx context.Context, token string, userID uuid.UUID, expiresAt time.Time) error
 }
 
 type auditor interface {

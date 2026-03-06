@@ -11,7 +11,7 @@ CREATE TABLE passkeys (
 );
 
 CREATE TABLE webauthn_challenges (
-  challenge BYTEA PRIMARY KEY,
+  challenge TEXT PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   expires_at TIMESTAMPTZ NOT NULL
 )

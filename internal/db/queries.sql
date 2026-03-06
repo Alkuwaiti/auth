@@ -303,3 +303,12 @@ WHERE id = ANY($1::uuid[])
 UPDATE outbox_events
 SET retry_count = retry_count + 1
 WHERE id = ANY($1::uuid[]);
+
+-- Passkeys 
+
+-- name: ListPasskeysByUserID :many 
+SELECT credential_id FROM passkeys WHERE user_id = $1;
+
+-- name: CreateWebAuthnChallenge :exec
+INSERT INTO webauthn_challenges (challenge, user_id, expires_at)
+VALUES ($1, $2, $3);
