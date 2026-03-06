@@ -12,9 +12,9 @@ func (r *Repo) ListPasskeysByUserID(ctx context.Context, userID uuid.UUID) ([][]
 	return r.queries.ListPasskeysByUserID(ctx, userID)
 }
 
-func (r *Repo) CreateWebAuthnChallenge(ctx context.Context, token string, userID uuid.UUID, expiresAt time.Time) error {
+func (r *Repo) CreateWebAuthnChallenge(ctx context.Context, challenge []byte, userID uuid.UUID, expiresAt time.Time) error {
 	return r.queries.CreateWebAuthnChallenge(ctx, postgres.CreateWebAuthnChallengeParams{
-		Challenge: token,
+		Challenge: challenge,
 		UserID:    userID,
 		ExpiresAt: expiresAt,
 	})

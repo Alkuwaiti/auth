@@ -387,7 +387,7 @@ VALUES ($1, $2, $3)
 `
 
 type CreateWebAuthnChallengeParams struct {
-	Challenge string
+	Challenge []byte
 	UserID    uuid.UUID
 	ExpiresAt time.Time
 }

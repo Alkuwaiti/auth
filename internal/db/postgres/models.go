@@ -145,7 +145,7 @@ type UserRole struct {
 }
 
 type WebauthnChallenge struct {
-	Challenge string
+	Challenge []byte
 	UserID    uuid.UUID
 	ExpiresAt time.Time
 }

@@ -2,6 +2,8 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/auth/domain"
@@ -9,16 +11,16 @@ import (
 )
 
 type RP struct {
-	Name string
 	ID   string
+	Name string
 }
 
 type ExcludeCredential struct {
-	Type string
 	ID   string
+	Type string
 }
 
-type User struct {
+type UserEntity struct {
 	ID          string
 	Name        string
 	DisplayName string
@@ -35,11 +37,11 @@ type AuthenticatorSelection struct {
 }
 
 type Options struct {
-	Challenge              string
+	Challenge              []byte
 	RP                     RP
-	User                   User
+	User                   UserEntity
 	PubKeyCredParams       []PubKeyCredParam
-	Timeout                int
+	Timeout                int64
 	Attestation            string
 	AuthenticatorSelection AuthenticatorSelection
 	ExcludeCredentials     []ExcludeCredential
@@ -56,7 +58,7 @@ func (s *Service) StartPasskeyGeneration(ctx context.Context) (Options, error) {
 		return Options{}, err
 	}
 
-	raw, _, err := s.TokenManager.GenerateToken()
+	challenge, err := generateChallenge()
 	if err != nil {
 		return Options{}, err
 	}
@@ -67,19 +69,25 @@ func (s *Service) StartPasskeyGeneration(ctx context.Context) (Options, error) {
 	}
 
 	// TODO: change to store hashed.
-	if err = s.Repo.CreateWebAuthnChallenge(ctx, raw, userID, time.Now().Add(5*time.Minute)); err != nil {
+	if err = s.Repo.CreateWebAuthnChallenge(ctx, challenge, userID, time.Now().Add(5*time.Minute)); err != nil {
 		return Options{}, err
 	}
 
-	return buildOptions(user, raw, creds), nil
+	return buildOptions(user, challenge, creds), nil
 }
 
-func buildOptions(user domain.User, challenge string, creds [][]byte) Options {
+func generateChallenge() ([]byte, error) {
+	b := make([]byte, 32)
+	_, err := rand.Read(b)
+	return b, err
+}
+
+func buildOptions(user domain.User, challenge []byte, creds [][]byte) Options {
 	exclude := make([]ExcludeCredential, len(creds))
 
 	for i, c := range creds {
 		exclude[i] = ExcludeCredential{
-			ID:   string(c),
+			ID:   base64.RawURLEncoding.EncodeToString(c),
 			Type: "public-key",
 		}
 	}
@@ -87,11 +95,12 @@ func buildOptions(user domain.User, challenge string, creds [][]byte) Options {
 	return Options{
 		Challenge: challenge,
 		RP: RP{
+			// TODO: change to config
 			Name: "auth-service",
 			ID:   "localhost",
 		},
-		User: User{
-			ID:          user.ID.String(),
+		User: UserEntity{
+			ID:          base64.RawURLEncoding.EncodeToString(user.ID[:]),
 			Name:        user.Email,
 			DisplayName: user.Email,
 		},

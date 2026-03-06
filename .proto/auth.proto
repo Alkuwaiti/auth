@@ -26,6 +26,7 @@ service AuthService {
   rpc CompleteGoogleLogin(CompleteGoogleLoginRequest) returns (TokenPair) {}
   rpc VerifyEmail(VerifyEmailRequest) returns (google.protobuf.Empty) {}
   rpc CreateEmailVerificationToken(CreateEmailVerificationTokenRequest) returns (google.protobuf.Empty) {}
+  rpc StartPasskeyGeneration(google.protobuf.Empty) returns (StartPasskeyGenerationResponse) {}
 }
 
 message LoginRequest {
@@ -147,4 +148,41 @@ message VerifyEmailRequest {
 
 message CreateEmailVerificationTokenRequest {
   string email = 1;
+}
+
+message RP {
+  string id = 1;
+  string name = 2;
+}
+
+message UserEntity {
+  string id = 1;
+  string name = 2;
+  string display_name = 3;
+}
+
+message PubKeyCredParam {
+  string type = 1;
+  int32 alg = 2;
+}
+
+message AuthenticatorSelection {
+  string resident_key = 1;
+  string user_verification = 2;
+}
+
+message ExcludeCredential {
+  string id = 1;
+  string type = 2;
+}
+
+message StartPasskeyGenerationResponse {
+  string challenge = 1;
+  RP rp = 2;
+  UserEntity user = 3;
+  repeated PubKeyCredParam pub_key_cred_params = 4;
+  int64 timeout = 5;
+  string attestation = 6;
+  AuthenticatorSelection authenticator_selection = 7;
+  repeated ExcludeCredential exclude_credentials = 8;
 }

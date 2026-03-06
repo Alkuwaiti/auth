@@ -38,6 +38,7 @@ const (
 	AuthService_CompleteGoogleLogin_FullMethodName          = "/auth.v1.AuthService/CompleteGoogleLogin"
 	AuthService_VerifyEmail_FullMethodName                  = "/auth.v1.AuthService/VerifyEmail"
 	AuthService_CreateEmailVerificationToken_FullMethodName = "/auth.v1.AuthService/CreateEmailVerificationToken"
+	AuthService_StartPasskeyGeneration_FullMethodName       = "/auth.v1.AuthService/StartPasskeyGeneration"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -62,6 +63,7 @@ type AuthServiceClient interface {
 	CompleteGoogleLogin(ctx context.Context, in *CompleteGoogleLoginRequest, opts ...grpc.CallOption) (*TokenPair, error)
 	VerifyEmail(ctx context.Context, in *VerifyEmailRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	CreateEmailVerificationToken(ctx context.Context, in *CreateEmailVerificationTokenRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	StartPasskeyGeneration(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*StartPasskeyGenerationResponse, error)
 }
 
 type authServiceClient struct {
@@ -252,6 +254,16 @@ func (c *authServiceClient) CreateEmailVerificationToken(ctx context.Context, in
 	return out, nil
 }
 
+func (c *authServiceClient) StartPasskeyGeneration(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*StartPasskeyGenerationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StartPasskeyGenerationResponse)
+	err := c.cc.Invoke(ctx, AuthService_StartPasskeyGeneration_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -274,6 +286,7 @@ type AuthServiceServer interface {
 	CompleteGoogleLogin(context.Context, *CompleteGoogleLoginRequest) (*TokenPair, error)
 	VerifyEmail(context.Context, *VerifyEmailRequest) (*emptypb.Empty, error)
 	CreateEmailVerificationToken(context.Context, *CreateEmailVerificationTokenRequest) (*emptypb.Empty, error)
+	StartPasskeyGeneration(context.Context, *emptypb.Empty) (*StartPasskeyGenerationResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -337,6 +350,9 @@ func (UnimplementedAuthServiceServer) VerifyEmail(context.Context, *VerifyEmailR
 }
 func (UnimplementedAuthServiceServer) CreateEmailVerificationToken(context.Context, *CreateEmailVerificationTokenRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateEmailVerificationToken not implemented")
+}
+func (UnimplementedAuthServiceServer) StartPasskeyGeneration(context.Context, *emptypb.Empty) (*StartPasskeyGenerationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method StartPasskeyGeneration not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -683,6 +699,24 @@ func _AuthService_CreateEmailVerificationToken_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_StartPasskeyGeneration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).StartPasskeyGeneration(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_StartPasskeyGeneration_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).StartPasskeyGeneration(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -761,6 +795,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateEmailVerificationToken",
 			Handler:    _AuthService_CreateEmailVerificationToken_Handler,
+		},
+		{
+			MethodName: "StartPasskeyGeneration",
+			Handler:    _AuthService_StartPasskeyGeneration_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
