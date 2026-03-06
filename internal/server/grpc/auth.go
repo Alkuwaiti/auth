@@ -370,7 +370,7 @@ func (s *server) StartPasskeyGeneration(ctx context.Context, req *emptypb.Empty)
 			DisplayName: res.User.DisplayName,
 		},
 		PubKeyCredParams: params,
-		Timeout:          res.Timeout,
+		Timeout:          int32(res.Timeout),
 		Attestation:      res.Attestation,
 		AuthenticatorSelection: &authv1.AuthenticatorSelection{
 			ResidentKey:      res.AuthenticatorSelection.ResidentKey,

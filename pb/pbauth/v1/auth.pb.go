@@ -1553,7 +1553,7 @@ type StartPasskeyGenerationResponse struct {
 	Rp                     *RP                     `protobuf:"bytes,2,opt,name=rp,proto3" json:"rp,omitempty"`
 	User                   *UserEntity             `protobuf:"bytes,3,opt,name=user,proto3" json:"user,omitempty"`
 	PubKeyCredParams       []*PubKeyCredParam      `protobuf:"bytes,4,rep,name=pub_key_cred_params,json=pubKeyCredParams,proto3" json:"pub_key_cred_params,omitempty"`
-	Timeout                int64                   `protobuf:"varint,5,opt,name=timeout,proto3" json:"timeout,omitempty"`
+	Timeout                int32                   `protobuf:"varint,5,opt,name=timeout,proto3" json:"timeout,omitempty"`
 	Attestation            string                  `protobuf:"bytes,6,opt,name=attestation,proto3" json:"attestation,omitempty"`
 	AuthenticatorSelection *AuthenticatorSelection `protobuf:"bytes,7,opt,name=authenticator_selection,json=authenticatorSelection,proto3" json:"authenticator_selection,omitempty"`
 	ExcludeCredentials     []*ExcludeCredential    `protobuf:"bytes,8,rep,name=exclude_credentials,json=excludeCredentials,proto3" json:"exclude_credentials,omitempty"`
@@ -1619,7 +1619,7 @@ func (x *StartPasskeyGenerationResponse) GetPubKeyCredParams() []*PubKeyCredPara
 	return nil
 }
 
-func (x *StartPasskeyGenerationResponse) GetTimeout() int64 {
+func (x *StartPasskeyGenerationResponse) GetTimeout() int32 {
 	if x != nil {
 		return x.Timeout
 	}
@@ -1755,7 +1755,7 @@ const file___proto_auth_proto_rawDesc = "" +
 	"\x02rp\x18\x02 \x01(\v2\v.auth.v1.RPR\x02rp\x12'\n" +
 	"\x04user\x18\x03 \x01(\v2\x13.auth.v1.UserEntityR\x04user\x12G\n" +
 	"\x13pub_key_cred_params\x18\x04 \x03(\v2\x18.auth.v1.PubKeyCredParamR\x10pubKeyCredParams\x12\x18\n" +
-	"\atimeout\x18\x05 \x01(\x03R\atimeout\x12 \n" +
+	"\atimeout\x18\x05 \x01(\x05R\atimeout\x12 \n" +
 	"\vattestation\x18\x06 \x01(\tR\vattestation\x12X\n" +
 	"\x17authenticator_selection\x18\a \x01(\v2\x1f.auth.v1.AuthenticatorSelectionR\x16authenticatorSelection\x12K\n" +
 	"\x13exclude_credentials\x18\b \x03(\v2\x1a.auth.v1.ExcludeCredentialR\x12excludeCredentials2\xec\v\n" +

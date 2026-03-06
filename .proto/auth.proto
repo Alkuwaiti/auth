@@ -181,7 +181,7 @@ message StartPasskeyGenerationResponse {
   RP rp = 2;
   UserEntity user = 3;
   repeated PubKeyCredParam pub_key_cred_params = 4;
-  int64 timeout = 5;
+  int32 timeout = 5;
   string attestation = 6;
   AuthenticatorSelection authenticator_selection = 7;
   repeated ExcludeCredential exclude_credentials = 8;

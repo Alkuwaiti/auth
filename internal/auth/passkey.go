@@ -37,11 +37,11 @@ type AuthenticatorSelection struct {
 }
 
 type Options struct {
-	Challenge              []byte
+	Challenge              string
 	RP                     RP
 	User                   UserEntity
 	PubKeyCredParams       []PubKeyCredParam
-	Timeout                int64
+	Timeout                int
 	Attestation            string
 	AuthenticatorSelection AuthenticatorSelection
 	ExcludeCredentials     []ExcludeCredential
@@ -68,7 +68,6 @@ func (s *Service) StartPasskeyGeneration(ctx context.Context) (Options, error) {
 		return Options{}, err
 	}
 
-	// TODO: change to store hashed.
 	if err = s.Repo.CreateWebAuthnChallenge(ctx, challenge, userID, time.Now().Add(5*time.Minute)); err != nil {
 		return Options{}, err
 	}
@@ -93,7 +92,7 @@ func buildOptions(user domain.User, challenge []byte, creds [][]byte) Options {
 	}
 
 	return Options{
-		Challenge: challenge,
+		Challenge: base64.RawURLEncoding.EncodeToString(challenge),
 		RP: RP{
 			// TODO: change to config
 			Name: "auth-service",
