@@ -7,6 +7,7 @@ import (
 	"time"
 
 	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -75,4 +76,29 @@ func (h *Handler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	})
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *Handler) StartPasskeyGeneration(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+
+	res, err := h.authClient.StartPasskeyGeneration(ctx, &emptypb.Empty{})
+	if err != nil {
+		http.Error(w, "failed to start passkey generation", http.StatusInternalServerError)
+		slog.Error("failed to start passkey generation", "err", err)
+		return
+	}
+
+	out, err := protojson.MarshalOptions{
+		EmitUnpopulated: true,
+	}.Marshal(res)
+	if err != nil {
+		http.Error(w, "failed to marshal response", http.StatusInternalServerError)
+		slog.Error("failed to marshal passkey generation response", "err", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(out)
 }
