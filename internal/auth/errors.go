@@ -24,4 +24,6 @@ var (
 	ErrInvalidResetToken             = errors.New("invalid reset token")
 	ErrInvalidEmailVerificationToken = errors.New("invalid email verification token")
 	ErrUnverifiedGoogleEmail         = errors.New("unverified google email")
+	ErrChallengeMismatch             = errors.New("challenges mismatch")
+	ErrInvalidOrigin                 = errors.New("invalid origin")
 )

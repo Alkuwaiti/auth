@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/auth/domain"
@@ -115,4 +116,68 @@ func buildOptions(user domain.User, challenge []byte, creds [][]byte) Options {
 		},
 		ExcludeCredentials: exclude,
 	}
+}
+
+type PasskeyResponse struct {
+	attestationObject  string
+	authenticatorData  string
+	clientDataJSON     string
+	publicKey          string
+	publicKeyAlgorithm int
+	transports         []string
+}
+
+type VerifyRequest struct {
+	AuthenticatorAttachment string
+	ID                      string
+	RawID                   string
+	Response                PasskeyResponse
+}
+
+func (s *Service) VerifyPasskeyRegistration(ctx context.Context, req VerifyRequest) error {
+	userID, err := contextkeys.UserIDFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	storedChallenge, err := s.Repo.GetWebAuthnChallengeByUserID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	clientData, err := decodeClientData(req.Response.clientDataJSON)
+	if err != nil {
+		return err
+	}
+
+	if clientData.Challenge != string(storedChallenge) {
+		return ErrChallengeMismatch
+	}
+
+	// TODO: change this
+	if clientData.Origin != "http://localhost:5173" {
+		return ErrInvalidOrigin
+	}
+
+}
+
+type ClientData struct {
+	Type        string `json:"type"`
+	Challenge   string `json:"challenge"`
+	Origin      string `json:"origin"`
+	CrossOrigin bool   `json:"crossOrigin"`
+}
+
+func decodeClientData(encoded string) (ClientData, error) {
+	var data ClientData
+	raw, err := base64.RawURLEncoding.DecodeString(encoded)
+	if err != nil {
+		return data, err
+	}
+
+	if err := json.Unmarshal(raw, &data); err != nil {
+		return data, err
+	}
+
+	return data, nil
 }

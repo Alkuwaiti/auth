@@ -312,3 +312,6 @@ SELECT credential_id FROM passkeys WHERE user_id = $1;
 -- name: CreateWebAuthnChallenge :exec
 INSERT INTO webauthn_challenges (challenge, user_id, expires_at)
 VALUES ($1, $2, $3);
+
+-- name: GetWebAuthnChallengeByUserID :one
+SELECT * FROM webauthn_challenges WHERE user_id = $1;

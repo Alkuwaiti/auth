@@ -19,3 +19,12 @@ func (r *Repo) CreateWebAuthnChallenge(ctx context.Context, challenge []byte, us
 		ExpiresAt: expiresAt,
 	})
 }
+
+func (r *Repo) GetWebAuthnChallengeByUserID(ctx context.Context, userID uuid.UUID) ([]byte, error) {
+	challenge, err := r.queries.GetWebAuthnChallengeByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return challenge.Challenge, nil
+}

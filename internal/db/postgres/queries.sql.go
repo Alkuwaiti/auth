@@ -826,6 +826,17 @@ func (q *Queries) GetUserMFAMethodByID(ctx context.Context, arg GetUserMFAMethod
 	return i, err
 }
 
+const getWebAuthnChallengeByUserID = `-- name: GetWebAuthnChallengeByUserID :one
+SELECT challenge, user_id, expires_at FROM webauthn_challenges WHERE user_id = $1
+`
+
+func (q *Queries) GetWebAuthnChallengeByUserID(ctx context.Context, userID uuid.UUID) (WebauthnChallenge, error) {
+	row := q.db.QueryRowContext(ctx, getWebAuthnChallengeByUserID, userID)
+	var i WebauthnChallenge
+	err := row.Scan(&i.Challenge, &i.UserID, &i.ExpiresAt)
+	return i, err
+}
+
 const incrementChallengeAttempts = `-- name: IncrementChallengeAttempts :exec
 UPDATE mfa_challenges
 SET attempts = attempts + 1

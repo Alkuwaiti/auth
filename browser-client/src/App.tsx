@@ -2,7 +2,7 @@ export default function App() {
 
   async function registerPasskey() {
 
-    const res = await fetch("http://localhost:8080/auth/passkey/register/options?bearer=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InFhc2ltbUBnbWFpbC5jb20iLCJyb2xlcyI6WyJ1c2VyIl0sInR5cGUiOiJhY2Nlc3MiLCJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiIwMTljYzQxOS04NTQyLTdlZDQtYTJjMS02ODFlZDUyY2M5MDAiLCJhdWQiOlsiYXV0aC1zZXJ2aWNlIl0sImV4cCI6MTc3MjgyMjY0NSwiaWF0IjoxNzcyODIxNzQ1fQ.1KiuthnDYJuj3d-C7cEEr7z0s4sgV5ayJHCpom4suNo", {
+    const res = await fetch("http://localhost:8080/auth/passkey/register/options?bearer=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InFhc2ltbUBnbWFpbC5jb20iLCJyb2xlcyI6WyJ1c2VyIl0sInR5cGUiOiJhY2Nlc3MiLCJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiIwMTljYzg5NS1hZmM3LTcxNzMtYTRkMC1lNjYyZjY4NjNhNzUiLCJhdWQiOlsiYXV0aC1zZXJ2aWNlIl0sImV4cCI6MTc3Mjg5MjY4MiwiaWF0IjoxNzcyODkxNzgyfQ.7G03PL4wbufzRms6vhtKCKtn7g-UR9ZUxovATqoIOw4", {
       method: "POST",
       credentials: "include"
     });

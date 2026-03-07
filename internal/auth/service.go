@@ -80,6 +80,7 @@ type Repo interface {
 	CreateOutboxEvent(ctx context.Context, outboxEvent domain.OutboxEvent) error
 	ListPasskeysByUserID(ctx context.Context, userID uuid.UUID) ([][]byte, error)
 	CreateWebAuthnChallenge(ctx context.Context, challenge []byte, userID uuid.UUID, expiresAt time.Time) error
+	GetWebAuthnChallengeByUserID(ctx context.Context, userID uuid.UUID) ([]byte, error)
 }
 
 type auditor interface {
