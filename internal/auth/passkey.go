@@ -4,11 +4,13 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/json"
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/pkg/contextkeys"
+	"github.com/fxamacker/cbor/v2"
 )
 
 type RP struct {
@@ -119,12 +121,12 @@ func buildOptions(user domain.User, challenge []byte, creds [][]byte) Options {
 }
 
 type PasskeyResponse struct {
-	attestationObject  string
-	authenticatorData  string
-	clientDataJSON     string
-	publicKey          string
-	publicKeyAlgorithm int
-	transports         []string
+	AttestationObject  string
+	AuthenticatorData  string
+	ClientDataJSON     string
+	PublicKey          string
+	PublicKeyAlgorithm int
+	Transports         []string
 }
 
 type VerifyRequest struct {
@@ -145,7 +147,7 @@ func (s *Service) VerifyPasskeyRegistration(ctx context.Context, req VerifyReque
 		return err
 	}
 
-	clientData, err := decodeClientData(req.Response.clientDataJSON)
+	clientData, err := decodeClientData(req.Response.ClientDataJSON)
 	if err != nil {
 		return err
 	}
@@ -157,6 +159,20 @@ func (s *Service) VerifyPasskeyRegistration(ctx context.Context, req VerifyReque
 	// TODO: change this
 	if clientData.Origin != "http://localhost:5173" {
 		return ErrInvalidOrigin
+	}
+
+	if clientData.Type != "webauthn.create" {
+		return ErrInvalidClientData
+	}
+
+	att, err := decodeAttestation(req.Response.AttestationObject)
+	if err != nil {
+		return err
+	}
+
+	parsed, err := parseAuthData(att.AuthData)
+	if err != nil {
+		return err
 	}
 
 }
@@ -176,8 +192,67 @@ func decodeClientData(encoded string) (ClientData, error) {
 	}
 
 	if err := json.Unmarshal(raw, &data); err != nil {
-		return data, err
+		return ClientData{}, err
 	}
 
 	return data, nil
+}
+
+type AttestationObject struct {
+	Format       string                 `cbor:"fmt"`
+	AuthData     []byte                 `cbor:"authData"`
+	AttStatement map[string]interface{} `cbor:"attStmt"`
+}
+
+func decodeAttestation(encoded string) (*AttestationObject, error) {
+
+	raw, err := base64.RawURLEncoding.DecodeString(encoded)
+	if err != nil {
+		return nil, err
+	}
+
+	var att AttestationObject
+	if err := cbor.Unmarshal(raw, &att); err != nil {
+		return nil, err
+	}
+
+	return &att, nil
+}
+
+type ParsedAuthData struct {
+	CredentialID []byte
+	PublicKey    []byte
+	SignCount    uint32
+}
+
+func parseAuthData(data []byte) (*ParsedAuthData, error) {
+
+	offset := 32 // skip rpIdHash
+
+	flags := data[offset]
+	offset++
+
+	signCount := binary.BigEndian.Uint32(data[offset : offset+4])
+	offset += 4
+
+	// check attested credential flag
+	if flags&0x40 == 0 {
+		return nil, ErrNoAttestedData
+	}
+
+	offset += 16 // skip AAGUID
+
+	credIDLen := binary.BigEndian.Uint16(data[offset : offset+2])
+	offset += 2
+
+	credentialID := data[offset : offset+int(credIDLen)]
+	offset += int(credIDLen)
+
+	publicKey := data[offset:]
+
+	return &ParsedAuthData{
+		CredentialID: credentialID,
+		PublicKey:    publicKey,
+		SignCount:    signCount,
+	}, nil
 }

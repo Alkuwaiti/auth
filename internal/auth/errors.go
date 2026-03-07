@@ -26,4 +26,6 @@ var (
 	ErrUnverifiedGoogleEmail         = errors.New("unverified google email")
 	ErrChallengeMismatch             = errors.New("challenges mismatch")
 	ErrInvalidOrigin                 = errors.New("invalid origin")
+	ErrInvalidClientData             = errors.New("invalid client data")
+	ErrNoAttestedData                = errors.New("no attested credential data")
 )
