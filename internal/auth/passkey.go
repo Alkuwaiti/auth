@@ -175,6 +175,21 @@ func (s *Service) VerifyPasskeyRegistration(ctx context.Context, req VerifyReque
 		return err
 	}
 
+	credentialID := parsed.CredentialID
+	publicKey := parsed.PublicKey
+	signCount := parsed.SignCount
+
+	if err = s.Repo.WithTx(ctx, func(r Repo) error {
+		if err = s.Repo.CreatePasskey(ctx, userID, credentialID, publicKey, int64(signCount)); err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type ClientData struct {
@@ -199,9 +214,9 @@ func decodeClientData(encoded string) (ClientData, error) {
 }
 
 type AttestationObject struct {
-	Format       string                 `cbor:"fmt"`
-	AuthData     []byte                 `cbor:"authData"`
-	AttStatement map[string]interface{} `cbor:"attStmt"`
+	Format       string         `cbor:"fmt"`
+	AuthData     []byte         `cbor:"authData"`
+	AttStatement map[string]any `cbor:"attStmt"`
 }
 
 func decodeAttestation(encoded string) (*AttestationObject, error) {

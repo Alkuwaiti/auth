@@ -229,6 +229,28 @@ func (q *Queries) CreateOutboxEvent(ctx context.Context, arg CreateOutboxEventPa
 	return err
 }
 
+const createPasskey = `-- name: CreatePasskey :exec
+INSERT INTO passkeys (user_id, credential_id, public_key, sign_count, created_at)
+VALUES ($1, $2, $3, $4, NOW())
+`
+
+type CreatePasskeyParams struct {
+	UserID       uuid.UUID
+	CredentialID []byte
+	PublicKey    []byte
+	SignCount    int64
+}
+
+func (q *Queries) CreatePasskey(ctx context.Context, arg CreatePasskeyParams) error {
+	_, err := q.db.ExecContext(ctx, createPasskey,
+		arg.UserID,
+		arg.CredentialID,
+		arg.PublicKey,
+		arg.SignCount,
+	)
+	return err
+}
+
 const createPasswordResetToken = `-- name: CreatePasswordResetToken :exec
 INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
 VALUES ($1, $2, $3)
