@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/google/uuid"
 )
@@ -20,13 +21,17 @@ func (r *Repo) CreateWebAuthnChallenge(ctx context.Context, challenge []byte, us
 	})
 }
 
-func (r *Repo) GetWebAuthnChallengeByUserID(ctx context.Context, userID uuid.UUID) ([]byte, error) {
+func (r *Repo) GetWebAuthnChallengeByUserID(ctx context.Context, userID uuid.UUID) (domain.WebAuthnChallenge, error) {
 	challenge, err := r.queries.GetWebAuthnChallengeByUserID(ctx, userID)
 	if err != nil {
-		return nil, err
+		return domain.WebAuthnChallenge{}, err
 	}
 
-	return challenge.Challenge, nil
+	return domain.WebAuthnChallenge{
+		Challenge: challenge.Challenge,
+		UserID:    challenge.UserID,
+		ExpiresAt: challenge.ExpiresAt,
+	}, nil
 }
 
 func (r *Repo) CreatePasskey(ctx context.Context, userID uuid.UUID, credentialID []byte, publicKey []byte, signCount int64) error {

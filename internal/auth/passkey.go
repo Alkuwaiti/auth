@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
@@ -143,9 +144,17 @@ func (s *Service) VerifyPasskeyRegistration(ctx context.Context, req VerifyReque
 		return err
 	}
 
+	if req.ID != req.RawID {
+		return ErrCredentialIDMismatch
+	}
+
 	storedChallenge, err := s.Repo.GetWebAuthnChallengeByUserID(ctx, userID)
 	if err != nil {
 		return err
+	}
+
+	if storedChallenge.ExpiresAt.Before(time.Now()) {
+		return ErrChallengeExpired
 	}
 
 	clientData, err := decodeClientData(req.Response.ClientDataJSON)
@@ -158,7 +167,7 @@ func (s *Service) VerifyPasskeyRegistration(ctx context.Context, req VerifyReque
 		return err
 	}
 
-	if !bytes.Equal(challengeBytes, storedChallenge) {
+	if !bytes.Equal(challengeBytes, storedChallenge.Challenge) {
 		return ErrChallengeMismatch
 	}
 
@@ -182,13 +191,17 @@ func (s *Service) VerifyPasskeyRegistration(ctx context.Context, req VerifyReque
 	}
 
 	credentialID := parsed.CredentialID
+	publicKey := parsed.PublicKey
+	signCount := parsed.SignCount
+
 	credID, err := base64.RawURLEncoding.DecodeString(req.RawID)
 	if err != nil {
 		return err
 	}
 
-	publicKey := parsed.PublicKey
-	signCount := parsed.SignCount
+	if !bytes.Equal(credID, credentialID) {
+		return ErrCredentialIDMismatch
+	}
 
 	if err = s.Repo.WithTx(ctx, func(r Repo) error {
 		if err = r.CreatePasskey(ctx, userID, credentialID, publicKey, int64(signCount)); err != nil {
@@ -221,6 +234,10 @@ func decodeClientData(encoded string) (ClientData, error) {
 		return data, err
 	}
 
+	if len(raw) > 2048 {
+		return ClientData{}, ErrInvalidClientData
+	}
+
 	if err := json.Unmarshal(raw, &data); err != nil {
 		return ClientData{}, err
 	}
@@ -235,7 +252,6 @@ type AttestationObject struct {
 }
 
 func decodeAttestation(encoded string) (*AttestationObject, error) {
-
 	raw, err := base64.RawURLEncoding.DecodeString(encoded)
 	if err != nil {
 		return nil, err
@@ -255,8 +271,15 @@ type ParsedAuthData struct {
 	SignCount    uint32
 }
 
-func parseAuthData(data []byte) (*ParsedAuthData, error) {
+// 32  rpIdHash
+// 1   flags
+// 4   signCount
+// 16  AAGUID
+// 2   credID length
+// N   credID
+// N   publicKey
 
+func parseAuthData(data []byte) (*ParsedAuthData, error) {
 	offset := 32 // skip rpIdHash
 
 	flags := data[offset]
@@ -268,6 +291,12 @@ func parseAuthData(data []byte) (*ParsedAuthData, error) {
 	// check attested credential flag
 	if flags&0x40 == 0 {
 		return nil, ErrNoAttestedData
+	}
+
+	expected := sha256.Sum256([]byte("localhost"))
+
+	if !bytes.Equal(data[:32], expected[:]) {
+		return nil, ErrInvalidRPID
 	}
 
 	offset += 16 // skip AAGUID

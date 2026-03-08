@@ -28,4 +28,6 @@ var (
 	ErrInvalidOrigin                 = errors.New("invalid origin")
 	ErrInvalidClientData             = errors.New("invalid client data")
 	ErrNoAttestedData                = errors.New("no attested credential data")
+	ErrCredentialIDMismatch          = errors.New("credential id mismtach")
+	ErrInvalidRPID                   = errors.New("invalid RP ID")
 )
