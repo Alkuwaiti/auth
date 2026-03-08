@@ -28,9 +28,9 @@ type Config struct {
 	MaxChallengeAttempts int
 }
 
-func NewService(repoI Repo, passwords passwords, auditor auditor, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, googleProvider googleProvider, Config Config) *Service {
+func NewService(repo Repo, passwords passwords, auditor auditor, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, googleProvider googleProvider, Config Config) *Service {
 	return &Service{
-		Repo:           repoI,
+		Repo:           repo,
 		Passwords:      passwords,
 		auditor:        auditor,
 		Flags:          flags,
