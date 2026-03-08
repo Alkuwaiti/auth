@@ -230,8 +230,8 @@ func (q *Queries) CreateOutboxEvent(ctx context.Context, arg CreateOutboxEventPa
 }
 
 const createPasskey = `-- name: CreatePasskey :exec
-INSERT INTO passkeys (user_id, credential_id, public_key, sign_count, created_at)
-VALUES ($1, $2, $3, $4, NOW())
+INSERT INTO passkeys (user_id, credential_id, public_key, sign_count, transports, created_at)
+VALUES ($1, $2, $3, $4, $5, NOW())
 `
 
 type CreatePasskeyParams struct {
@@ -239,6 +239,7 @@ type CreatePasskeyParams struct {
 	CredentialID []byte
 	PublicKey    []byte
 	SignCount    int64
+	Transports   []string
 }
 
 func (q *Queries) CreatePasskey(ctx context.Context, arg CreatePasskeyParams) error {
@@ -247,6 +248,7 @@ func (q *Queries) CreatePasskey(ctx context.Context, arg CreatePasskeyParams) er
 		arg.CredentialID,
 		arg.PublicKey,
 		arg.SignCount,
+		pq.Array(arg.Transports),
 	)
 	return err
 }

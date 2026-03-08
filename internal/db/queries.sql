@@ -317,8 +317,8 @@ VALUES ($1, $2, $3);
 SELECT * FROM webauthn_challenges WHERE user_id = $1;
 
 -- name: CreatePasskey :exec
-INSERT INTO passkeys (user_id, credential_id, public_key, sign_count, created_at)
-VALUES ($1, $2, $3, $4, NOW());
+INSERT INTO passkeys (user_id, credential_id, public_key, sign_count, transports, created_at)
+VALUES ($1, $2, $3, $4, $5, NOW());
 
 -- name: DeleteWebAuthnChallenge :exec
 DELETE FROM webauthn_challenges

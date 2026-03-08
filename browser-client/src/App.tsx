@@ -1,8 +1,9 @@
 export default function App() {
 
   async function registerPasskey() {
+    const bearer = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InFhc2ltbUBnbWFpbC5jb20iLCJyb2xlcyI6WyJ1c2VyIl0sInR5cGUiOiJhY2Nlc3MiLCJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiIwMTljYzg5NS1hZmM3LTcxNzMtYTRkMC1lNjYyZjY4NjNhNzUiLCJhdWQiOlsiYXV0aC1zZXJ2aWNlIl0sImV4cCI6MTc3MzAwNDM4NywiaWF0IjoxNzczMDAzNDg3fQ.NPlI7KIRYIU2chUQ2QI462TJGk9SJBIU5sXQJYs5QHM"
 
-    const res = await fetch("http://localhost:8080/auth/passkey/register/options?bearer=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InFhc2ltbUBnbWFpbC5jb20iLCJyb2xlcyI6WyJ1c2VyIl0sInR5cGUiOiJhY2Nlc3MiLCJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiIwMTljYzg5NS1hZmM3LTcxNzMtYTRkMC1lNjYyZjY4NjNhNzUiLCJhdWQiOlsiYXV0aC1zZXJ2aWNlIl0sImV4cCI6MTc3Mjg5MjY4MiwiaWF0IjoxNzcyODkxNzgyfQ.7G03PL4wbufzRms6vhtKCKtn7g-UR9ZUxovATqoIOw4", {
+    const res = await fetch(`http://localhost:8080/auth/passkey/register/options?bearer=${bearer}`, {
       method: "POST",
       credentials: "include"
     });
@@ -19,7 +20,7 @@ export default function App() {
 
     console.log("credential", credential);
 
-    await fetch("http://localhost:8080/auth/passkey/register/verify", {
+    await fetch(`http://localhost:8080/auth/passkey/register/verify?bearer=${bearer}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(credential)

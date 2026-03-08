@@ -34,11 +34,13 @@ func (r *Repo) GetWebAuthnChallengeByUserID(ctx context.Context, userID uuid.UUI
 	}, nil
 }
 
-func (r *Repo) CreatePasskey(ctx context.Context, userID uuid.UUID, credentialID []byte, publicKey []byte, signCount int64) error {
+func (r *Repo) CreatePasskey(ctx context.Context, userID uuid.UUID, credentialID []byte, publicKey []byte, signCount int64, transports []string) error {
 	return r.queries.CreatePasskey(ctx, postgres.CreatePasskeyParams{
 		UserID:       userID,
 		CredentialID: credentialID,
 		SignCount:    signCount,
+		PublicKey:    publicKey,
+		Transports:   transports,
 	})
 }
 

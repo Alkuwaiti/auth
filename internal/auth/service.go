@@ -81,7 +81,7 @@ type Repo interface {
 	ListPasskeysByUserID(ctx context.Context, userID uuid.UUID) ([][]byte, error)
 	CreateWebAuthnChallenge(ctx context.Context, challenge []byte, userID uuid.UUID, expiresAt time.Time) error
 	GetWebAuthnChallengeByUserID(ctx context.Context, userID uuid.UUID) (domain.WebAuthnChallenge, error)
-	CreatePasskey(ctx context.Context, userID uuid.UUID, credentialID []byte, publicKey []byte, signCount int64) error
+	CreatePasskey(ctx context.Context, userID uuid.UUID, credentialID []byte, publicKey []byte, signCount int64, transports []string) error
 	DeleteWebAuthnChallenge(ctx context.Context, userID uuid.UUID) error
 }
 

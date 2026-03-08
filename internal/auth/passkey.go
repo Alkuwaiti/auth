@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
+	"log/slog"
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/auth/domain"
@@ -60,20 +61,24 @@ func (s *Service) StartPasskeyGeneration(ctx context.Context) (Options, error) {
 
 	user, err := s.Repo.GetUserByID(ctx, userID)
 	if err != nil {
+		slog.ErrorContext(ctx, "failed to get user by id", "err", err)
 		return Options{}, err
 	}
 
 	challenge, err := generateChallenge()
 	if err != nil {
+		slog.ErrorContext(ctx, "failed to generate challenge", "err", err)
 		return Options{}, err
 	}
 
 	creds, err := s.Repo.ListPasskeysByUserID(ctx, userID)
 	if err != nil {
+		slog.ErrorContext(ctx, "failed to list passkeys by user id", "err", err)
 		return Options{}, err
 	}
 
 	if err = s.Repo.CreateWebAuthnChallenge(ctx, challenge, userID, time.Now().Add(5*time.Minute)); err != nil {
+		slog.ErrorContext(ctx, "failed to create web authn challenge", "err", err)
 		return Options{}, err
 	}
 
@@ -150,6 +155,7 @@ func (s *Service) VerifyPasskeyRegistration(ctx context.Context, req VerifyReque
 
 	storedChallenge, err := s.Repo.GetWebAuthnChallengeByUserID(ctx, userID)
 	if err != nil {
+		slog.ErrorContext(ctx, "failed to get web authn challenge by user id", "err", err)
 		return err
 	}
 
@@ -204,7 +210,7 @@ func (s *Service) VerifyPasskeyRegistration(ctx context.Context, req VerifyReque
 	}
 
 	if err = s.Repo.WithTx(ctx, func(r Repo) error {
-		if err = r.CreatePasskey(ctx, userID, credentialID, publicKey, int64(signCount)); err != nil {
+		if err = r.CreatePasskey(ctx, userID, credentialID, publicKey, int64(signCount), req.Response.Transports); err != nil {
 			return err
 		}
 
