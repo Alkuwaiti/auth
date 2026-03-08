@@ -132,9 +132,9 @@ type PasskeyResponse struct {
 }
 
 type VerifyRequest struct {
-	AuthenticatorAttachment string
 	ID                      string
 	RawID                   string
+	AuthenticatorAttachment string
 	Response                PasskeyResponse
 }
 

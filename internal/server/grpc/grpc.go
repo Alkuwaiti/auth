@@ -43,6 +43,7 @@ type service interface {
 	VerifyEmail(ctx context.Context, rawToken string) error
 	CreateEmailVerificationToken(ctx context.Context, email string) error
 	StartPasskeyGeneration(ctx context.Context) (auth.Options, error)
+	VerifyPasskeyRegistration(ctx context.Context, req auth.VerifyRequest) error
 }
 
 type Config struct {

@@ -114,3 +114,39 @@ func (h *Handler) StartPasskeyGeneration(w http.ResponseWriter, r *http.Request)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(out))
 }
+
+func (h *Handler) VerifyPasskeyRegistration(w http.ResponseWriter, r *http.Request) {
+	bearer := r.URL.Query().Get("bearer")
+
+	ctx := context.Background()
+
+	md := metadata.New(map[string]string{
+		"authorization":       "Bearer " + bearer,
+		"x-forwarded-for":     "203.0.113.10",
+		"x-client-user-agent": "auth-cli/1.0",
+		"request-id":          "req-123456",
+		"x-client-ip":         "2.2.2.2",
+		"X-Step-Up-Token":     "",
+	})
+
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
+	res, err := h.authClient.StartPasskeyGeneration(ctx, &emptypb.Empty{})
+	if err != nil {
+		http.Error(w, "failed to start passkey generation", http.StatusInternalServerError)
+		slog.Error("failed to start passkey generation", "err", err)
+		return
+	}
+
+	out, err := protojson.MarshalOptions{
+		EmitUnpopulated: true,
+	}.Marshal(res)
+	if err != nil {
+		http.Error(w, "failed to marshal response", http.StatusInternalServerError)
+		slog.ErrorContext(ctx, "failed to marshal passkey generation response", "err", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(out))
+}

@@ -378,5 +378,29 @@ func (s *server) StartPasskeyGeneration(ctx context.Context, req *emptypb.Empty)
 		},
 		ExcludeCredentials: credentials,
 	}, nil
+}
 
+func (s *server) VerifyPasskeyRegistration(ctx context.Context, req *authv1.VerifyPasskeyRegistrationRequest) (*emptypb.Empty, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	if err := s.service.VerifyPasskeyRegistration(ctx, auth.VerifyRequest{
+		ID:                      req.Id,
+		RawID:                   req.RawId,
+		AuthenticatorAttachment: req.AuthenticatorAttachment,
+		Response: auth.PasskeyResponse{
+			AttestationObject:  req.Response.AttestationObject,
+			AuthenticatorData:  req.Response.AuthenticatorData,
+			ClientDataJSON:     req.Response.ClientDataJson,
+			PublicKey:          req.Response.PublicKey,
+			PublicKeyAlgorithm: int(req.Response.PublicKeyAlgorithm),
+			Transports:         req.Response.Transports,
+		},
+	}); err != nil {
+		return nil, MapError(err)
+	}
+
+	return &emptypb.Empty{}, nil
 }
