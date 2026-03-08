@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/base64"
@@ -152,7 +153,12 @@ func (s *Service) VerifyPasskeyRegistration(ctx context.Context, req VerifyReque
 		return err
 	}
 
-	if clientData.Challenge != string(storedChallenge) {
+	challengeBytes, err := base64.RawURLEncoding.DecodeString(clientData.Challenge)
+	if err != nil {
+		return err
+	}
+
+	if !bytes.Equal(challengeBytes, storedChallenge) {
 		return ErrChallengeMismatch
 	}
 
@@ -176,15 +182,20 @@ func (s *Service) VerifyPasskeyRegistration(ctx context.Context, req VerifyReque
 	}
 
 	credentialID := parsed.CredentialID
+	credID, err := base64.RawURLEncoding.DecodeString(req.RawID)
+	if err != nil {
+		return err
+	}
+
 	publicKey := parsed.PublicKey
 	signCount := parsed.SignCount
 
 	if err = s.Repo.WithTx(ctx, func(r Repo) error {
-		if err = s.Repo.CreatePasskey(ctx, userID, credentialID, publicKey, int64(signCount)); err != nil {
+		if err = r.CreatePasskey(ctx, userID, credentialID, publicKey, int64(signCount)); err != nil {
 			return err
 		}
 
-		if err = s.Repo.DeleteWebAuthnChallenge(ctx, userID); err != nil {
+		if err = r.DeleteWebAuthnChallenge(ctx, userID); err != nil {
 			return err
 		}
 
