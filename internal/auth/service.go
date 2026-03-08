@@ -82,6 +82,7 @@ type Repo interface {
 	CreateWebAuthnChallenge(ctx context.Context, challenge []byte, userID uuid.UUID, expiresAt time.Time) error
 	GetWebAuthnChallengeByUserID(ctx context.Context, userID uuid.UUID) ([]byte, error)
 	CreatePasskey(ctx context.Context, userID uuid.UUID, credentialID []byte, publicKey []byte, signCount int64) error
+	DeleteWebAuthnChallenge(ctx context.Context, userID uuid.UUID) error
 }
 
 type auditor interface {

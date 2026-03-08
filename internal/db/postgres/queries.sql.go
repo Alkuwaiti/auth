@@ -451,6 +451,16 @@ func (q *Queries) DeleteUserBackupCodes(ctx context.Context, userID uuid.UUID) e
 	return err
 }
 
+const deleteWebAuthnChallenge = `-- name: DeleteWebAuthnChallenge :exec
+DELETE FROM webauthn_challenges
+WHERE user_id = $1
+`
+
+func (q *Queries) DeleteWebAuthnChallenge(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteWebAuthnChallenge, userID)
+	return err
+}
+
 const getActiveTOTPChallengeForUpdate = `-- name: GetActiveTOTPChallengeForUpdate :one
 SELECT
   c.id            AS challenge_id,

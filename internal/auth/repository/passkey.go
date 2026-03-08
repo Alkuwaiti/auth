@@ -36,3 +36,7 @@ func (r *Repo) CreatePasskey(ctx context.Context, userID uuid.UUID, credentialID
 		SignCount:    signCount,
 	})
 }
+
+func (r *Repo) DeleteWebAuthnChallenge(ctx context.Context, userID uuid.UUID) error {
+	return r.queries.DeleteWebAuthnChallenge(ctx, userID)
+}

@@ -184,6 +184,10 @@ func (s *Service) VerifyPasskeyRegistration(ctx context.Context, req VerifyReque
 			return err
 		}
 
+		if err = s.Repo.DeleteWebAuthnChallenge(ctx, userID); err != nil {
+			return err
+		}
+
 		return nil
 	}); err != nil {
 		return err
