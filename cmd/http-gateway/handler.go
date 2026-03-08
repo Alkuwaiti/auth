@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"time"
@@ -126,15 +127,47 @@ func (h *Handler) VerifyPasskeyRegistration(w http.ResponseWriter, r *http.Reque
 		"x-client-user-agent": "auth-cli/1.0",
 		"request-id":          "req-123456",
 		"x-client-ip":         "2.2.2.2",
-		"X-Step-Up-Token":     "",
+		"x-step-up-token":     "",
 	})
 
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	res, err := h.authClient.StartPasskeyGeneration(ctx, &emptypb.Empty{})
+	var req struct {
+		ID                      string `json:"id"`
+		RawID                   string `json:"rawId"`
+		AuthenticatorAttachment string `json:"authenticatorAttachment"`
+		Response                struct {
+			AttestationObject  string   `json:"attestationObject"`
+			AuthenticatorData  string   `json:"authenticatorData"`
+			ClientDataJSON     string   `json:"clientDataJSON"`
+			PublicKey          string   `json:"publicKey"`
+			PublicKeyAlgorithm int32    `json:"publicKeyAlgorithm"`
+			Transports         []string `json:"transports"`
+		} `json:"response"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		slog.ErrorContext(ctx, "failed to decode passkey registration body", "err", err)
+		return
+	}
+
+	res, err := h.authClient.VerifyPasskeyRegistration(ctx, &authv1.VerifyPasskeyRegistrationRequest{
+		Id:                      req.ID,
+		RawId:                   req.RawID,
+		AuthenticatorAttachment: req.AuthenticatorAttachment,
+		Response: &authv1.PasskeyResponse{
+			AttestationObject:  req.Response.AttestationObject,
+			AuthenticatorData:  req.Response.AuthenticatorData,
+			ClientDataJson:     req.Response.ClientDataJSON,
+			PublicKey:          req.Response.PublicKey,
+			PublicKeyAlgorithm: req.Response.PublicKeyAlgorithm,
+			Transports:         req.Response.Transports,
+		},
+	})
 	if err != nil {
-		http.Error(w, "failed to start passkey generation", http.StatusInternalServerError)
-		slog.Error("failed to start passkey generation", "err", err)
+		http.Error(w, "failed to verify passkey registration", http.StatusInternalServerError)
+		slog.Error("failed to verify passkey registration", "err", err)
 		return
 	}
 
@@ -143,10 +176,10 @@ func (h *Handler) VerifyPasskeyRegistration(w http.ResponseWriter, r *http.Reque
 	}.Marshal(res)
 	if err != nil {
 		http.Error(w, "failed to marshal response", http.StatusInternalServerError)
-		slog.ErrorContext(ctx, "failed to marshal passkey generation response", "err", err)
+		slog.ErrorContext(ctx, "failed to marshal passkey verification response", "err", err)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(out))
+	w.Write(out)
 }
