@@ -323,3 +323,6 @@ VALUES ($1, $2, $3, $4, $5, NOW());
 -- name: DeleteWebAuthnChallenge :exec
 DELETE FROM webauthn_challenges
 WHERE user_id = $1;
+
+-- name: GetPasskeyByCredentialID :one
+SELECT * FROM passkeys WHERE credential_id = $1;

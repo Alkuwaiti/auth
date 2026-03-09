@@ -602,6 +602,27 @@ func (q *Queries) GetMFAMethodsConfirmedByUser(ctx context.Context, userID uuid.
 	return items, nil
 }
 
+const getPasskeyByCredentialID = `-- name: GetPasskeyByCredentialID :one
+SELECT id, user_id, credential_id, public_key, sign_count, transports, name, created_at, last_used_at FROM passkeys WHERE credential_id = $1
+`
+
+func (q *Queries) GetPasskeyByCredentialID(ctx context.Context, credentialID []byte) (Passkey, error) {
+	row := q.db.QueryRowContext(ctx, getPasskeyByCredentialID, credentialID)
+	var i Passkey
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.CredentialID,
+		&i.PublicKey,
+		&i.SignCount,
+		pq.Array(&i.Transports),
+		&i.Name,
+		&i.CreatedAt,
+		&i.LastUsedAt,
+	)
+	return i, err
+}
+
 const getRoleIDByName = `-- name: GetRoleIDByName :one
 
 SELECT id

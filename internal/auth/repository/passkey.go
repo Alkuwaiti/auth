@@ -48,3 +48,17 @@ func (r *Repo) CreatePasskey(ctx context.Context, userID uuid.UUID, credentialID
 		Transports:   transports,
 	})
 }
+
+func (r *Repo) GetPasskeyByCredentialID(ctx context.Context, credentialID []byte) (domain.Passkey, error) {
+	passkey, err := r.queries.GetPasskeyByCredentialID(ctx, credentialID)
+	if err != nil {
+		return domain.Passkey{}, err
+	}
+
+	return domain.Passkey{
+		ID:        passkey.ID,
+		PublicKey: passkey.PublicKey,
+		UserID:    passkey.UserID,
+		SignCount: passkey.SignCount,
+	}, nil
+}

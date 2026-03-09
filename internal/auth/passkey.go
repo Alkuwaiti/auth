@@ -3,14 +3,19 @@ package auth
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"log/slog"
+	"math/big"
 	"time"
 
+	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/pkg/contextkeys"
 	"github.com/fxamacker/cbor/v2"
@@ -336,4 +341,96 @@ func (s *Service) StartPasskeyAuthentication(ctx context.Context) (AssertionOpti
 		RpID:             "localhost",
 		UserVerification: "preferred",
 	}, nil
+}
+
+type AssertionResponse struct {
+	ID    string `json:"id"`
+	RawID string `json:"rawId"`
+	Type  string `json:"type"`
+
+	Response struct {
+		AuthenticatorData []byte `json:"authenticatorData"`
+		ClientDataJSON    []byte `json:"clientDataJSON"`
+		Signature         []byte `json:"signature"`
+		UserHandle        []byte `json:"userHandle"`
+	} `json:"response"`
+}
+
+func (s *Service) VerifyPasskeyAuthentication(ctx context.Context, resp AssertionResponse) (TokenPair, error) {
+	passkey, err := s.Repo.GetPasskeyByCredentialID(ctx, []byte(resp.ID))
+	if err != nil {
+		return TokenPair{}, ErrCredentialNotFound
+	}
+
+	err = verifyAssertion(resp, passkey.PublicKey)
+	if err != nil {
+		return TokenPair{}, err
+	}
+
+	signCount, err := parseSignCount(resp.Response.AuthenticatorData)
+	if err != nil {
+		return TokenPair{}, err
+	}
+
+	if signCount <= uint32(passkey.SignCount) {
+		return TokenPair{}, ErrSignCountTooLow
+	}
+
+	err = s.Repo.UpdatePasskeySignCount(ctx, passkey.ID, int64(signCount))
+	if err != nil {
+		return TokenPair{}, err
+	}
+
+	user, err := s.Repo.GetUserByID(ctx, passkey.UserID)
+	if err != nil {
+		return TokenPair{}, err
+	}
+
+	return s.finalizeLogin(ctx, user, audit.ActionPasskeyLogin, false)
+}
+
+func parseSignCount(authData []byte) (uint32, error) {
+	if len(authData) < 37 {
+		// TODO: change to err
+		return 0, fmt.Errorf("authenticatorData too short")
+	}
+	return binary.BigEndian.Uint32(authData[33:37]), nil
+}
+
+func verifyAssertion(resp AssertionResponse, publicKey []byte) error {
+	clientDataHash := sha256.Sum256(resp.Response.ClientDataJSON)
+
+	signedData := append(resp.Response.AuthenticatorData, clientDataHash[:]...)
+
+	pub, err := parseCOSEPublicKey(publicKey)
+	if err != nil {
+		return err
+	}
+
+	if !ecdsa.VerifyASN1(pub, signedData, resp.Response.Signature) {
+		return ErrInvalidSignature
+	}
+
+	return nil
+}
+
+func parseCOSEPublicKey(coseKey []byte) (*ecdsa.PublicKey, error) {
+	var keyMap map[int]any
+	if err := cbor.Unmarshal(coseKey, &keyMap); err != nil {
+		return nil, err
+	}
+
+	xBytes := keyMap[-2].([]byte) // COSE standard: -2 = x
+	yBytes := keyMap[-3].([]byte) // -3 = y
+
+	x := new(big.Int).SetBytes(xBytes)
+	y := new(big.Int).SetBytes(yBytes)
+
+	pub := &ecdsa.PublicKey{
+		Curve: elliptic.P256(),
+		X:     x,
+		Y:     y,
+	}
+
+	return pub, nil
 }

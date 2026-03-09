@@ -30,4 +30,6 @@ var (
 	ErrNoAttestedData                = errors.New("no attested credential data")
 	ErrCredentialIDMismatch          = errors.New("credential id mismtach")
 	ErrInvalidRPID                   = errors.New("invalid RP ID")
+	ErrCredentialNotFound            = errors.New("credential not found")
+	ErrInvalidSignature              = errors.New("invalid signature")
 )

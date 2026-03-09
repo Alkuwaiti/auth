@@ -6,6 +6,8 @@ import (
 	"github.com/google/uuid"
 )
 
+// TODO: reduce the fields to only what the service needs.
+
 type User struct {
 	ID              uuid.UUID       `json:"id"`
 	Email           string          `json:"email"`

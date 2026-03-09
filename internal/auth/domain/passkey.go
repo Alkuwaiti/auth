@@ -11,3 +11,10 @@ type WebAuthnChallenge struct {
 	UserID    uuid.UUID
 	ExpiresAt time.Time
 }
+
+type Passkey struct {
+	ID        uuid.UUID
+	PublicKey []byte
+	UserID    uuid.UUID
+	SignCount int64
+}
