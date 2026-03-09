@@ -320,9 +320,20 @@ type AssertionOptions struct {
 	UserVerification string
 }
 
-// func (s *Service) StartPasskeyAuthentication(ctx context.Context) (AssertionOptions, error) {
-// 	challenge, err := generateChallenge()
-// 	if err != nil {
-// 		return AssertionOptions{}, err
-// 	}
-// }
+func (s *Service) StartPasskeyAuthentication(ctx context.Context) (AssertionOptions, error) {
+	challenge, err := generateChallenge()
+	if err != nil {
+		return AssertionOptions{}, err
+	}
+
+	if err = s.Repo.CreateWebAuthnChallenge(ctx, challenge, uuid.NullUUID{}, time.Now().Add(5*time.Minute)); err != nil {
+		return AssertionOptions{}, err
+	}
+
+	return AssertionOptions{
+		Challenge: challenge,
+		// TODO: change to config
+		RpID:             "localhost",
+		UserVerification: "preferred",
+	}, nil
+}
