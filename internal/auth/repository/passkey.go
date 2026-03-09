@@ -13,7 +13,7 @@ func (r *Repo) ListPasskeysByUserID(ctx context.Context, userID uuid.UUID) ([][]
 	return r.queries.ListPasskeysByUserID(ctx, userID)
 }
 
-func (r *Repo) CreateWebAuthnChallenge(ctx context.Context, challenge []byte, userID uuid.UUID, expiresAt time.Time) error {
+func (r *Repo) CreateWebAuthnChallenge(ctx context.Context, challenge []byte, userID uuid.NullUUID, expiresAt time.Time) error {
 	return r.queries.CreateWebAuthnChallenge(ctx, postgres.CreateWebAuthnChallengeParams{
 		Challenge: challenge,
 		UserID:    userID,
@@ -21,15 +21,20 @@ func (r *Repo) CreateWebAuthnChallenge(ctx context.Context, challenge []byte, us
 	})
 }
 
-func (r *Repo) GetWebAuthnChallengeByUserID(ctx context.Context, userID uuid.UUID) (domain.WebAuthnChallenge, error) {
-	challenge, err := r.queries.GetWebAuthnChallengeByUserID(ctx, userID)
+func (r *Repo) GetWebAuthnChallenge(ctx context.Context, challengeBytes []byte) (domain.WebAuthnChallenge, error) {
+	challenge, err := r.queries.GetWebAuthnChallenge(ctx, challengeBytes)
 	if err != nil {
 		return domain.WebAuthnChallenge{}, err
 	}
 
+	var userID *uuid.UUID
+	if challenge.UserID.Valid {
+		userID = &challenge.UserID.UUID
+	}
+
 	return domain.WebAuthnChallenge{
 		Challenge: challenge.Challenge,
-		UserID:    challenge.UserID,
+		UserID:    *userID,
 		ExpiresAt: challenge.ExpiresAt,
 	}, nil
 }
@@ -42,8 +47,4 @@ func (r *Repo) CreatePasskey(ctx context.Context, userID uuid.UUID, credentialID
 		PublicKey:    publicKey,
 		Transports:   transports,
 	})
-}
-
-func (r *Repo) DeleteWebAuthnChallenge(ctx context.Context, userID uuid.UUID) error {
-	return r.queries.DeleteWebAuthnChallenge(ctx, userID)
 }

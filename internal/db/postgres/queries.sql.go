@@ -412,7 +412,7 @@ VALUES ($1, $2, $3)
 
 type CreateWebAuthnChallengeParams struct {
 	Challenge []byte
-	UserID    uuid.UUID
+	UserID    uuid.NullUUID
 	ExpiresAt time.Time
 }
 
@@ -458,7 +458,7 @@ DELETE FROM webauthn_challenges
 WHERE user_id = $1
 `
 
-func (q *Queries) DeleteWebAuthnChallenge(ctx context.Context, userID uuid.UUID) error {
+func (q *Queries) DeleteWebAuthnChallenge(ctx context.Context, userID uuid.NullUUID) error {
 	_, err := q.db.ExecContext(ctx, deleteWebAuthnChallenge, userID)
 	return err
 }
@@ -860,12 +860,12 @@ func (q *Queries) GetUserMFAMethodByID(ctx context.Context, arg GetUserMFAMethod
 	return i, err
 }
 
-const getWebAuthnChallengeByUserID = `-- name: GetWebAuthnChallengeByUserID :one
-SELECT challenge, user_id, expires_at FROM webauthn_challenges WHERE user_id = $1
+const getWebAuthnChallenge = `-- name: GetWebAuthnChallenge :one
+SELECT challenge, user_id, expires_at FROM webauthn_challenges WHERE challenge = $1
 `
 
-func (q *Queries) GetWebAuthnChallengeByUserID(ctx context.Context, userID uuid.UUID) (WebauthnChallenge, error) {
-	row := q.db.QueryRowContext(ctx, getWebAuthnChallengeByUserID, userID)
+func (q *Queries) GetWebAuthnChallenge(ctx context.Context, challenge []byte) (WebauthnChallenge, error) {
+	row := q.db.QueryRowContext(ctx, getWebAuthnChallenge, challenge)
 	var i WebauthnChallenge
 	err := row.Scan(&i.Challenge, &i.UserID, &i.ExpiresAt)
 	return i, err

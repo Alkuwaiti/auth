@@ -313,8 +313,8 @@ SELECT credential_id FROM passkeys WHERE user_id = $1;
 INSERT INTO webauthn_challenges (challenge, user_id, expires_at)
 VALUES ($1, $2, $3);
 
--- name: GetWebAuthnChallengeByUserID :one
-SELECT * FROM webauthn_challenges WHERE user_id = $1;
+-- name: GetWebAuthnChallenge :one
+SELECT * FROM webauthn_challenges WHERE challenge = $1;
 
 -- name: CreatePasskey :exec
 INSERT INTO passkeys (user_id, credential_id, public_key, sign_count, transports, created_at)

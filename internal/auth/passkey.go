@@ -14,6 +14,7 @@ import (
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/pkg/contextkeys"
 	"github.com/fxamacker/cbor/v2"
+	"github.com/google/uuid"
 )
 
 type RP struct {
@@ -77,7 +78,8 @@ func (s *Service) StartPasskeyGeneration(ctx context.Context) (Options, error) {
 		return Options{}, err
 	}
 
-	if err = s.Repo.CreateWebAuthnChallenge(ctx, challenge, userID, time.Now().Add(5*time.Minute)); err != nil {
+	err = s.Repo.CreateWebAuthnChallenge(ctx, challenge, uuid.NullUUID{UUID: userID, Valid: true}, time.Now().Add(5*time.Minute))
+	if err != nil {
 		slog.ErrorContext(ctx, "failed to create web authn challenge", "err", err)
 		return Options{}, err
 	}
@@ -153,16 +155,6 @@ func (s *Service) VerifyPasskeyRegistration(ctx context.Context, req VerifyReque
 		return ErrCredentialIDMismatch
 	}
 
-	storedChallenge, err := s.Repo.GetWebAuthnChallengeByUserID(ctx, userID)
-	if err != nil {
-		slog.ErrorContext(ctx, "failed to get web authn challenge by user id", "err", err)
-		return err
-	}
-
-	if storedChallenge.ExpiresAt.Before(time.Now()) {
-		return ErrChallengeExpired
-	}
-
 	clientData, err := decodeClientData(req.Response.ClientDataJSON)
 	if err != nil {
 		return err
@@ -171,6 +163,16 @@ func (s *Service) VerifyPasskeyRegistration(ctx context.Context, req VerifyReque
 	challengeBytes, err := base64.RawURLEncoding.DecodeString(clientData.Challenge)
 	if err != nil {
 		return err
+	}
+
+	storedChallenge, err := s.Repo.GetWebAuthnChallenge(ctx, challengeBytes)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to get web authn challenge by user id", "err", err)
+		return err
+	}
+
+	if storedChallenge.ExpiresAt.Before(time.Now()) {
+		return ErrChallengeExpired
 	}
 
 	if !bytes.Equal(challengeBytes, storedChallenge.Challenge) {
@@ -209,17 +211,7 @@ func (s *Service) VerifyPasskeyRegistration(ctx context.Context, req VerifyReque
 		return ErrCredentialIDMismatch
 	}
 
-	if err = s.Repo.WithTx(ctx, func(r Repo) error {
-		if err = r.CreatePasskey(ctx, userID, credentialID, publicKey, int64(signCount), req.Response.Transports); err != nil {
-			return err
-		}
-
-		if err = r.DeleteWebAuthnChallenge(ctx, userID); err != nil {
-			return err
-		}
-
-		return nil
-	}); err != nil {
+	if err = s.Repo.CreatePasskey(ctx, userID, credentialID, publicKey, int64(signCount), req.Response.Transports); err != nil {
 		return err
 	}
 
@@ -321,3 +313,16 @@ func parseAuthData(data []byte) (*ParsedAuthData, error) {
 		SignCount:    signCount,
 	}, nil
 }
+
+type AssertionOptions struct {
+	Challenge        []byte
+	RpID             string
+	UserVerification string
+}
+
+// func (s *Service) StartPasskeyAuthentication(ctx context.Context) (AssertionOptions, error) {
+// 	challenge, err := generateChallenge()
+// 	if err != nil {
+// 		return AssertionOptions{}, err
+// 	}
+// }
