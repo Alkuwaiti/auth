@@ -10,7 +10,6 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"math/big"
 	"time"
@@ -391,8 +390,7 @@ func (s *Service) VerifyPasskeyAuthentication(ctx context.Context, resp Assertio
 
 func parseSignCount(authData []byte) (uint32, error) {
 	if len(authData) < 37 {
-		// TODO: change to err
-		return 0, fmt.Errorf("authenticatorData too short")
+		return 0, ErrAuthdataShort
 	}
 	return binary.BigEndian.Uint32(authData[33:37]), nil
 }

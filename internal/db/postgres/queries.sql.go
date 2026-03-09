@@ -1050,6 +1050,22 @@ func (q *Queries) RevokeSessions(ctx context.Context, arg RevokeSessionsParams) 
 	return err
 }
 
+const updatePasskeySignCount = `-- name: UpdatePasskeySignCount :exec
+UPDATE passkeys
+SET sign_count = $1
+WHERE id = $2
+`
+
+type UpdatePasskeySignCountParams struct {
+	SignCount int64
+	ID        uuid.UUID
+}
+
+func (q *Queries) UpdatePasskeySignCount(ctx context.Context, arg UpdatePasskeySignCountParams) error {
+	_, err := q.db.ExecContext(ctx, updatePasskeySignCount, arg.SignCount, arg.ID)
+	return err
+}
+
 const updatePassword = `-- name: UpdatePassword :exec
 UPDATE users
 SET password_hash = $1

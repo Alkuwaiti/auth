@@ -32,4 +32,6 @@ var (
 	ErrInvalidRPID                   = errors.New("invalid RP ID")
 	ErrCredentialNotFound            = errors.New("credential not found")
 	ErrInvalidSignature              = errors.New("invalid signature")
+	ErrSignCountTooLow               = errors.New("sign count too low")
+	ErrAuthdataShort                 = errors.New("authenticatorData too short")
 )

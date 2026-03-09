@@ -326,3 +326,8 @@ WHERE user_id = $1;
 
 -- name: GetPasskeyByCredentialID :one
 SELECT * FROM passkeys WHERE credential_id = $1;
+
+-- name: UpdatePasskeySignCount :exec
+UPDATE passkeys
+SET sign_count = $1
+WHERE id = $2;

@@ -62,3 +62,10 @@ func (r *Repo) GetPasskeyByCredentialID(ctx context.Context, credentialID []byte
 		SignCount: passkey.SignCount,
 	}, nil
 }
+
+func (r *Repo) UpdatePasskeySignCount(ctx context.Context, passkeyID uuid.UUID, signCount int64) error {
+	return r.queries.UpdatePasskeySignCount(ctx, postgres.UpdatePasskeySignCountParams{
+		ID:        passkeyID,
+		SignCount: signCount,
+	})
+}
