@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -182,4 +183,132 @@ func (h *Handler) VerifyPasskeyRegistration(w http.ResponseWriter, r *http.Reque
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(out)
+}
+
+func (h *Handler) StartPasskeyAuthentication(w http.ResponseWriter, r *http.Request) {
+	bearer := r.URL.Query().Get("bearer")
+
+	ctx := context.Background()
+
+	md := metadata.New(map[string]string{
+		"authorization":       "Bearer " + bearer,
+		"x-forwarded-for":     "203.0.113.10",
+		"x-client-user-agent": "auth-cli/1.0",
+		"request-id":          "req-123456",
+		"x-client-ip":         "2.2.2.2",
+		"X-Step-Up-Token":     "",
+	})
+
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
+	res, err := h.authClient.StartPasskeyAuthentication(ctx, &emptypb.Empty{})
+	if err != nil {
+		http.Error(w, "failed to start passkey authentication", http.StatusInternalServerError)
+		slog.Error("failed to start passkey authentication", "err", err)
+		return
+	}
+
+	out, err := protojson.MarshalOptions{
+		EmitUnpopulated: true,
+	}.Marshal(res)
+	if err != nil {
+		http.Error(w, "failed to marshal response", http.StatusInternalServerError)
+		slog.ErrorContext(ctx, "failed to marshal passkey authentication response", "err", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(out))
+}
+
+func (h *Handler) VerifyPasskeyAuthentication(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	bearer := r.URL.Query().Get("bearer")
+
+	ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs(
+		"authorization", "Bearer "+bearer,
+		"x-forwarded-for", "203.0.113.10",
+		"x-client-user-agent", "auth-cli/1.0",
+		"request-id", "req-123456",
+		"x-client-ip", "2.2.2.2",
+	))
+
+	var req verifyPasskeyAuthRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		slog.ErrorContext(ctx, "failed to decode passkey auth body", "err", err)
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	authData, err := base64ToBytes(req.Response.AuthenticatorData)
+	if err != nil {
+		http.Error(w, "invalid authenticatorData", http.StatusBadRequest)
+		return
+	}
+
+	clientData, err := base64ToBytes(req.Response.ClientDataJSON)
+	if err != nil {
+		http.Error(w, "invalid clientDataJSON", http.StatusBadRequest)
+		return
+	}
+
+	signature, err := base64ToBytes(req.Response.Signature)
+	if err != nil {
+		http.Error(w, "invalid signature", http.StatusBadRequest)
+		return
+	}
+
+	userHandle, err := base64ToBytes(req.Response.UserHandle)
+	if err != nil && req.Response.UserHandle != "" {
+		http.Error(w, "invalid userHandle", http.StatusBadRequest)
+		return
+	}
+
+	res, err := h.authClient.VerifyPasskeyAuthentication(ctx, &authv1.VerifyPasskeyAuthenticationRequest{
+		Id:    req.ID,
+		RawId: req.RawID,
+		Type:  req.Type,
+		Response: &authv1.AssertionResponseData{
+			AuthenticatorData: authData,
+			ClientDataJson:    clientData,
+			Signature:         signature,
+			UserHandle:        userHandle,
+		},
+	})
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to verify passkey authentication", "err", err)
+		http.Error(w, "failed to verify passkey authentication", http.StatusInternalServerError)
+		return
+	}
+
+	out, err := protojson.MarshalOptions{
+		EmitUnpopulated: true,
+	}.Marshal(res)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to marshal response", "err", err)
+		http.Error(w, "failed to marshal response", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(out)
+}
+
+type verifyPasskeyAuthRequest struct {
+	ID    string `json:"id"`
+	RawID string `json:"rawId"`
+	Type  string `json:"type"`
+
+	Response struct {
+		AuthenticatorData string `json:"authenticatorData"`
+		ClientDataJSON    string `json:"clientDataJSON"`
+		Signature         string `json:"signature"`
+		UserHandle        string `json:"userHandle"`
+	} `json:"response"`
+}
+
+func base64ToBytes(v string) ([]byte, error) {
+	return base64.RawURLEncoding.DecodeString(v)
 }
