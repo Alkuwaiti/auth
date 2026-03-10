@@ -196,7 +196,7 @@ func (h *Handler) StartPasskeyAuthentication(w http.ResponseWriter, r *http.Requ
 		"x-client-user-agent": "auth-cli/1.0",
 		"request-id":          "req-123456",
 		"x-client-ip":         "2.2.2.2",
-		"X-Step-Up-Token":     "",
+		"x-step-up-token":     "",
 	})
 
 	ctx = metadata.NewOutgoingContext(ctx, md)
@@ -222,17 +222,20 @@ func (h *Handler) StartPasskeyAuthentication(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *Handler) VerifyPasskeyAuthentication(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
 	bearer := r.URL.Query().Get("bearer")
 
-	ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs(
-		"authorization", "Bearer "+bearer,
-		"x-forwarded-for", "203.0.113.10",
-		"x-client-user-agent", "auth-cli/1.0",
-		"request-id", "req-123456",
-		"x-client-ip", "2.2.2.2",
-	))
+	ctx := context.Background()
+
+	md := metadata.New(map[string]string{
+		"authorization":       "Bearer " + bearer,
+		"x-forwarded-for":     "203.0.113.10",
+		"x-client-user-agent": "auth-cli/1.0",
+		"request-id":          "req-123456",
+		"x-client-ip":         "2.2.2.2",
+		"x-step-up-token":     "",
+	})
+
+	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	var req verifyPasskeyAuthRequest
 

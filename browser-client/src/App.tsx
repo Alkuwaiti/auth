@@ -1,6 +1,6 @@
 export default function App() {
 
-  const bearer = "YOUR_TOKEN";
+  const bearer = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InFhc2ltbUBnbWFpbC5jb20iLCJyb2xlcyI6WyJ1c2VyIl0sInR5cGUiOiJhY2Nlc3MiLCJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiIwMTljZDgyZS1iNGM5LTdkY2ItOGU4ZS1jYjZlMjQ3MTUyMjEiLCJhdWQiOlsiYXV0aC1zZXJ2aWNlIl0sImV4cCI6MTc3MzE1NDM3MSwiaWF0IjoxNzczMTUzNDcxfQ.rDb__RvgQBLeie27aojuR6GJp2YDv1V6nbDKuDeQ8MY";
 
   async function registerPasskey() {
     const res = await fetch(`http://localhost:8080/auth/passkey/register/options?bearer=${bearer}`, {

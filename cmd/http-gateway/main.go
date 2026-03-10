@@ -30,6 +30,8 @@ func main() {
 	mux.HandleFunc("/auth/google/callback", handler.GoogleCallback)
 	mux.HandleFunc("/auth/passkey/register/options", handler.StartPasskeyGeneration)
 	mux.HandleFunc("/auth/passkey/register/verify", handler.VerifyPasskeyRegistration)
+	mux.HandleFunc("/auth/passkey/authenticate/options", handler.StartPasskeyAuthentication)
+	mux.HandleFunc("/auth/passkey/authenticate/verify", handler.VerifyPasskeyAuthentication)
 
 	server := &http.Server{
 		Addr:         ":8080",
