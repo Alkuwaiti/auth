@@ -28,6 +28,8 @@ service AuthService {
   rpc CreateEmailVerificationToken(CreateEmailVerificationTokenRequest) returns (google.protobuf.Empty) {}
   rpc StartPasskeyGeneration(google.protobuf.Empty) returns (StartPasskeyGenerationResponse) {}
   rpc VerifyPasskeyRegistration(VerifyPasskeyRegistrationRequest) returns (google.protobuf.Empty) {}
+  rpc StartPasskeyAuthentication(google.protobuf.Empty) returns (StartPasskeyAuthenticationResponse) {}
+  rpc VerifyPasskeyAuthentication(VerifyPasskeyAuthenticationRequest) returns (TokenPair) {}
 }
 
 message LoginRequest {
@@ -190,6 +192,7 @@ message StartPasskeyGenerationResponse {
 
 message PasskeyResponse {
   string attestation_object = 1;
+  // TODO: consider changing these to bytes as is in below implementation.
   string authenticator_data = 2;
   string client_data_json = 3;
   string public_key = 4;
@@ -202,4 +205,24 @@ message VerifyPasskeyRegistrationRequest {
   string raw_id = 2;
   string authenticator_attachment = 3;
   PasskeyResponse response = 4;
+}
+
+ message StartPasskeyAuthenticationResponse {
+  bytes challenge = 1;
+  string rp_id = 2;
+  string user_verification = 3;
+ }
+
+message AssertionResponseData {
+  bytes authenticator_data = 1;
+  bytes client_data_json = 2;
+  bytes signature = 3;
+  bytes user_handle = 4;
+}
+
+message VerifyPasskeyAuthenticationRequest {
+  string id = 1;
+  string raw_id = 2;
+  string type = 3;
+  AssertionResponseData response = 4;
 }

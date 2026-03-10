@@ -404,3 +404,52 @@ func (s *server) VerifyPasskeyRegistration(ctx context.Context, req *authv1.Veri
 
 	return &emptypb.Empty{}, nil
 }
+
+func (s *server) StartPasskeyAuthentication(ctx context.Context, req *emptypb.Empty) (*authv1.StartPasskeyAuthenticationResponse, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	res, err := s.service.StartPasskeyAuthentication(ctx)
+	if err != nil {
+		return nil, MapError(err)
+	}
+
+	return &authv1.StartPasskeyAuthenticationResponse{
+		Challenge:        res.Challenge,
+		RpId:             res.RpID,
+		UserVerification: res.UserVerification,
+	}, nil
+
+}
+
+func (s *server) VerifyPasskeyAuthentication(ctx context.Context, req *authv1.VerifyPasskeyAuthenticationRequest) (*authv1.TokenPair, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	res, err := s.service.VerifyPasskeyAuthentication(ctx, auth.AssertionResponse{
+		ID:    req.Id,
+		RawID: req.RawId,
+		Type:  req.Type,
+		Response: auth.AssertionResponseData{
+			AuthenticatorData: req.Response.AuthenticatorData,
+			ClientDataJSON:    req.Response.ClientDataJson,
+			Signature:         req.Response.Signature,
+			UserHandle:        req.Response.UserHandle,
+		},
+	})
+	if err != nil {
+		return nil, MapError(err)
+	}
+
+	return &authv1.TokenPair{
+		AccessToken:  res.AccessToken,
+		RefreshToken: res.RefreshToken,
+		ExpiresIn:    res.RefreshExpiresAt.Unix(),
+		TokenType:    "Bearer",
+		UserId:       res.UserID.String(),
+	}, nil
+}

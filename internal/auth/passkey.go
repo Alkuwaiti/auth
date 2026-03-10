@@ -342,17 +342,18 @@ func (s *Service) StartPasskeyAuthentication(ctx context.Context) (AssertionOpti
 	}, nil
 }
 
-type AssertionResponse struct {
-	ID    string `json:"id"`
-	RawID string `json:"rawId"`
-	Type  string `json:"type"`
+type AssertionResponseData struct {
+	AuthenticatorData []byte `json:"authenticatorData"`
+	ClientDataJSON    []byte `json:"clientDataJSON"`
+	Signature         []byte `json:"signature"`
+	UserHandle        []byte `json:"userHandle"`
+}
 
-	Response struct {
-		AuthenticatorData []byte `json:"authenticatorData"`
-		ClientDataJSON    []byte `json:"clientDataJSON"`
-		Signature         []byte `json:"signature"`
-		UserHandle        []byte `json:"userHandle"`
-	} `json:"response"`
+type AssertionResponse struct {
+	ID       string                `json:"id"`
+	RawID    string                `json:"rawId"`
+	Type     string                `json:"type"`
+	Response AssertionResponseData `json:"response"`
 }
 
 func (s *Service) VerifyPasskeyAuthentication(ctx context.Context, resp AssertionResponse) (TokenPair, error) {
