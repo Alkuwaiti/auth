@@ -1,6 +1,4 @@
 # TODO: add env vars here to prevent future viper mishaps
 loglevel: "debug"
-tracingcollector: "some collector"
 refreshenabled: true
-appname: "MyApp"
 maxchallengeattempts: 5
