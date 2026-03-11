@@ -34,7 +34,7 @@ func (r *Repo) GetWebAuthnChallenge(ctx context.Context, challengeBytes []byte) 
 
 	return domain.WebAuthnChallenge{
 		Challenge: challenge.Challenge,
-		UserID:    *userID,
+		UserID:    userID,
 		ExpiresAt: challenge.ExpiresAt,
 	}, nil
 }

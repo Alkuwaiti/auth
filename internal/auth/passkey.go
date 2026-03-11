@@ -188,6 +188,7 @@ func (s *Service) VerifyPasskeyRegistration(ctx context.Context, req VerifyReque
 		return ErrInvalidOrigin
 	}
 
+	// TODO: change to config
 	if clientData.Type != "webauthn.create" {
 		return ErrInvalidClientData
 	}
@@ -295,6 +296,7 @@ func parseAuthData(data []byte) (*ParsedAuthData, error) {
 		return nil, ErrNoAttestedData
 	}
 
+	// TODO: change to config
 	expected := sha256.Sum256([]byte("localhost"))
 
 	if !bytes.Equal(data[:32], expected[:]) {
@@ -343,10 +345,10 @@ func (s *Service) StartPasskeyAuthentication(ctx context.Context) (AssertionOpti
 }
 
 type AssertionResponseData struct {
-	AuthenticatorData []byte `json:"authenticatorData"`
-	ClientDataJSON    []byte `json:"clientDataJSON"`
-	Signature         []byte `json:"signature"`
-	UserHandle        []byte `json:"userHandle"`
+	AuthenticatorData string `json:"authenticatorData"`
+	ClientDataJSON    string `json:"clientDataJSON"`
+	Signature         string `json:"signature"`
+	UserHandle        string `json:"userHandle"`
 }
 
 type AssertionResponse struct {
@@ -357,24 +359,100 @@ type AssertionResponse struct {
 }
 
 func (s *Service) VerifyPasskeyAuthentication(ctx context.Context, resp AssertionResponse) (TokenPair, error) {
-	passkey, err := s.Repo.GetPasskeyByCredentialID(ctx, []byte(resp.ID))
+	credID, err := base64.RawURLEncoding.DecodeString(resp.RawID)
+	if err != nil {
+		return TokenPair{}, err
+	}
+
+	authData, err := base64.RawURLEncoding.DecodeString(resp.Response.AuthenticatorData)
+	if err != nil {
+		return TokenPair{}, err
+	}
+
+	clientDataJSON, err := base64.RawURLEncoding.DecodeString(resp.Response.ClientDataJSON)
+	if err != nil {
+		return TokenPair{}, err
+	}
+
+	signature, err := base64.RawURLEncoding.DecodeString(resp.Response.Signature)
+	if err != nil {
+		return TokenPair{}, err
+	}
+
+	if len(authData) < 37 {
+		return TokenPair{}, ErrAuthdataShort
+	}
+
+	var clientData ClientData
+	if err = json.Unmarshal(clientDataJSON, &clientData); err != nil {
+		return TokenPair{}, ErrInvalidClientData
+	}
+
+	if clientData.Type != "webauthn.get" {
+		return TokenPair{}, ErrInvalidClientData
+	}
+
+	challengeBytes, err := base64.RawURLEncoding.DecodeString(clientData.Challenge)
+	if err != nil {
+		return TokenPair{}, err
+	}
+
+	storedChallenge, err := s.Repo.GetWebAuthnChallenge(ctx, challengeBytes)
+	if err != nil {
+		return TokenPair{}, err
+	}
+
+	if storedChallenge.ExpiresAt.Before(time.Now()) {
+		return TokenPair{}, ErrChallengeExpired
+	}
+
+	if !bytes.Equal(storedChallenge.Challenge, challengeBytes) {
+		return TokenPair{}, ErrChallengeMismatch
+	}
+
+	// TODO: change to config
+	if clientData.Origin != "http://localhost:5173" {
+		return TokenPair{}, ErrInvalidOrigin
+	}
+
+	// TODO: change to config
+	expectedRPIDHash := sha256.Sum256([]byte("localhost"))
+
+	if !bytes.Equal(authData[:32], expectedRPIDHash[:]) {
+		return TokenPair{}, ErrInvalidRPID
+	}
+
+	// TODO: use these
+	// flags := authData[32]
+	//
+	// if flags&0x01 == 0 {
+	// 	return TokenPair{}, ErrUserNotPresent
+	// }
+
+	/*
+		if flags&0x04 == 0 {
+			return TokenPair{}, ErrUserNotVerified
+		}
+	*/
+
+	passkey, err := s.Repo.GetPasskeyByCredentialID(ctx, credID)
 	if err != nil {
 		return TokenPair{}, ErrCredentialNotFound
 	}
 
-	err = verifyAssertion(resp, passkey.PublicKey)
+	if err = verifyAssertion(authData, clientDataJSON, signature, passkey.PublicKey); err != nil {
+		return TokenPair{}, err
+	}
+
+	signCount, err := parseSignCount(authData)
 	if err != nil {
 		return TokenPair{}, err
 	}
 
-	signCount, err := parseSignCount(resp.Response.AuthenticatorData)
-	if err != nil {
-		return TokenPair{}, err
-	}
-
-	if signCount <= uint32(passkey.SignCount) {
-		return TokenPair{}, ErrSignCountTooLow
-	}
+	// TODO: maybe comment out?
+	// if signCount <= uint32(passkey.SignCount) {
+	// 	return TokenPair{}, ErrSignCountTooLow
+	// }
 
 	err = s.Repo.UpdatePasskeySignCount(ctx, passkey.ID, int64(signCount))
 	if err != nil {
@@ -388,7 +466,6 @@ func (s *Service) VerifyPasskeyAuthentication(ctx context.Context, resp Assertio
 
 	return s.finalizeLogin(ctx, user, audit.ActionPasskeyLogin, false)
 }
-
 func parseSignCount(authData []byte) (uint32, error) {
 	if len(authData) < 37 {
 		return 0, ErrAuthdataShort
@@ -396,17 +473,21 @@ func parseSignCount(authData []byte) (uint32, error) {
 	return binary.BigEndian.Uint32(authData[33:37]), nil
 }
 
-func verifyAssertion(resp AssertionResponse, publicKey []byte) error {
-	clientDataHash := sha256.Sum256(resp.Response.ClientDataJSON)
+func verifyAssertion(authData, clientDataJSON, signature, publicKey []byte) error {
+	clientDataHash := sha256.Sum256(clientDataJSON)
 
-	signedData := append(resp.Response.AuthenticatorData, clientDataHash[:]...)
+	signedData := make([]byte, 0, len(authData)+32)
+	signedData = append(signedData, authData...)
+	signedData = append(signedData, clientDataHash[:]...)
 
 	pub, err := parseCOSEPublicKey(publicKey)
 	if err != nil {
 		return err
 	}
 
-	if !ecdsa.VerifyASN1(pub, signedData, resp.Response.Signature) {
+	digest := sha256.Sum256(signedData)
+
+	if !ecdsa.VerifyASN1(pub, digest[:], signature) {
 		return ErrInvalidSignature
 	}
 

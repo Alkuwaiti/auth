@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -245,39 +244,15 @@ func (h *Handler) VerifyPasskeyAuthentication(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	authData, err := base64ToBytes(req.Response.AuthenticatorData)
-	if err != nil {
-		http.Error(w, "invalid authenticatorData", http.StatusBadRequest)
-		return
-	}
-
-	clientData, err := base64ToBytes(req.Response.ClientDataJSON)
-	if err != nil {
-		http.Error(w, "invalid clientDataJSON", http.StatusBadRequest)
-		return
-	}
-
-	signature, err := base64ToBytes(req.Response.Signature)
-	if err != nil {
-		http.Error(w, "invalid signature", http.StatusBadRequest)
-		return
-	}
-
-	userHandle, err := base64ToBytes(req.Response.UserHandle)
-	if err != nil && req.Response.UserHandle != "" {
-		http.Error(w, "invalid userHandle", http.StatusBadRequest)
-		return
-	}
-
 	res, err := h.authClient.VerifyPasskeyAuthentication(ctx, &authv1.VerifyPasskeyAuthenticationRequest{
 		Id:    req.ID,
 		RawId: req.RawID,
 		Type:  req.Type,
 		Response: &authv1.AssertionResponseData{
-			AuthenticatorData: authData,
-			ClientDataJson:    clientData,
-			Signature:         signature,
-			UserHandle:        userHandle,
+			AuthenticatorData: req.Response.AuthenticatorData,
+			ClientDataJson:    req.Response.ClientDataJSON,
+			Signature:         req.Response.Signature,
+			UserHandle:        req.Response.UserHandle,
 		},
 	})
 	if err != nil {
@@ -310,8 +285,4 @@ type verifyPasskeyAuthRequest struct {
 		Signature         string `json:"signature"`
 		UserHandle        string `json:"userHandle"`
 	} `json:"response"`
-}
-
-func base64ToBytes(v string) ([]byte, error) {
-	return base64.RawURLEncoding.DecodeString(v)
 }

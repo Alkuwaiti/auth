@@ -214,10 +214,10 @@ message VerifyPasskeyRegistrationRequest {
  }
 
 message AssertionResponseData {
-  bytes authenticator_data = 1;
-  bytes client_data_json = 2;
-  bytes signature = 3;
-  bytes user_handle = 4;
+  string authenticator_data = 1;
+  string client_data_json = 2;
+  string signature = 3;
+  string user_handle = 4;
 }
 
 message VerifyPasskeyAuthenticationRequest {

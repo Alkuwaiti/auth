@@ -1648,13 +1648,14 @@ func (x *StartPasskeyGenerationResponse) GetExcludeCredentials() []*ExcludeCrede
 }
 
 type PasskeyResponse struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	AttestationObject  string                 `protobuf:"bytes,1,opt,name=attestation_object,json=attestationObject,proto3" json:"attestation_object,omitempty"`
-	AuthenticatorData  string                 `protobuf:"bytes,2,opt,name=authenticator_data,json=authenticatorData,proto3" json:"authenticator_data,omitempty"`
-	ClientDataJson     string                 `protobuf:"bytes,3,opt,name=client_data_json,json=clientDataJson,proto3" json:"client_data_json,omitempty"`
-	PublicKey          string                 `protobuf:"bytes,4,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
-	PublicKeyAlgorithm int32                  `protobuf:"varint,5,opt,name=public_key_algorithm,json=publicKeyAlgorithm,proto3" json:"public_key_algorithm,omitempty"`
-	Transports         []string               `protobuf:"bytes,6,rep,name=transports,proto3" json:"transports,omitempty"`
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	AttestationObject string                 `protobuf:"bytes,1,opt,name=attestation_object,json=attestationObject,proto3" json:"attestation_object,omitempty"`
+	// TODO: consider changing these to bytes as is in below implementation.
+	AuthenticatorData  string   `protobuf:"bytes,2,opt,name=authenticator_data,json=authenticatorData,proto3" json:"authenticator_data,omitempty"`
+	ClientDataJson     string   `protobuf:"bytes,3,opt,name=client_data_json,json=clientDataJson,proto3" json:"client_data_json,omitempty"`
+	PublicKey          string   `protobuf:"bytes,4,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	PublicKeyAlgorithm int32    `protobuf:"varint,5,opt,name=public_key_algorithm,json=publicKeyAlgorithm,proto3" json:"public_key_algorithm,omitempty"`
+	Transports         []string `protobuf:"bytes,6,rep,name=transports,proto3" json:"transports,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -1861,10 +1862,10 @@ func (x *StartPasskeyAuthenticationResponse) GetUserVerification() string {
 
 type AssertionResponseData struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
-	AuthenticatorData []byte                 `protobuf:"bytes,1,opt,name=authenticator_data,json=authenticatorData,proto3" json:"authenticator_data,omitempty"`
-	ClientDataJson    []byte                 `protobuf:"bytes,2,opt,name=client_data_json,json=clientDataJson,proto3" json:"client_data_json,omitempty"`
-	Signature         []byte                 `protobuf:"bytes,3,opt,name=signature,proto3" json:"signature,omitempty"`
-	UserHandle        []byte                 `protobuf:"bytes,4,opt,name=user_handle,json=userHandle,proto3" json:"user_handle,omitempty"`
+	AuthenticatorData string                 `protobuf:"bytes,1,opt,name=authenticator_data,json=authenticatorData,proto3" json:"authenticator_data,omitempty"`
+	ClientDataJson    string                 `protobuf:"bytes,2,opt,name=client_data_json,json=clientDataJson,proto3" json:"client_data_json,omitempty"`
+	Signature         string                 `protobuf:"bytes,3,opt,name=signature,proto3" json:"signature,omitempty"`
+	UserHandle        string                 `protobuf:"bytes,4,opt,name=user_handle,json=userHandle,proto3" json:"user_handle,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -1899,32 +1900,32 @@ func (*AssertionResponseData) Descriptor() ([]byte, []int) {
 	return file___proto_auth_proto_rawDescGZIP(), []int{33}
 }
 
-func (x *AssertionResponseData) GetAuthenticatorData() []byte {
+func (x *AssertionResponseData) GetAuthenticatorData() string {
 	if x != nil {
 		return x.AuthenticatorData
 	}
-	return nil
+	return ""
 }
 
-func (x *AssertionResponseData) GetClientDataJson() []byte {
+func (x *AssertionResponseData) GetClientDataJson() string {
 	if x != nil {
 		return x.ClientDataJson
 	}
-	return nil
+	return ""
 }
 
-func (x *AssertionResponseData) GetSignature() []byte {
+func (x *AssertionResponseData) GetSignature() string {
 	if x != nil {
 		return x.Signature
 	}
-	return nil
+	return ""
 }
 
-func (x *AssertionResponseData) GetUserHandle() []byte {
+func (x *AssertionResponseData) GetUserHandle() string {
 	if x != nil {
 		return x.UserHandle
 	}
-	return nil
+	return ""
 }
 
 type VerifyPasskeyAuthenticationRequest struct {
@@ -2127,10 +2128,10 @@ const file___proto_auth_proto_rawDesc = "" +
 	"\x05rp_id\x18\x02 \x01(\tR\x04rpId\x12+\n" +
 	"\x11user_verification\x18\x03 \x01(\tR\x10userVerification\"\xaf\x01\n" +
 	"\x15AssertionResponseData\x12-\n" +
-	"\x12authenticator_data\x18\x01 \x01(\fR\x11authenticatorData\x12(\n" +
-	"\x10client_data_json\x18\x02 \x01(\fR\x0eclientDataJson\x12\x1c\n" +
-	"\tsignature\x18\x03 \x01(\fR\tsignature\x12\x1f\n" +
-	"\vuser_handle\x18\x04 \x01(\fR\n" +
+	"\x12authenticator_data\x18\x01 \x01(\tR\x11authenticatorData\x12(\n" +
+	"\x10client_data_json\x18\x02 \x01(\tR\x0eclientDataJson\x12\x1c\n" +
+	"\tsignature\x18\x03 \x01(\tR\tsignature\x12\x1f\n" +
+	"\vuser_handle\x18\x04 \x01(\tR\n" +
 	"userHandle\"\x9b\x01\n" +
 	"\"VerifyPasskeyAuthenticationRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x15\n" +

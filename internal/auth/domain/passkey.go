@@ -8,7 +8,7 @@ import (
 
 type WebAuthnChallenge struct {
 	Challenge []byte
-	UserID    uuid.UUID
+	UserID    *uuid.UUID
 	ExpiresAt time.Time
 }
 
