@@ -115,7 +115,7 @@ func (h *Handler) StartPasskeyGeneration(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(out))
+	_, _ = w.Write([]byte(out))
 }
 
 func (h *Handler) VerifyPasskeyRegistration(w http.ResponseWriter, r *http.Request) {
@@ -183,7 +183,7 @@ func (h *Handler) VerifyPasskeyRegistration(w http.ResponseWriter, r *http.Reque
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(out)
+	_, _ = w.Write(out)
 }
 
 func (h *Handler) StartPasskeyAuthentication(w http.ResponseWriter, r *http.Request) {
@@ -219,7 +219,7 @@ func (h *Handler) StartPasskeyAuthentication(w http.ResponseWriter, r *http.Requ
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(out))
+	_, _ = w.Write([]byte(out))
 }
 
 func (h *Handler) VerifyPasskeyAuthentication(w http.ResponseWriter, r *http.Request) {
@@ -273,7 +273,7 @@ func (h *Handler) VerifyPasskeyAuthentication(w http.ResponseWriter, r *http.Req
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(out)
+	_, _ = w.Write(out)
 }
 
 type verifyPasskeyAuthRequest struct {
