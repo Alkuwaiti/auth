@@ -26,6 +26,10 @@ service AuthService {
   rpc CompleteGoogleLogin(CompleteGoogleLoginRequest) returns (TokenPair) {}
   rpc VerifyEmail(VerifyEmailRequest) returns (google.protobuf.Empty) {}
   rpc CreateEmailVerificationToken(CreateEmailVerificationTokenRequest) returns (google.protobuf.Empty) {}
+  rpc StartPasskeyGeneration(google.protobuf.Empty) returns (StartPasskeyGenerationResponse) {}
+  rpc VerifyPasskeyRegistration(VerifyPasskeyRegistrationRequest) returns (google.protobuf.Empty) {}
+  rpc StartPasskeyAuthentication(google.protobuf.Empty) returns (StartPasskeyAuthenticationResponse) {}
+  rpc VerifyPasskeyAuthentication(VerifyPasskeyAuthenticationRequest) returns (TokenPair) {}
 }
 
 message LoginRequest {
@@ -147,4 +151,78 @@ message VerifyEmailRequest {
 
 message CreateEmailVerificationTokenRequest {
   string email = 1;
+}
+
+message RP {
+  string id = 1;
+  string name = 2;
+}
+
+message UserEntity {
+  string id = 1;
+  string name = 2;
+  string display_name = 3;
+}
+
+message PubKeyCredParam {
+  string type = 1;
+  int32 alg = 2;
+}
+
+message AuthenticatorSelection {
+  string resident_key = 1;
+  string user_verification = 2;
+}
+
+message ExcludeCredential {
+  string id = 1;
+  string type = 2;
+}
+
+message StartPasskeyGenerationResponse {
+  string challenge = 1;
+  RP rp = 2;
+  UserEntity user = 3;
+  repeated PubKeyCredParam pub_key_cred_params = 4;
+  int32 timeout = 5;
+  string attestation = 6;
+  AuthenticatorSelection authenticator_selection = 7;
+  repeated ExcludeCredential exclude_credentials = 8;
+}
+
+message PasskeyResponse {
+  string attestation_object = 1;
+  // TODO: consider changing these to bytes as is in below implementation.
+  string authenticator_data = 2;
+  string client_data_json = 3;
+  string public_key = 4;
+  int32 public_key_algorithm = 5;
+  repeated string transports = 6;
+}
+
+message VerifyPasskeyRegistrationRequest {
+  string id = 1;
+  string raw_id = 2;
+  string authenticator_attachment = 3;
+  PasskeyResponse response = 4;
+}
+
+ message StartPasskeyAuthenticationResponse {
+  bytes challenge = 1;
+  string rp_id = 2;
+  string user_verification = 3;
+ }
+
+message AssertionResponseData {
+  string authenticator_data = 1;
+  string client_data_json = 2;
+  string signature = 3;
+  string user_handle = 4;
+}
+
+message VerifyPasskeyAuthenticationRequest {
+  string id = 1;
+  string raw_id = 2;
+  string type = 3;
+  AssertionResponseData response = 4;
 }

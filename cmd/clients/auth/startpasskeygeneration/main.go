@@ -7,21 +7,20 @@ import (
 	"os"
 
 	"github.com/alkuwaiti/auth/cmd/clients/auth"
-	authv1 "github.com/alkuwaiti/auth/pb/pbauth/v1"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 func main() {
 	ctx := context.Background()
 
 	md := metadata.New(map[string]string{
-		"authorization":       "Bearer ",
+		"authorization":       "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InFhc2ltbUBnbWFpbC5jb20iLCJyb2xlcyI6WyJ1c2VyIl0sInR5cGUiOiJhY2Nlc3MiLCJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiIwMTljYzQxOS04NTQyLTdlZDQtYTJjMS02ODFlZDUyY2M5MDAiLCJhdWQiOlsiYXV0aC1zZXJ2aWNlIl0sImV4cCI6MTc3MjgxODc2MywiaWF0IjoxNzcyODE3ODYzfQ.FfSnFHouZsFsk7hFGYQC0J-LE_WlnTt4ltdcd7ONfKs",
 		"x-forwarded-for":     "203.0.113.10",
 		"x-client-user-agent": "auth-cli/1.0",
 		"request-id":          "req-123456",
-		"x-client-ip":         "2.2.2.2",
-		"X-Step-Up-Token":     "",
+		"x-client-ip":         "1.1.1.1",
 	})
 
 	ctx = metadata.NewOutgoingContext(ctx, md)
@@ -33,9 +32,7 @@ func main() {
 		}
 	}()
 
-	res, err := client.VerifyEmail(ctx, &authv1.VerifyEmailRequest{
-		Token: "VYkARySNSBWFC79Vz-Ql6iMd3SwS5fDBqpOPxY1nNX8=",
-	})
+	res, err := client.StartPasskeyGeneration(ctx, &emptypb.Empty{})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -44,7 +41,6 @@ func main() {
 	out, err := protojson.MarshalOptions{
 		Indent:          "  ",
 		EmitUnpopulated: true,
-		UseProtoNames:   true,
 	}.Marshal(res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

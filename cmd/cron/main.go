@@ -26,6 +26,7 @@ var tables []cleanupTable = []cleanupTable{
 	{name: "password_reset_tokens"},
 	{name: "mfa_challenges"},
 	{name: "user_mfa_methods"},
+	{name: "webauthn_challenges"},
 }
 
 func main() {

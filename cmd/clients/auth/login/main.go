@@ -43,6 +43,7 @@ func main() {
 	out, err := protojson.MarshalOptions{
 		Indent:          "  ",
 		EmitUnpopulated: true,
+		UseProtoNames:   true,
 	}.Marshal(res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

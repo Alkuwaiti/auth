@@ -16,4 +16,5 @@ const (
 	ActionPasswordReset       AuditAction = "password_reset"
 	ActionGoogleLogin         AuditAction = "google_login"
 	ActionGoogleRegisteration AuditAction = "google_registration"
+	ActionPasskeyLogin        AuditAction = "passkey_login"
 )

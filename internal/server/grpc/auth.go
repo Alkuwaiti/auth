@@ -323,9 +323,133 @@ func (s *server) CreateEmailVerificationToken(ctx context.Context, req *authv1.C
 		slog.ErrorContext(ctx, "Invalid request: request is nil")
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
+
 	if err := s.service.CreateEmailVerificationToken(ctx, req.Email); err != nil {
 		return nil, MapError(err)
 	}
 
 	return &emptypb.Empty{}, nil
+}
+
+func (s *server) StartPasskeyGeneration(ctx context.Context, req *emptypb.Empty) (*authv1.StartPasskeyGenerationResponse, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	res, err := s.service.StartPasskeyGeneration(ctx)
+	if err != nil {
+		return nil, MapError(err)
+	}
+
+	params := make([]*authv1.PubKeyCredParam, len(res.PubKeyCredParams))
+	for i, p := range res.PubKeyCredParams {
+		params[i] = &authv1.PubKeyCredParam{
+			Type: p.Type,
+			Alg:  int32(p.Alg),
+		}
+	}
+
+	credentials := make([]*authv1.ExcludeCredential, len(res.ExcludeCredentials))
+	for i, c := range res.ExcludeCredentials {
+		credentials[i] = &authv1.ExcludeCredential{
+			Id:   c.ID,
+			Type: c.Type,
+		}
+	}
+
+	return &authv1.StartPasskeyGenerationResponse{
+		Challenge: string(res.Challenge),
+		Rp: &authv1.RP{
+			Id:   res.RP.ID,
+			Name: res.RP.Name,
+		},
+		User: &authv1.UserEntity{
+			Id:          res.User.ID,
+			Name:        res.User.Name,
+			DisplayName: res.User.DisplayName,
+		},
+		PubKeyCredParams: params,
+		Timeout:          int32(res.Timeout),
+		Attestation:      res.Attestation,
+		AuthenticatorSelection: &authv1.AuthenticatorSelection{
+			ResidentKey:      res.AuthenticatorSelection.ResidentKey,
+			UserVerification: res.AuthenticatorSelection.UserVerification,
+		},
+		ExcludeCredentials: credentials,
+	}, nil
+}
+
+func (s *server) VerifyPasskeyRegistration(ctx context.Context, req *authv1.VerifyPasskeyRegistrationRequest) (*emptypb.Empty, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	if err := s.service.VerifyPasskeyRegistration(ctx, auth.VerifyRequest{
+		ID:                      req.Id,
+		RawID:                   req.RawId,
+		AuthenticatorAttachment: req.AuthenticatorAttachment,
+		Response: auth.PasskeyResponse{
+			AttestationObject:  req.Response.AttestationObject,
+			AuthenticatorData:  req.Response.AuthenticatorData,
+			ClientDataJSON:     req.Response.ClientDataJson,
+			PublicKey:          req.Response.PublicKey,
+			PublicKeyAlgorithm: int(req.Response.PublicKeyAlgorithm),
+			Transports:         req.Response.Transports,
+		},
+	}); err != nil {
+		return nil, MapError(err)
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (s *server) StartPasskeyAuthentication(ctx context.Context, req *emptypb.Empty) (*authv1.StartPasskeyAuthenticationResponse, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	res, err := s.service.StartPasskeyAuthentication(ctx)
+	if err != nil {
+		return nil, MapError(err)
+	}
+
+	return &authv1.StartPasskeyAuthenticationResponse{
+		Challenge:        res.Challenge,
+		RpId:             res.RpID,
+		UserVerification: res.UserVerification,
+	}, nil
+
+}
+
+func (s *server) VerifyPasskeyAuthentication(ctx context.Context, req *authv1.VerifyPasskeyAuthenticationRequest) (*authv1.TokenPair, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	res, err := s.service.VerifyPasskeyAuthentication(ctx, auth.AssertionResponse{
+		ID:    req.Id,
+		RawID: req.RawId,
+		Type:  req.Type,
+		Response: auth.AssertionResponseData{
+			AuthenticatorData: req.Response.AuthenticatorData,
+			ClientDataJSON:    req.Response.ClientDataJson,
+			Signature:         req.Response.Signature,
+			UserHandle:        req.Response.UserHandle,
+		},
+	})
+	if err != nil {
+		return nil, MapError(err)
+	}
+
+	return &authv1.TokenPair{
+		AccessToken:  res.AccessToken,
+		RefreshToken: res.RefreshToken,
+		ExpiresIn:    res.RefreshExpiresAt.Unix(),
+		TokenType:    "Bearer",
+		UserId:       res.UserID.String(),
+	}, nil
 }

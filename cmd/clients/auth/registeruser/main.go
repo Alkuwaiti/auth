@@ -22,7 +22,7 @@ func main() {
 	}()
 
 	res, err := client.RegisterUser(ctx, &authv1.RegisterUserRequest{
-		Email:    "qasimmmm@gmail.com",
+		Email:    "qasimm@gmail.com",
 		Password: "Supersecretpassword1!!",
 	})
 	if err != nil {
@@ -33,6 +33,7 @@ func main() {
 	out, err := protojson.MarshalOptions{
 		Indent:          "  ",
 		EmitUnpopulated: true,
+		UseProtoNames:   true,
 	}.Marshal(res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

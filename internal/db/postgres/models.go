@@ -67,6 +67,18 @@ type OutboxEvent struct {
 	FailedAt      sql.NullTime
 }
 
+type Passkey struct {
+	ID           uuid.UUID
+	UserID       uuid.UUID
+	CredentialID []byte
+	PublicKey    []byte
+	SignCount    int64
+	Transports   []string
+	Name         sql.NullString
+	CreatedAt    time.Time
+	LastUsedAt   sql.NullTime
+}
+
 type PasswordResetToken struct {
 	ID         uuid.UUID
 	UserID     uuid.UUID
@@ -130,4 +142,10 @@ type UserRole struct {
 	UserID     uuid.UUID
 	RoleID     uuid.UUID
 	AssignedAt sql.NullTime
+}
+
+type WebauthnChallenge struct {
+	Challenge []byte
+	UserID    uuid.NullUUID
+	ExpiresAt time.Time
 }
