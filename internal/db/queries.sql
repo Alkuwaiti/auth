@@ -125,7 +125,7 @@ VALUES ($1, $2, NOW());
 INSERT INTO user_mfa_methods (
   user_id, type, secret_ciphertext, expires_at
 )
-VALUES ($1, $2, $3, now() + interval '10 minutes')
+VALUES ($1, $2, $3, $4)
 RETURNING *;
 
 -- name: GetMFAMethodsConfirmedByUser :many

@@ -52,7 +52,7 @@ type Repo interface {
 	IncrementChallengeAttempts(ctx context.Context, challengeID uuid.UUID) error
 	ConsumeChallenge(ctx context.Context, challengeID uuid.UUID) error
 	UserHasActiveMFAMethodByType(ctx context.Context, userID uuid.UUID, methodType domain.MFAMethodType) (bool, error)
-	CreateUserMFAMethod(ctx context.Context, userID uuid.UUID, secret []byte, methodType domain.MFAMethodType) (domain.MFAMethod, error)
+	CreateUserMFAMethod(ctx context.Context, MFAMethod domain.MFAMethod) (domain.MFAMethod, error)
 	GetUserMFAMethodByID(ctx context.Context, methodID, userID uuid.UUID) (domain.MFAMethod, error)
 	ConfirmUserMFAMethod(ctx context.Context, methodID uuid.UUID) error
 	GetMFAMethodsConfirmedByUser(ctx context.Context, userID uuid.UUID) ([]domain.MFAMethod, error)

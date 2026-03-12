@@ -379,7 +379,7 @@ const createUserMFAMethod = `-- name: CreateUserMFAMethod :one
 INSERT INTO user_mfa_methods (
   user_id, type, secret_ciphertext, expires_at
 )
-VALUES ($1, $2, $3, now() + interval '10 minutes')
+VALUES ($1, $2, $3, $4)
 RETURNING id, user_id, type, secret_ciphertext, confirmed_at, created_at, expires_at
 `
 
@@ -387,11 +387,17 @@ type CreateUserMFAMethodParams struct {
 	UserID           uuid.UUID
 	Type             string
 	SecretCiphertext []byte
+	ExpiresAt        sql.NullTime
 }
 
 // mfa
 func (q *Queries) CreateUserMFAMethod(ctx context.Context, arg CreateUserMFAMethodParams) (UserMfaMethod, error) {
-	row := q.db.QueryRowContext(ctx, createUserMFAMethod, arg.UserID, arg.Type, arg.SecretCiphertext)
+	row := q.db.QueryRowContext(ctx, createUserMFAMethod,
+		arg.UserID,
+		arg.Type,
+		arg.SecretCiphertext,
+		arg.ExpiresAt,
+	)
 	var i UserMfaMethod
 	err := row.Scan(
 		&i.ID,
