@@ -112,7 +112,7 @@ func (s *Service) buildOptions(user domain.User, challenge []byte, creds [][]byt
 	return Options{
 		Challenge: base64.RawURLEncoding.EncodeToString(challenge),
 		RP: RP{
-			// TODO: change to config
+			// TODO: figure out why this isn't showing in the frontend.
 			Name: "auth-service",
 			ID:   s.Config.Domain,
 		},
