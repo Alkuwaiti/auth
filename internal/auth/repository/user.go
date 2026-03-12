@@ -98,12 +98,6 @@ func toUserModel(user postgres.CreateUserRow) domain.User {
 		deletedAt = &user.DeletedAt.Time
 	}
 
-	var deletionReason *domain.DeletionReason
-	if user.DeletionReason.Valid {
-		dr := domain.DeletionReason(user.DeletionReason.String)
-		deletionReason = &dr
-	}
-
 	var passwordHash *string
 	if user.PasswordHash.Valid {
 		passwordHash = &user.PasswordHash.String
@@ -115,11 +109,7 @@ func toUserModel(user postgres.CreateUserRow) domain.User {
 		PasswordHash:    passwordHash,
 		IsEmailVerified: user.IsEmailVerified,
 		IsActive:        user.IsActive,
-		CreatedAt:       user.CreatedAt,
-		UpdatedAt:       user.UpdatedAt,
 		DeletedAt:       deletedAt,
-		DeletionReason:  deletionReason,
-		MFAEnabled:      user.MfaEnabled,
 	}
 }
 
@@ -129,12 +119,6 @@ func toUserModelFromEmailRow(row postgres.GetUserByEmailRow) domain.User {
 		deletedAt = &row.DeletedAt.Time
 	}
 
-	var deletionReason *domain.DeletionReason
-	if row.DeletionReason.Valid {
-		dr := domain.DeletionReason(row.DeletionReason.String)
-		deletionReason = &dr
-	}
-
 	var passwordHash *string
 	if row.PasswordHash.Valid {
 		passwordHash = &row.PasswordHash.String
@@ -146,12 +130,8 @@ func toUserModelFromEmailRow(row postgres.GetUserByEmailRow) domain.User {
 		PasswordHash:    passwordHash,
 		IsEmailVerified: row.IsEmailVerified,
 		IsActive:        row.IsActive,
-		CreatedAt:       row.CreatedAt,
-		UpdatedAt:       row.UpdatedAt,
 		DeletedAt:       deletedAt,
-		DeletionReason:  deletionReason,
 		Roles:           row.Roles,
-		MFAEnabled:      row.MfaEnabled,
 	}
 }
 
@@ -161,12 +141,6 @@ func toUserModelFromIDRow(row postgres.GetUserByIDRow) domain.User {
 		deletedAt = &row.DeletedAt.Time
 	}
 
-	var deletionReason *domain.DeletionReason
-	if row.DeletionReason.Valid {
-		dr := domain.DeletionReason(row.DeletionReason.String)
-		deletionReason = &dr
-	}
-
 	var passwordHash *string
 	if row.PasswordHash.Valid {
 		passwordHash = &row.PasswordHash.String
@@ -178,11 +152,7 @@ func toUserModelFromIDRow(row postgres.GetUserByIDRow) domain.User {
 		PasswordHash:    passwordHash,
 		IsEmailVerified: row.IsEmailVerified,
 		IsActive:        row.IsActive,
-		CreatedAt:       row.CreatedAt,
-		UpdatedAt:       row.UpdatedAt,
 		DeletedAt:       deletedAt,
-		DeletionReason:  deletionReason,
 		Roles:           row.Roles,
-		MFAEnabled:      row.MfaEnabled,
 	}
 }

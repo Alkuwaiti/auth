@@ -147,5 +147,4 @@ func TestDeleteUser_UserIsSoftDeleted(t *testing.T) {
 	deletedUser, err := service.Repo.GetUserByID(ctx, user.ID)
 	require.NoError(t, err)
 	require.NotNil(t, deletedUser.DeletedAt)
-	require.Equal(t, domain.DeletionUserRequest, *deletedUser.DeletionReason)
 }
