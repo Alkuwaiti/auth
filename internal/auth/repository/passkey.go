@@ -27,14 +27,8 @@ func (r *Repo) GetWebAuthnChallenge(ctx context.Context, challengeBytes []byte) 
 		return domain.WebAuthnChallenge{}, err
 	}
 
-	var userID *uuid.UUID
-	if challenge.UserID.Valid {
-		userID = &challenge.UserID.UUID
-	}
-
 	return domain.WebAuthnChallenge{
 		Challenge: challenge.Challenge,
-		UserID:    userID,
 		ExpiresAt: challenge.ExpiresAt,
 	}, nil
 }
@@ -59,7 +53,6 @@ func (r *Repo) GetPasskeyByCredentialID(ctx context.Context, credentialID []byte
 		ID:        passkey.ID,
 		PublicKey: passkey.PublicKey,
 		UserID:    passkey.UserID,
-		SignCount: passkey.SignCount,
 	}, nil
 }
 
