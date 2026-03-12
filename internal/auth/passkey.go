@@ -21,6 +21,8 @@ import (
 	"github.com/google/uuid"
 )
 
+// TODO: add tests.
+
 type RP struct {
 	ID   string
 	Name string
@@ -416,18 +418,15 @@ func (s *Service) VerifyPasskeyAuthentication(ctx context.Context, resp Assertio
 		return TokenPair{}, ErrInvalidRPID
 	}
 
-	// TODO: use these
-	// flags := authData[32]
-	//
-	// if flags&0x01 == 0 {
-	// 	return TokenPair{}, ErrUserNotPresent
-	// }
+	flags := authData[32]
 
-	/*
-		if flags&0x04 == 0 {
-			return TokenPair{}, ErrUserNotVerified
-		}
-	*/
+	if flags&0x01 == 0 {
+		return TokenPair{}, ErrUserNotPresent
+	}
+
+	if flags&0x04 == 0 {
+		return TokenPair{}, ErrUserNotVerified
+	}
 
 	passkey, err := s.Repo.GetPasskeyByCredentialID(ctx, credID)
 	if err != nil {

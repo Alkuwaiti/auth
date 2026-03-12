@@ -66,13 +66,13 @@ func (s *Service) Login(ctx context.Context, email string, password string, reme
 	var challenge domain.MFAChallenge
 	if len(methods) > 0 {
 		// TODO: change the implementation when you have multiple methods.
-		// TODO: move the expiration up.
 		challenge, err = s.Repo.CreateChallenge(ctx, domain.MFAChallenge{
 			MethodID:      methods[0].ID,
 			UserID:        user.ID,
 			Scope:         domain.ScopeLogin,
 			ChallengeType: domain.ChallengeLogin,
 			RememberMe:    rememberMe,
+			ExpiresAt:     time.Now().Add(5 * time.Minute),
 		})
 		if err != nil {
 			return LoginResult{}, err

@@ -53,6 +53,7 @@ func setupUserWithTOTP(t *testing.T, svc *auth.Service, ctx context.Context) (us
 		UserID:        user.ID,
 		Scope:         domain.ScopeLogin,
 		ChallengeType: domain.ChallengeLogin,
+		ExpiresAt:     time.Now().Add(5 * time.Minute),
 	})
 	require.NoError(t, err)
 
