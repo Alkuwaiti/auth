@@ -192,7 +192,6 @@ message StartPasskeyGenerationResponse {
 
 message PasskeyResponse {
   string attestation_object = 1;
-  // TODO: consider changing these to bytes as is in below implementation.
   string authenticator_data = 2;
   string client_data_json = 3;
   string public_key = 4;

@@ -129,6 +129,8 @@ func main() {
 		googleProvider,
 		auth.Config{
 			MaxChallengeAttempts: cfg.MaxChallengeAttempts,
+			FrontendOrigin:       cfg.FrontendOrigin,
+			Domain:               cfg.Domain,
 		})
 
 	port := 8081

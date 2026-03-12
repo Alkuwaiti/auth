@@ -76,7 +76,6 @@ func (s *service) GenerateTOTPKey(email string) (*otp.Key, error) {
 
 func (s *service) GenerateEncryptedSecret(key *otp.Key) ([]byte, error) {
 	return s.crypto.Encrypt([]byte(key.Secret()))
-
 }
 
 func (s *service) GenerateBackupCodes(n int, hashFn func(string) (string, error)) (plain []string, hashed []string, err error) {

@@ -26,6 +26,8 @@ type Service struct {
 
 type Config struct {
 	MaxChallengeAttempts int
+	FrontendOrigin       string
+	Domain               string
 }
 
 func NewService(repo Repo, passwords passwords, auditor auditor, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, googleProvider googleProvider, Config Config) *Service {
