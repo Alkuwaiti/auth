@@ -17,7 +17,7 @@ func (r *Repo) CreateChallenge(ctx context.Context, challenge domain.MFAChalleng
 		MfaMethodID:   challenge.MethodID,
 		Scope:         challenge.Scope.String(),
 		ChallengeType: challenge.ChallengeType.String(),
-		ExpiresAt:     time.Now().Add(5 * time.Minute),
+		ExpiresAt:     challenge.ExpiresAt,
 		RememberMe:    challenge.RememberMe,
 	})
 	if err != nil {

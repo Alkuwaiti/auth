@@ -21,6 +21,8 @@ import (
 	"github.com/google/uuid"
 )
 
+// TODO: add tests.
+
 type RP struct {
 	ID   string
 	Name string
@@ -88,7 +90,7 @@ func (s *Service) StartPasskeyGeneration(ctx context.Context) (Options, error) {
 		return Options{}, err
 	}
 
-	return buildOptions(user, challenge, creds), nil
+	return s.buildOptions(user, challenge, creds), nil
 }
 
 func generateChallenge() ([]byte, error) {
@@ -97,7 +99,7 @@ func generateChallenge() ([]byte, error) {
 	return b, err
 }
 
-func buildOptions(user domain.User, challenge []byte, creds [][]byte) Options {
+func (s *Service) buildOptions(user domain.User, challenge []byte, creds [][]byte) Options {
 	exclude := make([]ExcludeCredential, len(creds))
 
 	for i, c := range creds {
@@ -110,9 +112,8 @@ func buildOptions(user domain.User, challenge []byte, creds [][]byte) Options {
 	return Options{
 		Challenge: base64.RawURLEncoding.EncodeToString(challenge),
 		RP: RP{
-			// TODO: change to config
-			Name: "auth-service",
-			ID:   "localhost",
+			Name: s.Config.Domain,
+			ID:   s.Config.Domain,
 		},
 		User: UserEntity{
 			ID:          base64.RawURLEncoding.EncodeToString(user.ID[:]),
@@ -164,6 +165,14 @@ func (s *Service) VerifyPasskeyRegistration(ctx context.Context, req VerifyReque
 		return err
 	}
 
+	if clientData.Origin != s.Config.FrontendOrigin {
+		return ErrInvalidOrigin
+	}
+
+	if clientData.Type != "webauthn.create" {
+		return ErrInvalidClientData
+	}
+
 	challengeBytes, err := base64.RawURLEncoding.DecodeString(clientData.Challenge)
 	if err != nil {
 		return err
@@ -183,22 +192,12 @@ func (s *Service) VerifyPasskeyRegistration(ctx context.Context, req VerifyReque
 		return ErrChallengeMismatch
 	}
 
-	// TODO: change this
-	if clientData.Origin != "http://localhost:5173" {
-		return ErrInvalidOrigin
-	}
-
-	// TODO: change to config
-	if clientData.Type != "webauthn.create" {
-		return ErrInvalidClientData
-	}
-
 	att, err := decodeAttestation(req.Response.AttestationObject)
 	if err != nil {
 		return err
 	}
 
-	parsed, err := parseAuthData(att.AuthData)
+	parsed, err := s.parseAuthData(att.AuthData)
 	if err != nil {
 		return err
 	}
@@ -282,7 +281,7 @@ type ParsedAuthData struct {
 // N   credID
 // N   publicKey
 
-func parseAuthData(data []byte) (*ParsedAuthData, error) {
+func (s *Service) parseAuthData(data []byte) (*ParsedAuthData, error) {
 	offset := 32 // skip rpIdHash
 
 	flags := data[offset]
@@ -296,8 +295,7 @@ func parseAuthData(data []byte) (*ParsedAuthData, error) {
 		return nil, ErrNoAttestedData
 	}
 
-	// TODO: change to config
-	expected := sha256.Sum256([]byte("localhost"))
+	expected := sha256.Sum256([]byte(s.Config.Domain))
 
 	if !bytes.Equal(data[:32], expected[:]) {
 		return nil, ErrInvalidRPID
@@ -337,9 +335,8 @@ func (s *Service) StartPasskeyAuthentication(ctx context.Context) (AssertionOpti
 	}
 
 	return AssertionOptions{
-		Challenge: challenge,
-		// TODO: change to config
-		RpID:             "localhost",
+		Challenge:        challenge,
+		RpID:             s.Config.Domain,
 		UserVerification: "preferred",
 	}, nil
 }
@@ -410,30 +407,25 @@ func (s *Service) VerifyPasskeyAuthentication(ctx context.Context, resp Assertio
 		return TokenPair{}, ErrChallengeMismatch
 	}
 
-	// TODO: change to config
-	if clientData.Origin != "http://localhost:5173" {
+	if clientData.Origin != s.Config.FrontendOrigin {
 		return TokenPair{}, ErrInvalidOrigin
 	}
 
-	// TODO: change to config
-	expectedRPIDHash := sha256.Sum256([]byte("localhost"))
+	expectedRPIDHash := sha256.Sum256([]byte(s.Config.Domain))
 
 	if !bytes.Equal(authData[:32], expectedRPIDHash[:]) {
 		return TokenPair{}, ErrInvalidRPID
 	}
 
-	// TODO: use these
-	// flags := authData[32]
-	//
-	// if flags&0x01 == 0 {
-	// 	return TokenPair{}, ErrUserNotPresent
-	// }
+	flags := authData[32]
 
-	/*
-		if flags&0x04 == 0 {
-			return TokenPair{}, ErrUserNotVerified
-		}
-	*/
+	if flags&0x01 == 0 {
+		return TokenPair{}, ErrUserNotPresent
+	}
+
+	if flags&0x04 == 0 {
+		return TokenPair{}, ErrUserNotVerified
+	}
 
 	passkey, err := s.Repo.GetPasskeyByCredentialID(ctx, credID)
 	if err != nil {
@@ -444,15 +436,11 @@ func (s *Service) VerifyPasskeyAuthentication(ctx context.Context, resp Assertio
 		return TokenPair{}, err
 	}
 
-	signCount, err := parseSignCount(authData)
-	if err != nil {
-		return TokenPair{}, err
+	if len(authData) < 37 {
+		return TokenPair{}, ErrAuthdataShort
 	}
 
-	// TODO: maybe comment out?
-	// if signCount <= uint32(passkey.SignCount) {
-	// 	return TokenPair{}, ErrSignCountTooLow
-	// }
+	signCount := binary.BigEndian.Uint32(authData[33:37])
 
 	err = s.Repo.UpdatePasskeySignCount(ctx, passkey.ID, int64(signCount))
 	if err != nil {
@@ -465,12 +453,6 @@ func (s *Service) VerifyPasskeyAuthentication(ctx context.Context, resp Assertio
 	}
 
 	return s.finalizeLogin(ctx, user, audit.ActionPasskeyLogin, false)
-}
-func parseSignCount(authData []byte) (uint32, error) {
-	if len(authData) < 37 {
-		return 0, ErrAuthdataShort
-	}
-	return binary.BigEndian.Uint32(authData[33:37]), nil
 }
 
 func verifyAssertion(authData, clientDataJSON, signature, publicKey []byte) error {

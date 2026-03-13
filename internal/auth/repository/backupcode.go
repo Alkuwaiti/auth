@@ -3,7 +3,6 @@ package repository
 
 import (
 	"context"
-	"time"
 
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
@@ -37,18 +36,10 @@ func (r *Repo) DeleteUserBackupCodes(ctx context.Context, userID uuid.UUID) erro
 func toMFABackupCode(postgresCodes []postgres.MfaBackupCode) []domain.MFABackupCode {
 	backupCodes := make([]domain.MFABackupCode, len(postgresCodes))
 
-	var consumedAt *time.Time
 	for i, pg := range postgresCodes {
-		if pg.ConsumedAt.Valid {
-			consumedAt = &pg.ConsumedAt.Time
-		}
-
 		backupCodes[i] = domain.MFABackupCode{
-			ID:         pg.ID,
-			UserID:     pg.UserID,
-			CodeHash:   pg.CodeHash,
-			ConsumedAt: consumedAt,
-			CreatedAt:  pg.CreatedAt,
+			ID:       pg.ID,
+			CodeHash: pg.CodeHash,
 		}
 	}
 

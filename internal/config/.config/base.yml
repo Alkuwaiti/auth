@@ -1,4 +1,3 @@
-# TODO: add env vars here to prevent future viper mishaps
 loglevel: "debug"
 refreshenabled: true
 maxchallengeattempts: 5

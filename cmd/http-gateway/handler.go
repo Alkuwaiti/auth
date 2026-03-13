@@ -35,8 +35,6 @@ func (h *Handler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, res.AuthUrl, http.StatusFound)
 }
 
-// TODO: change to vite's origin and test
-
 func (h *Handler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()

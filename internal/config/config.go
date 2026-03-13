@@ -34,7 +34,8 @@ type Config struct {
 	MaxChallengeAttempts int
 	GoogleConfig         googleConfig
 	KafkaConfig          kafkaConfig
-	Origin               string
+	FrontendOrigin       string
+	Domain               string
 }
 
 type googleConfig struct {

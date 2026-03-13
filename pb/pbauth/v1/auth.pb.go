@@ -1648,14 +1648,13 @@ func (x *StartPasskeyGenerationResponse) GetExcludeCredentials() []*ExcludeCrede
 }
 
 type PasskeyResponse struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	AttestationObject string                 `protobuf:"bytes,1,opt,name=attestation_object,json=attestationObject,proto3" json:"attestation_object,omitempty"`
-	// TODO: consider changing these to bytes as is in below implementation.
-	AuthenticatorData  string   `protobuf:"bytes,2,opt,name=authenticator_data,json=authenticatorData,proto3" json:"authenticator_data,omitempty"`
-	ClientDataJson     string   `protobuf:"bytes,3,opt,name=client_data_json,json=clientDataJson,proto3" json:"client_data_json,omitempty"`
-	PublicKey          string   `protobuf:"bytes,4,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
-	PublicKeyAlgorithm int32    `protobuf:"varint,5,opt,name=public_key_algorithm,json=publicKeyAlgorithm,proto3" json:"public_key_algorithm,omitempty"`
-	Transports         []string `protobuf:"bytes,6,rep,name=transports,proto3" json:"transports,omitempty"`
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	AttestationObject  string                 `protobuf:"bytes,1,opt,name=attestation_object,json=attestationObject,proto3" json:"attestation_object,omitempty"`
+	AuthenticatorData  string                 `protobuf:"bytes,2,opt,name=authenticator_data,json=authenticatorData,proto3" json:"authenticator_data,omitempty"`
+	ClientDataJson     string                 `protobuf:"bytes,3,opt,name=client_data_json,json=clientDataJson,proto3" json:"client_data_json,omitempty"`
+	PublicKey          string                 `protobuf:"bytes,4,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	PublicKeyAlgorithm int32                  `protobuf:"varint,5,opt,name=public_key_algorithm,json=publicKeyAlgorithm,proto3" json:"public_key_algorithm,omitempty"`
+	Transports         []string               `protobuf:"bytes,6,rep,name=transports,proto3" json:"transports,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }

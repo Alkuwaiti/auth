@@ -58,8 +58,13 @@ func (s *Service) EnrollMFAMethod(ctx context.Context, methodType domain.MFAMeth
 		return EnrollmentResult{}, err
 	}
 
-	// TODO: expires at logic in db level, move that up to service.
-	method, err := s.Repo.CreateUserMFAMethod(ctx, userID, encryptedSecret, methodType)
+	expiresAt := time.Now().Add(5 * time.Minute)
+	method, err := s.Repo.CreateUserMFAMethod(ctx, domain.MFAMethod{
+		UserID:          userID,
+		EncryptedSecret: string(encryptedSecret),
+		Type:            methodType,
+		ExpiresAt:       &expiresAt,
+	})
 	if err != nil {
 		slog.ErrorContext(ctx, "error when creating a user mfa method", "err", err)
 		return EnrollmentResult{}, err

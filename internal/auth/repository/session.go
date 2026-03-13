@@ -82,10 +82,6 @@ func toSessionModel(session postgres.Session) domain.Session {
 	return domain.Session{
 		ID:               session.ID,
 		UserID:           session.UserID,
-		RefreshToken:     session.RefreshToken,
-		UserAgent:        session.UserAgent.String,
-		IPAddress:        session.IpAddress.String,
-		CreatedAt:        session.CreatedAt.Time,
 		ExpiresAt:        session.ExpiresAt,
 		RevokedAt:        revokedAt,
 		RevocationReason: domain.RevocationReason(session.RevocationReason.String),
