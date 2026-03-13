@@ -112,8 +112,7 @@ func (s *Service) buildOptions(user domain.User, challenge []byte, creds [][]byt
 	return Options{
 		Challenge: base64.RawURLEncoding.EncodeToString(challenge),
 		RP: RP{
-			// TODO: figure out why this isn't showing in the frontend.
-			Name: "auth-service",
+			Name: s.Config.Domain,
 			ID:   s.Config.Domain,
 		},
 		User: UserEntity{
@@ -166,6 +165,14 @@ func (s *Service) VerifyPasskeyRegistration(ctx context.Context, req VerifyReque
 		return err
 	}
 
+	if clientData.Origin != s.Config.FrontendOrigin {
+		return ErrInvalidOrigin
+	}
+
+	if clientData.Type != "webauthn.create" {
+		return ErrInvalidClientData
+	}
+
 	challengeBytes, err := base64.RawURLEncoding.DecodeString(clientData.Challenge)
 	if err != nil {
 		return err
@@ -183,14 +190,6 @@ func (s *Service) VerifyPasskeyRegistration(ctx context.Context, req VerifyReque
 
 	if !bytes.Equal(challengeBytes, storedChallenge.Challenge) {
 		return ErrChallengeMismatch
-	}
-
-	if clientData.Origin != s.Config.FrontendOrigin {
-		return ErrInvalidOrigin
-	}
-
-	if clientData.Type != "webauthn.create" {
-		return ErrInvalidClientData
 	}
 
 	att, err := decodeAttestation(req.Response.AttestationObject)
@@ -437,10 +436,11 @@ func (s *Service) VerifyPasskeyAuthentication(ctx context.Context, resp Assertio
 		return TokenPair{}, err
 	}
 
-	signCount, err := parseSignCount(authData)
-	if err != nil {
-		return TokenPair{}, err
+	if len(authData) < 37 {
+		return TokenPair{}, ErrAuthdataShort
 	}
+
+	signCount := binary.BigEndian.Uint32(authData[33:37])
 
 	err = s.Repo.UpdatePasskeySignCount(ctx, passkey.ID, int64(signCount))
 	if err != nil {
@@ -453,12 +453,6 @@ func (s *Service) VerifyPasskeyAuthentication(ctx context.Context, resp Assertio
 	}
 
 	return s.finalizeLogin(ctx, user, audit.ActionPasskeyLogin, false)
-}
-func parseSignCount(authData []byte) (uint32, error) {
-	if len(authData) < 37 {
-		return 0, ErrAuthdataShort
-	}
-	return binary.BigEndian.Uint32(authData[33:37]), nil
 }
 
 func verifyAssertion(authData, clientDataJSON, signature, publicKey []byte) error {

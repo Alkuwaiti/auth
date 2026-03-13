@@ -1,7 +1,7 @@
 export default function App() {
   const domain = "http://localhost:8080"
 
-  const bearer = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InFhc2ltbUBnbWFpbC5jb20iLCJyb2xlcyI6WyJ1c2VyIl0sInR5cGUiOiJhY2Nlc3MiLCJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiIwMTljZGRkMS0yNjg1LTc0YWYtOTNhYi1hZjIwMDA1YWQ1YWIiLCJhdWQiOlsiYXV0aC1zZXJ2aWNlIl0sImV4cCI6MTc3MzI0ODkwNywiaWF0IjoxNzczMjQ4MDA3fQ.Fu5kbsob65fb-aAvo_PFx7dJB2Jaq7hoqRX56nxPcM4";
+  const bearer = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InFhc2ltbUBnbWFpbC5jb20iLCJyb2xlcyI6WyJ1c2VyIl0sInR5cGUiOiJhY2Nlc3MiLCJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiIwMTljZTdhYS0yOGQ2LTc2ZDYtOWU5Ni1lMGFiOWUyMDhkN2EiLCJhdWQiOlsiYXV0aC1zZXJ2aWNlIl0sImV4cCI6MTc3MzQxNTAxOCwiaWF0IjoxNzczNDE0MTE4fQ.-t2UFyvls7hhAB4Igdk9-qeRvDt006fRbZCSsGdTft0";
 
   async function registerPasskey() {
     const res = await fetch(`${domain}/auth/passkey/register/options?bearer=${bearer}`, {

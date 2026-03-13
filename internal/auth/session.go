@@ -65,7 +65,6 @@ func (s *Service) Login(ctx context.Context, email string, password string, reme
 
 	var challenge domain.MFAChallenge
 	if len(methods) > 0 {
-		// TODO: change the implementation when you have multiple methods.
 		challenge, err = s.Repo.CreateChallenge(ctx, domain.MFAChallenge{
 			MethodID:      methods[0].ID,
 			UserID:        user.ID,
