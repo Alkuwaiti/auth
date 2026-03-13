@@ -24,6 +24,15 @@ type AuditLog struct {
 	Context   pqtype.NullRawMessage
 }
 
+type EmailChangeRequest struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	NewEmail  string
+	TokenHash string
+	ExpiresAt time.Time
+	CreatedAt time.Time
+}
+
 type EmailVerificationToken struct {
 	ID         uuid.UUID
 	UserID     uuid.UUID

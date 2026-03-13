@@ -36,3 +36,9 @@ type userChangePassword struct {
 	Email     string    `json:"email"`
 	ChangedAt time.Time `json:"changed_at"`
 }
+
+type userRequestEmailChange struct {
+	Email    string `json:"email"`
+	NewEmail string `json:"new_email"`
+	Token    string `json:"token"`
+}

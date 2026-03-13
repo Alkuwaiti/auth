@@ -39,3 +39,12 @@ func (r *Repo) VerifyUserEmail(ctx context.Context, userID uuid.UUID) (string, e
 func (r *Repo) InvalidateEmailVerificationTokens(ctx context.Context, userID uuid.UUID) error {
 	return r.queries.InvalidateEmailVerificationTokens(ctx, userID)
 }
+
+func (r *Repo) CreateEmailChangeRequest(ctx context.Context, userID uuid.UUID, newEmail string, tokenHash string, ExpiresAt time.Time) error {
+	return r.queries.CreateEmailChangeRequest(ctx, postgres.CreateEmailChangeRequestParams{
+		UserID:    userID,
+		NewEmail:  newEmail,
+		TokenHash: tokenHash,
+		ExpiresAt: ExpiresAt,
+	})
+}

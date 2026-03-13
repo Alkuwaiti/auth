@@ -189,6 +189,28 @@ func (q *Queries) CreateChallenge(ctx context.Context, arg CreateChallengeParams
 	return i, err
 }
 
+const createEmailChangeRequest = `-- name: CreateEmailChangeRequest :exec
+INSERT INTO email_change_requests (user_id, new_email, token_hash, expires_at)
+VALUES ($1, $2, $3, $4)
+`
+
+type CreateEmailChangeRequestParams struct {
+	UserID    uuid.UUID
+	NewEmail  string
+	TokenHash string
+	ExpiresAt time.Time
+}
+
+func (q *Queries) CreateEmailChangeRequest(ctx context.Context, arg CreateEmailChangeRequestParams) error {
+	_, err := q.db.ExecContext(ctx, createEmailChangeRequest,
+		arg.UserID,
+		arg.NewEmail,
+		arg.TokenHash,
+		arg.ExpiresAt,
+	)
+	return err
+}
+
 const createEmailVerificationToken = `-- name: CreateEmailVerificationToken :exec
 INSERT INTO email_verification_tokens (user_id, token_hash, expires_at)
 VALUES ($1, $2, $3)

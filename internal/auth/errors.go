@@ -36,4 +36,6 @@ var (
 	ErrAuthdataShort                 = errors.New("authenticatorData too short")
 	ErrUserNotPresent                = errors.New("user not present")
 	ErrUserNotVerified               = errors.New("user not verified")
+	ErrEmailAlreadyInUse             = errors.New("email already in use")
+	ErrEmailUnchanged                = errors.New("email unchanged")
 )
