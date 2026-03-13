@@ -30,6 +30,7 @@ service AuthService {
   rpc VerifyPasskeyRegistration(VerifyPasskeyRegistrationRequest) returns (google.protobuf.Empty) {}
   rpc StartPasskeyAuthentication(google.protobuf.Empty) returns (StartPasskeyAuthenticationResponse) {}
   rpc VerifyPasskeyAuthentication(VerifyPasskeyAuthenticationRequest) returns (TokenPair) {}
+  rpc StartRequestEmailChange(StartRequestEmailChangeRequest) returns (google.protobuf.Empty) {}
 }
 
 message LoginRequest {
@@ -224,4 +225,8 @@ message VerifyPasskeyAuthenticationRequest {
   string raw_id = 2;
   string type = 3;
   AssertionResponseData response = 4;
+}
+
+message StartRequestEmailChangeRequest {
+  string new_email = 1;
 }
