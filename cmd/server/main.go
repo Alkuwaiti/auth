@@ -22,7 +22,6 @@ import (
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/alkuwaiti/auth/internal/flags"
 	"github.com/alkuwaiti/auth/internal/mfa"
-	"github.com/alkuwaiti/auth/internal/password"
 	"github.com/alkuwaiti/auth/internal/server/grpc"
 	googlesocial "github.com/alkuwaiti/auth/internal/social/google"
 	"github.com/alkuwaiti/auth/internal/tokens"
@@ -82,8 +81,6 @@ func main() {
 		}
 	}()
 
-	passwords := password.NewService(12)
-
 	queries := postgres.New(dbConn)
 
 	auditRepo := audit.NewRepo(queries)
@@ -121,7 +118,6 @@ func main() {
 	})
 
 	authService := auth.NewService(authRepo,
-		passwords,
 		auditor,
 		flags,
 		tokens,

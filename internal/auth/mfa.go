@@ -9,6 +9,7 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
+	"github.com/alkuwaiti/auth/internal/passwords"
 	"github.com/alkuwaiti/auth/pkg/contextkeys"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
@@ -127,7 +128,7 @@ func (s *Service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 		}
 
 		var hashed []string
-		backupCodes, hashed, err = s.MFAProvider.GenerateBackupCodes(10, s.Passwords.Hash)
+		backupCodes, hashed, err = s.MFAProvider.GenerateBackupCodes(10, passwords.Hash)
 		if err != nil {
 			slog.ErrorContext(ctx, "error generating backup codes", "err", err, "method_id", methodID)
 			return err

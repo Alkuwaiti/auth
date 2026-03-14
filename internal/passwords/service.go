@@ -1,5 +1,5 @@
-// Package password holds everything password related
-package password
+// Package passwords holds everything password related
+package passwords
 
 import (
 	"errors"
@@ -8,22 +8,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type passwords struct {
-	cost int
-}
-
-func NewService(cost int) *passwords {
-	return &passwords{
-		cost,
-	}
-}
-
-func (p *passwords) Hash(password string) (string, error) {
-	b, err := bcrypt.GenerateFromPassword([]byte(password), p.cost)
+func Hash(password string) (string, error) {
+	b, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 	return string(b), err
 }
 
-func (p *passwords) Compare(hash, password string) (bool, error) {
+func Compare(hash, password string) (bool, error) {
 	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)); err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
 			return false, nil
@@ -33,7 +23,7 @@ func (p *passwords) Compare(hash, password string) (bool, error) {
 	return true, nil
 }
 
-func (p *passwords) Validate(password string) error {
+func Validate(password string) error {
 	runes := []rune(password)
 
 	if len(runes) < 8 {

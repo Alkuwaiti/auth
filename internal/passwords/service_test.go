@@ -1,4 +1,4 @@
-package password
+package passwords
 
 import (
 	"testing"
@@ -56,11 +56,9 @@ func TestService(t *testing.T) {
 		},
 	}
 
-	service := NewService(12)
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := service.Validate(tt.password)
+			err := Validate(tt.password)
 
 			if tt.expectedErr != nil {
 				require.ErrorIs(t, err, tt.expectedErr)

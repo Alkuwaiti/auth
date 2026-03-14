@@ -8,6 +8,7 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
+	"github.com/alkuwaiti/auth/internal/passwords"
 
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/pkg/contextkeys"
@@ -29,11 +30,11 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 		return domain.User{}, err
 	}
 
-	if err := s.Passwords.Validate(input.Password); err != nil {
+	if err := passwords.Validate(input.Password); err != nil {
 		return domain.User{}, err
 	}
 
-	newPasswordHash, err := s.Passwords.Hash(input.Password)
+	newPasswordHash, err := passwords.Hash(input.Password)
 	if err != nil {
 		span.RecordError(err)
 		return domain.User{}, err

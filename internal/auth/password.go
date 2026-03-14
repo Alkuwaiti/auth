@@ -9,6 +9,7 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
+	"github.com/alkuwaiti/auth/internal/passwords"
 	"github.com/alkuwaiti/auth/pkg/contextkeys"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
@@ -33,14 +34,14 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 
 	meta := contextkeys.RequestMetaFromContext(ctx)
 
-	if err = s.Passwords.Validate(newPassword); err != nil {
+	if err = passwords.Validate(newPassword); err != nil {
 		return err
 	}
 
 	user, err := s.Repo.GetUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			_, _ = s.Passwords.Compare(dummyBcryptHash, oldPassword)
+			_, _ = passwords.Compare(dummyBcryptHash, oldPassword)
 			return ErrInvalidCredentials
 		}
 
@@ -58,7 +59,7 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 	// social login users have nil password hashes, so this is necessary.
 	if user.PasswordHash != nil {
 		var match bool
-		match, err = s.Passwords.Compare(*user.PasswordHash, oldPassword)
+		match, err = passwords.Compare(*user.PasswordHash, oldPassword)
 		if err != nil {
 			slog.ErrorContext(ctx, "failed to compare passwords", "err", err)
 			return err
@@ -67,7 +68,7 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 			return ErrInvalidCredentials
 		}
 
-		match, err = s.Passwords.Compare(*user.PasswordHash, newPassword)
+		match, err = passwords.Compare(*user.PasswordHash, newPassword)
 		if err != nil {
 			slog.ErrorContext(ctx, "failed to compare passwords", "err", err)
 			return err
@@ -77,7 +78,7 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 		}
 	}
 
-	newPasswordHash, err := s.Passwords.Hash(newPassword)
+	newPasswordHash, err := passwords.Hash(newPassword)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to hash new password")
@@ -200,7 +201,7 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 	)
 	hashedToken := s.TokenManager.Hash(token)
 
-	if err = s.Passwords.Validate(newPassword); err != nil {
+	if err = passwords.Validate(newPassword); err != nil {
 		return err
 	}
 
@@ -214,7 +215,7 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 		}
 
 		var hashedPassword string
-		hashedPassword, err = s.Passwords.Hash(newPassword)
+		hashedPassword, err = passwords.Hash(newPassword)
 		if err != nil {
 			return err
 		}

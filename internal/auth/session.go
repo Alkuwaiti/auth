@@ -8,6 +8,7 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
+	"github.com/alkuwaiti/auth/internal/passwords"
 	"github.com/alkuwaiti/auth/pkg/contextkeys"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
@@ -36,7 +37,7 @@ func (s *Service) Login(ctx context.Context, email string, password string, reme
 		return LoginResult{}, err
 	}
 
-	match, err := s.Passwords.Compare(*user.PasswordHash, password)
+	match, err := passwords.Compare(*user.PasswordHash, password)
 	if err != nil {
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email)
 		return LoginResult{}, err

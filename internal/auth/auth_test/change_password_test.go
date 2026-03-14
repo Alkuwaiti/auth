@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/auth"
+	"github.com/alkuwaiti/auth/internal/passwords"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -196,7 +197,7 @@ func TestChangePassword_NilPasswordHash(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, updatedUser.PasswordHash)
 
-	match, err := service.Passwords.Compare(*updatedUser.PasswordHash, newPassword)
+	match, err := passwords.Compare(*updatedUser.PasswordHash, newPassword)
 	require.NoError(t, err)
 	require.True(t, match)
 }

@@ -15,7 +15,6 @@ import (
 
 type Service struct {
 	Repo           Repo
-	Passwords      passwords
 	auditor        auditor
 	Flags          featureFlags
 	TokenManager   tokenManager
@@ -30,10 +29,9 @@ type Config struct {
 	Domain               string
 }
 
-func NewService(repo Repo, passwords passwords, auditor auditor, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, googleProvider googleProvider, Config Config) *Service {
+func NewService(repo Repo, auditor auditor, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, googleProvider googleProvider, Config Config) *Service {
 	return &Service{
 		Repo:           repo,
-		Passwords:      passwords,
 		auditor:        auditor,
 		Flags:          flags,
 		TokenManager:   tokenManager,
@@ -94,12 +92,6 @@ type Repo interface {
 
 type auditor interface {
 	CreateAuditLog(ctx context.Context, input audit.CreateAuditLogInput) error
-}
-
-type passwords interface {
-	Validate(password string) error
-	Hash(password string) (string, error)
-	Compare(hash string, password string) (bool, error)
 }
 
 type featureFlags interface {
