@@ -49,15 +49,25 @@ func (r *Repo) CreateEmailChangeRequest(ctx context.Context, userID uuid.UUID, n
 	})
 }
 
-func (r *Repo) GetEmailChangeRequestByTokenHash(ctx context.Context, tokenHash string) (string, error) {
+func (r *Repo) GetEmailChangeRequestByTokenHash(ctx context.Context, tokenHash string) (domain.ChangeEmailRequest, error) {
 	changeEmailRequestRow, err := r.queries.GetEmailChangeRequestByTokenHash(ctx, tokenHash)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return "", domain.ErrNotFound
+			return domain.ChangeEmailRequest{}, domain.ErrNotFound
 		}
 
-		return "", err
+		return domain.ChangeEmailRequest{}, err
 	}
 
-	return changeEmailRequestRow.NewEmail, nil
+	return domain.ChangeEmailRequest{
+		UserID:   changeEmailRequestRow.UserID,
+		NewEmail: changeEmailRequestRow.NewEmail,
+	}, nil
+}
+
+func (r *Repo) UpdateUserEmail(ctx context.Context, userID uuid.UUID, email string) error {
+	return r.queries.UpdateUserEmail(ctx, postgres.UpdateUserEmailParams{
+		ID:    userID,
+		Email: email,
+	})
 }

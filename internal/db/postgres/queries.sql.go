@@ -1130,6 +1130,22 @@ func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) 
 	return err
 }
 
+const updateUserEmail = `-- name: UpdateUserEmail :exec
+UPDATE users 
+SET email = $1
+WHERE id = $2
+`
+
+type UpdateUserEmailParams struct {
+	Email string
+	ID    uuid.UUID
+}
+
+func (q *Queries) UpdateUserEmail(ctx context.Context, arg UpdateUserEmailParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserEmail, arg.Email, arg.ID)
+	return err
+}
+
 const userHasActiveMFAMethod = `-- name: UserHasActiveMFAMethod :one
 SELECT COUNT(*) > 0 AS exists
 FROM user_mfa_methods

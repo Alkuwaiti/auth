@@ -340,3 +340,8 @@ VALUES ($1, $2, $3, $4);
 SELECT * FROM email_change_requests 
 WHERE token_hash = $1
   AND expires_at > NOW ();
+
+-- name: UpdateUserEmail :exec
+UPDATE users 
+SET email = $1
+WHERE id = $2;

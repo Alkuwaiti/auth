@@ -199,8 +199,19 @@ func (s *Service) StartRequestEmailChange(ctx context.Context, newEmail string) 
 func (s *Service) CompleteRequestEmailChange(ctx context.Context, token string) error {
 	hashedToken := s.TokenManager.Hash(token)
 
-	newEmail, err := s.Repo.GetEmailChangeRequestByTokenHash(ctx, hashedToken)
-	if err != nil {
-		return err
-	}
+	return s.Repo.WithTx(ctx, func(r Repo) error {
+		req, err := r.GetEmailChangeRequestByTokenHash(ctx, hashedToken)
+		if err != nil {
+			if errors.Is(err, domain.ErrNotFound) {
+				return ErrInvalidEmailChangeToken
+			}
+			return err
+		}
+
+		if err := r.UpdateUserEmail(ctx, req.UserID, req.NewEmail); err != nil {
+			return err
+		}
+
+		return r.DeleteEmailChangeRequest(ctx, req.ID)
+	})
 }
