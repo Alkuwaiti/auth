@@ -5,7 +5,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	googlesocial "github.com/alkuwaiti/auth/internal/social/google"
 	"github.com/google/uuid"
@@ -15,7 +14,6 @@ import (
 
 type Service struct {
 	Repo           Repo
-	auditor        auditor
 	Flags          featureFlags
 	TokenManager   tokenManager
 	MFAProvider    MFAProvider
@@ -29,10 +27,9 @@ type Config struct {
 	Domain               string
 }
 
-func NewService(repo Repo, auditor auditor, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, googleProvider googleProvider, Config Config) *Service {
+func NewService(repo Repo, flags featureFlags, tokenManager tokenManager, MFAProvider MFAProvider, googleProvider googleProvider, Config Config) *Service {
 	return &Service{
 		Repo:           repo,
-		auditor:        auditor,
 		Flags:          flags,
 		TokenManager:   tokenManager,
 		MFAProvider:    MFAProvider,
@@ -88,10 +85,7 @@ type Repo interface {
 	GetEmailChangeRequestByTokenHash(ctx context.Context, tokenHash string) (domain.ChangeEmailRequest, error)
 	UpdateUserEmail(ctx context.Context, userID uuid.UUID, email string) error
 	DeleteEmailChangeRequest(ctx context.Context, requestID uuid.UUID) error
-}
-
-type auditor interface {
-	CreateAuditLog(ctx context.Context, input audit.CreateAuditLogInput) error
+	CreateAuditLog(ctx context.Context, input domain.CreateAuditLogInput) error
 }
 
 type featureFlags interface {

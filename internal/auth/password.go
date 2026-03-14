@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/passwords"
 	"github.com/alkuwaiti/auth/pkg/contextkeys"
@@ -123,9 +122,9 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 		return err
 	}
 
-	if err = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+	if err = s.Repo.CreateAuditLog(ctx, domain.CreateAuditLogInput{
 		UserID:    &user.ID,
-		Action:    audit.ActionPasswordChange,
+		Action:    domain.ActionPasswordChange,
 		IPAddress: &meta.IPAddress,
 		UserAgent: &meta.UserAgent,
 	}); err != nil {
@@ -256,9 +255,9 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 
 	meta := contextkeys.RequestMetaFromContext(ctx)
 
-	if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+	if err := s.Repo.CreateAuditLog(ctx, domain.CreateAuditLogInput{
 		UserID:    &userID,
-		Action:    audit.ActionPasswordReset,
+		Action:    domain.ActionPasswordReset,
 		IPAddress: &meta.IPAddress,
 		UserAgent: &meta.UserAgent,
 	}); err != nil {

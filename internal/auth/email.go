@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/pkg/contextkeys"
 )
@@ -35,9 +34,9 @@ func (s *Service) VerifyEmail(ctx context.Context, rawToken string) error {
 
 		meta := contextkeys.RequestMetaFromContext(ctx)
 
-		if err = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+		if err = r.CreateAuditLog(ctx, domain.CreateAuditLogInput{
 			UserID:    &userID,
-			Action:    audit.ActionVerifyEmail,
+			Action:    domain.ActionVerifyEmail,
 			IPAddress: &meta.IPAddress,
 			UserAgent: &meta.UserAgent,
 		}); err != nil {

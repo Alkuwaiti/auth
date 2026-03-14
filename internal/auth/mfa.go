@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/passwords"
 	"github.com/alkuwaiti/auth/pkg/contextkeys"
@@ -145,10 +144,10 @@ func (s *Service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 	}
 
 	meta := contextkeys.RequestMetaFromContext(ctx)
-	if err = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+	if err = s.Repo.CreateAuditLog(ctx, domain.CreateAuditLogInput{
 		UserID: &method.UserID,
-		Action: audit.ActionConfirmMFAMethod,
-		Context: audit.AuditContext{
+		Action: domain.ActionConfirmMFAMethod,
+		Context: domain.AuditContext{
 			"method_type": "totp",
 			"method_id":   methodID.String(),
 		},
@@ -177,7 +176,7 @@ func (s *Service) CompleteLoginMFA(ctx context.Context, challengeID uuid.UUID, c
 		return TokenPair{}, err
 	}
 
-	return s.finalizeLogin(ctx, user, audit.ActionLoginMFA, challenge.RememberMe)
+	return s.finalizeLogin(ctx, user, domain.ActionLoginMFA, challenge.RememberMe)
 }
 
 type CreateStepUpChallengeResponse struct {
@@ -341,10 +340,10 @@ func (s *Service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 	}
 
 	meta := contextkeys.RequestMetaFromContext(ctx)
-	if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+	if err := s.Repo.CreateAuditLog(ctx, domain.CreateAuditLogInput{
 		UserID: &challenge.UserID,
-		Action: audit.ActionConsumeChallenge,
-		Context: audit.AuditContext{
+		Action: domain.ActionConsumeChallenge,
+		Context: domain.AuditContext{
 			"method_type":  "totp",
 			"challenge_id": challengeID.String(),
 		},
