@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth"
+	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -108,10 +108,10 @@ func TestRegisterUser_AuditTrail(t *testing.T) {
 		SELECT action, user_id, created_at
 		FROM audit_logs
 		WHERE action = $1 AND user_id = $2
-	`, audit.ActionCreateUser, user.ID).
+	`, domain.ActionCreateUser, user.ID).
 		Scan(&auditLog.Action, &auditLog.UserID, &auditLog.CreatedAt)
 	require.NoError(t, err)
-	require.Equal(t, string(audit.ActionCreateUser), auditLog.Action)
+	require.Equal(t, string(domain.ActionCreateUser), auditLog.Action)
 	require.Equal(t, user.ID, auditLog.UserID)
 	require.False(t, auditLog.CreatedAt.IsZero())
 }

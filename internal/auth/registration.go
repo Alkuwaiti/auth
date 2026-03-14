@@ -68,7 +68,7 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 			return err
 		}
 
-		if err = s.Repo.CreateAuditLog(ctx, domain.CreateAuditLogInput{
+		if err = r.CreateAuditLog(ctx, domain.CreateAuditLogInput{
 			UserID:    &user.ID,
 			Action:    domain.ActionCreateUser,
 			IPAddress: &meta.IPAddress,
