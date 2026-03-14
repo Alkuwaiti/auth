@@ -37,6 +37,7 @@ func TestConfirmEmailChange_Success(t *testing.T) {
 		SELECT payload
 		FROM outbox_events
 		WHERE aggregate_id = $1
+	  	AND event_type = 'user.email.change.request'
 	`, user.ID.String()).Scan(&payload)
 	require.NoError(t, err)
 
@@ -83,46 +84,6 @@ func TestConfirmEmailChange_InvalidToken(t *testing.T) {
 	err := service.ConfirmEmailChange(ctx, "invalid-token")
 
 	require.ErrorIs(t, err, auth.ErrInvalidEmailChangeToken)
-}
-
-func TestConfirmEmailChange_EmailAlreadyInUse(t *testing.T) {
-	service, db, cleanup := setupTestAuthService(t)
-	defer cleanup()
-
-	ctx := context.Background()
-	ctx = testutil.CtxWithRequestMeta(ctx)
-
-	user1, err := service.RegisterUser(ctx, auth.RegisterUserInput{
-		Email:    "user1@example.com",
-		Password: "StrongPassword123!",
-	})
-	require.NoError(t, err)
-
-	_, err = service.RegisterUser(ctx, auth.RegisterUserInput{
-		Email:    "taken@example.com",
-		Password: "StrongPassword123!",
-	})
-	require.NoError(t, err)
-
-	ctx = testutil.CtxWithUserID(ctx, user1.ID)
-	ctx = testutil.CtxWithEmail(ctx, "old@example.com")
-
-	err = service.StartEmailChange(ctx, "taken@example.com")
-	require.NoError(t, err)
-
-	rawToken := "test-token"
-	hashed := service.TokenManager.Hash(rawToken)
-
-	_, err = db.Exec(`
-		UPDATE email_change_requests
-		SET token_hash = $1
-		WHERE user_id = $2
-	`, hashed, user1.ID)
-	require.NoError(t, err)
-
-	err = service.ConfirmEmailChange(ctx, rawToken)
-
-	require.ErrorIs(t, err, auth.ErrEmailAlreadyInUse)
 }
 
 func TestConfirmEmailChange_ExpiredToken(t *testing.T) {

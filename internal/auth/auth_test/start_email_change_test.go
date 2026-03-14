@@ -76,7 +76,7 @@ func TestStartEmailChange_EmailUnchanged(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx = testutil.CtxWithUserID(ctx, user.ID)
-	ctx = testutil.CtxWithEmail(ctx, "old@example.com")
+	ctx = testutil.CtxWithEmail(ctx, "same@example.com")
 
 	err = service.StartEmailChange(ctx, "same@example.com")
 

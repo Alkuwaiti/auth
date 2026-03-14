@@ -27,6 +27,7 @@ var publicMethods = map[string]struct{}{
 	"/auth.v1.AuthService/CompleteGoogleLogin":         {},
 	"/auth.v1.AuthService/StartPasskeyAuthentication":  {},
 	"/auth.v1.AuthService/VerifyPasskeyAuthentication": {},
+	"/auth.v1.AuthService/ConfirmEmailChange":          {},
 }
 
 type JWTValidator interface {
