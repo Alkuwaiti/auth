@@ -97,6 +97,7 @@ func (s *Service) CreateEmailVerificationToken(ctx context.Context, email string
 
 	if err = s.Repo.WithTx(ctx, func(r Repo) error {
 		if err = r.CreateEmailVerificationToken(ctx, user.ID, hash, time.Now().Add(30*time.Minute)); err != nil {
+			slog.ErrorContext(ctx, "failed to create email verification token", "err", err)
 			return err
 		}
 
@@ -155,6 +156,7 @@ func (s *Service) StartEmailChange(ctx context.Context, newEmail string) error {
 		return ErrEmailAlreadyInUse
 	}
 	if !errors.Is(err, domain.ErrNotFound) {
+		slog.ErrorContext(ctx, "failed to get user by email", "err", err)
 		return err
 	}
 
@@ -165,6 +167,7 @@ func (s *Service) StartEmailChange(ctx context.Context, newEmail string) error {
 
 	if err = s.Repo.WithTx(ctx, func(r Repo) error {
 		if err = r.CreateEmailChangeRequest(ctx, userID, newEmail, hash, time.Now().Add(15*time.Minute)); err != nil {
+			slog.ErrorContext(ctx, "failed to create email change request", "err", err)
 			return err
 		}
 
@@ -185,6 +188,7 @@ func (s *Service) StartEmailChange(ctx context.Context, newEmail string) error {
 			EventType:     "user.email.change.request",
 			Payload:       payload,
 		}); err != nil {
+			slog.ErrorContext(ctx, "failed to create outbox event", "err", err)
 			return err
 		}
 
@@ -205,6 +209,7 @@ func (s *Service) ConfirmEmailChange(ctx context.Context, token string) error {
 			if errors.Is(err, domain.ErrNotFound) {
 				return ErrInvalidEmailChangeToken
 			}
+			slog.ErrorContext(ctx, "failed to get email change request", "err", err)
 			return err
 		}
 
@@ -212,9 +217,15 @@ func (s *Service) ConfirmEmailChange(ctx context.Context, token string) error {
 			if errors.Is(err, domain.ErrRecordAlreadyExists) {
 				return ErrEmailAlreadyInUse
 			}
+			slog.ErrorContext(ctx, "failed to update user email", "err", err)
 			return err
 		}
 
-		return r.DeleteEmailChangeRequest(ctx, req.ID)
+		if err := r.DeleteEmailChangeRequest(ctx, req.ID); err != nil {
+			slog.ErrorContext(ctx, "failed to delete email change request", "err", err)
+			return err
+		}
+
+		return nil
 	})
 }
