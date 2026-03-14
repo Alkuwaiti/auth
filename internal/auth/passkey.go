@@ -162,6 +162,7 @@ func (s *Service) VerifyPasskeyRegistration(ctx context.Context, req VerifyReque
 
 	clientData, err := decodeClientData(req.Response.ClientDataJSON)
 	if err != nil {
+		slog.ErrorContext(ctx, "error decoding client data", "err", err)
 		return err
 	}
 
@@ -175,6 +176,7 @@ func (s *Service) VerifyPasskeyRegistration(ctx context.Context, req VerifyReque
 
 	challengeBytes, err := base64.RawURLEncoding.DecodeString(clientData.Challenge)
 	if err != nil {
+		slog.ErrorContext(ctx, "error decoding string", "err", err)
 		return err
 	}
 
@@ -194,11 +196,13 @@ func (s *Service) VerifyPasskeyRegistration(ctx context.Context, req VerifyReque
 
 	att, err := decodeAttestation(req.Response.AttestationObject)
 	if err != nil {
+		slog.ErrorContext(ctx, "error decoding attestation", "err", err)
 		return err
 	}
 
 	parsed, err := s.parseAuthData(att.AuthData)
 	if err != nil {
+		slog.ErrorContext(ctx, "error parsing auth data", "err", err)
 		return err
 	}
 
@@ -208,6 +212,7 @@ func (s *Service) VerifyPasskeyRegistration(ctx context.Context, req VerifyReque
 
 	credID, err := base64.RawURLEncoding.DecodeString(req.RawID)
 	if err != nil {
+		slog.ErrorContext(ctx, "error decoding string", "err", err)
 		return err
 	}
 
@@ -216,6 +221,7 @@ func (s *Service) VerifyPasskeyRegistration(ctx context.Context, req VerifyReque
 	}
 
 	if err = s.Repo.CreatePasskey(ctx, userID, credentialID, publicKey, int64(signCount), req.Response.Transports); err != nil {
+		slog.ErrorContext(ctx, "error creating passkey", "err", err)
 		return err
 	}
 
@@ -233,6 +239,7 @@ func decodeClientData(encoded string) (ClientData, error) {
 	var data ClientData
 	raw, err := base64.RawURLEncoding.DecodeString(encoded)
 	if err != nil {
+		slog.Error("error decoding string", "err", err)
 		return data, err
 	}
 
@@ -241,6 +248,7 @@ func decodeClientData(encoded string) (ClientData, error) {
 	}
 
 	if err := json.Unmarshal(raw, &data); err != nil {
+		slog.Error("error unmarshaling data", "err", err)
 		return ClientData{}, err
 	}
 
@@ -256,11 +264,13 @@ type AttestationObject struct {
 func decodeAttestation(encoded string) (*AttestationObject, error) {
 	raw, err := base64.RawURLEncoding.DecodeString(encoded)
 	if err != nil {
+		slog.Error("error decoding string", "err", err)
 		return nil, err
 	}
 
 	var att AttestationObject
 	if err := cbor.Unmarshal(raw, &att); err != nil {
+		slog.Error("error unmarshaling data", "err", err)
 		return nil, err
 	}
 
@@ -327,10 +337,12 @@ type AssertionOptions struct {
 func (s *Service) StartPasskeyAuthentication(ctx context.Context) (AssertionOptions, error) {
 	challenge, err := generateChallenge()
 	if err != nil {
+		slog.ErrorContext(ctx, "error generating challenge", "err", err)
 		return AssertionOptions{}, err
 	}
 
 	if err = s.Repo.CreateWebAuthnChallenge(ctx, challenge, uuid.NullUUID{}, time.Now().Add(5*time.Minute)); err != nil {
+		slog.ErrorContext(ctx, "error creating challenge", "err", err)
 		return AssertionOptions{}, err
 	}
 
@@ -358,21 +370,25 @@ type AssertionResponse struct {
 func (s *Service) VerifyPasskeyAuthentication(ctx context.Context, resp AssertionResponse) (TokenPair, error) {
 	credID, err := base64.RawURLEncoding.DecodeString(resp.RawID)
 	if err != nil {
+		slog.ErrorContext(ctx, "error decoding string", "err", err)
 		return TokenPair{}, err
 	}
 
 	authData, err := base64.RawURLEncoding.DecodeString(resp.Response.AuthenticatorData)
 	if err != nil {
+		slog.ErrorContext(ctx, "error decoding string", "err", err)
 		return TokenPair{}, err
 	}
 
 	clientDataJSON, err := base64.RawURLEncoding.DecodeString(resp.Response.ClientDataJSON)
 	if err != nil {
+		slog.ErrorContext(ctx, "error decoding string", "err", err)
 		return TokenPair{}, err
 	}
 
 	signature, err := base64.RawURLEncoding.DecodeString(resp.Response.Signature)
 	if err != nil {
+		slog.ErrorContext(ctx, "error decoding string", "err", err)
 		return TokenPair{}, err
 	}
 
@@ -382,6 +398,7 @@ func (s *Service) VerifyPasskeyAuthentication(ctx context.Context, resp Assertio
 
 	var clientData ClientData
 	if err = json.Unmarshal(clientDataJSON, &clientData); err != nil {
+		slog.ErrorContext(ctx, "error unmarshaling data", "err", err)
 		return TokenPair{}, ErrInvalidClientData
 	}
 
@@ -391,11 +408,13 @@ func (s *Service) VerifyPasskeyAuthentication(ctx context.Context, resp Assertio
 
 	challengeBytes, err := base64.RawURLEncoding.DecodeString(clientData.Challenge)
 	if err != nil {
+		slog.ErrorContext(ctx, "error decoding string", "err", err)
 		return TokenPair{}, err
 	}
 
 	storedChallenge, err := s.Repo.GetWebAuthnChallenge(ctx, challengeBytes)
 	if err != nil {
+		slog.ErrorContext(ctx, "error getting web auth challenge", "err", err)
 		return TokenPair{}, err
 	}
 
@@ -429,10 +448,12 @@ func (s *Service) VerifyPasskeyAuthentication(ctx context.Context, resp Assertio
 
 	passkey, err := s.Repo.GetPasskeyByCredentialID(ctx, credID)
 	if err != nil {
+		slog.ErrorContext(ctx, "error getting passkey by credential ID", "err", err, "credential_id", credID)
 		return TokenPair{}, ErrCredentialNotFound
 	}
 
 	if err = verifyAssertion(authData, clientDataJSON, signature, passkey.PublicKey); err != nil {
+		slog.ErrorContext(ctx, "error verifying assertion", "err", err)
 		return TokenPair{}, err
 	}
 
@@ -444,11 +465,13 @@ func (s *Service) VerifyPasskeyAuthentication(ctx context.Context, resp Assertio
 
 	err = s.Repo.UpdatePasskeySignCount(ctx, passkey.ID, int64(signCount))
 	if err != nil {
+		slog.ErrorContext(ctx, "error passkey sign count", "err", err)
 		return TokenPair{}, err
 	}
 
 	user, err := s.Repo.GetUserByID(ctx, passkey.UserID)
 	if err != nil {
+		slog.ErrorContext(ctx, "error getting user by id", "err", err)
 		return TokenPair{}, err
 	}
 
@@ -479,6 +502,7 @@ func verifyAssertion(authData, clientDataJSON, signature, publicKey []byte) erro
 func parseCOSEPublicKey(coseKey []byte) (*ecdsa.PublicKey, error) {
 	var keyMap map[int]any
 	if err := cbor.Unmarshal(coseKey, &keyMap); err != nil {
+		slog.Error("error unmarshaling data", "err", err)
 		return nil, err
 	}
 

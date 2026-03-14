@@ -16,17 +16,14 @@ import (
 
 const batchSize = 1000
 
-type cleanupTable struct {
-	name string
-}
-
-var tables []cleanupTable = []cleanupTable{
-	{name: "sessions"},
-	{name: "email_verification_tokens"},
-	{name: "password_reset_tokens"},
-	{name: "mfa_challenges"},
-	{name: "user_mfa_methods"},
-	{name: "webauthn_challenges"},
+var tables = []string{
+	"sessions",
+	"email_verification_tokens",
+	"password_reset_tokens",
+	"mfa_challenges",
+	"user_mfa_methods",
+	"webauthn_challenges",
+	"email_change_requests",
 }
 
 func main() {
@@ -60,9 +57,9 @@ func main() {
 		deletedThisRound := 0
 
 		for _, table := range tables {
-			n, err := deleteExpired(ctx, dbConn, table.name)
+			n, err := deleteExpired(ctx, dbConn, table)
 			if err != nil {
-				slog.ErrorContext(ctx, "failed deleting expired rows", "table", table.name, "err", err)
+				slog.ErrorContext(ctx, "failed deleting expired rows", "table", table, "err", err)
 				os.Exit(1)
 			}
 

@@ -453,3 +453,29 @@ func (s *server) VerifyPasskeyAuthentication(ctx context.Context, req *authv1.Ve
 		UserId:       res.UserID.String(),
 	}, nil
 }
+
+func (s *server) StartEmailChange(ctx context.Context, req *authv1.StartEmailChangeRequest) (*emptypb.Empty, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	if err := s.service.StartEmailChange(ctx, req.NewEmail); err != nil {
+		return nil, MapError(err)
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (s *server) ConfirmEmailChange(ctx context.Context, req *authv1.ConfirmEmailChangeRequest) (*emptypb.Empty, error) {
+	if req == nil {
+		slog.ErrorContext(ctx, "Invalid request: request is nil")
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	if err := s.service.ConfirmEmailChange(ctx, req.Token); err != nil {
+		return nil, MapError(err)
+	}
+
+	return &emptypb.Empty{}, nil
+}

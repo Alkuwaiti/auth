@@ -189,6 +189,28 @@ func (q *Queries) CreateChallenge(ctx context.Context, arg CreateChallengeParams
 	return i, err
 }
 
+const createEmailChangeRequest = `-- name: CreateEmailChangeRequest :exec
+INSERT INTO email_change_requests (user_id, new_email, token_hash, expires_at)
+VALUES ($1, $2, $3, $4)
+`
+
+type CreateEmailChangeRequestParams struct {
+	UserID    uuid.UUID
+	NewEmail  string
+	TokenHash string
+	ExpiresAt time.Time
+}
+
+func (q *Queries) CreateEmailChangeRequest(ctx context.Context, arg CreateEmailChangeRequestParams) error {
+	_, err := q.db.ExecContext(ctx, createEmailChangeRequest,
+		arg.UserID,
+		arg.NewEmail,
+		arg.TokenHash,
+		arg.ExpiresAt,
+	)
+	return err
+}
+
 const createEmailVerificationToken = `-- name: CreateEmailVerificationToken :exec
 INSERT INTO email_verification_tokens (user_id, token_hash, expires_at)
 VALUES ($1, $2, $3)
@@ -427,6 +449,16 @@ func (q *Queries) CreateWebAuthnChallenge(ctx context.Context, arg CreateWebAuth
 	return err
 }
 
+const deleteEmailChangeRequest = `-- name: DeleteEmailChangeRequest :exec
+DELETE FROM email_change_requests
+WHERE id = $1
+`
+
+func (q *Queries) DeleteEmailChangeRequest(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteEmailChangeRequest, id)
+	return err
+}
+
 const deleteUser = `-- name: DeleteUser :execrows
 UPDATE users
 SET
@@ -560,6 +592,26 @@ func (q *Queries) GetConfirmedMFAMethodByType(ctx context.Context, arg GetConfir
 		&i.ConfirmedAt,
 		&i.CreatedAt,
 		&i.ExpiresAt,
+	)
+	return i, err
+}
+
+const getEmailChangeRequestByTokenHash = `-- name: GetEmailChangeRequestByTokenHash :one
+SELECT id, user_id, new_email, token_hash, expires_at, created_at FROM email_change_requests 
+WHERE token_hash = $1
+  AND expires_at > NOW ()
+`
+
+func (q *Queries) GetEmailChangeRequestByTokenHash(ctx context.Context, tokenHash string) (EmailChangeRequest, error) {
+	row := q.db.QueryRowContext(ctx, getEmailChangeRequestByTokenHash, tokenHash)
+	var i EmailChangeRequest
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.NewEmail,
+		&i.TokenHash,
+		&i.ExpiresAt,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -1085,6 +1137,22 @@ type UpdatePasswordParams struct {
 
 func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) error {
 	_, err := q.db.ExecContext(ctx, updatePassword, arg.PasswordHash, arg.ID)
+	return err
+}
+
+const updateUserEmail = `-- name: UpdateUserEmail :exec
+UPDATE users 
+SET email = $1
+WHERE id = $2
+`
+
+type UpdateUserEmailParams struct {
+	Email string
+	ID    uuid.UUID
+}
+
+func (q *Queries) UpdateUserEmail(ctx context.Context, arg UpdateUserEmailParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserEmail, arg.Email, arg.ID)
 	return err
 }
 

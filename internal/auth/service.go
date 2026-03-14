@@ -86,6 +86,10 @@ type Repo interface {
 	CreatePasskey(ctx context.Context, userID uuid.UUID, credentialID []byte, publicKey []byte, signCount int64, transports []string) error
 	GetPasskeyByCredentialID(ctx context.Context, credentialID []byte) (domain.Passkey, error)
 	UpdatePasskeySignCount(ctx context.Context, passkeyID uuid.UUID, signCount int64) error
+	CreateEmailChangeRequest(ctx context.Context, userID uuid.UUID, newEmail string, tokenHash string, ExpiresAt time.Time) error
+	GetEmailChangeRequestByTokenHash(ctx context.Context, tokenHash string) (domain.ChangeEmailRequest, error)
+	UpdateUserEmail(ctx context.Context, userID uuid.UUID, email string) error
+	DeleteEmailChangeRequest(ctx context.Context, requestID uuid.UUID) error
 }
 
 type auditor interface {

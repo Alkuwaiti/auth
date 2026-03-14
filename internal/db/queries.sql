@@ -331,3 +331,21 @@ SELECT * FROM passkeys WHERE credential_id = $1;
 UPDATE passkeys
 SET sign_count = $1
 WHERE id = $2;
+
+-- name: CreateEmailChangeRequest :exec
+INSERT INTO email_change_requests (user_id, new_email, token_hash, expires_at)
+VALUES ($1, $2, $3, $4);
+
+-- name: GetEmailChangeRequestByTokenHash :one
+SELECT * FROM email_change_requests 
+WHERE token_hash = $1
+  AND expires_at > NOW ();
+
+-- name: UpdateUserEmail :exec
+UPDATE users 
+SET email = $1
+WHERE id = $2;
+
+-- name: DeleteEmailChangeRequest :exec
+DELETE FROM email_change_requests
+WHERE id = $1;
