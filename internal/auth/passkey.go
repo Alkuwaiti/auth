@@ -14,7 +14,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/pkg/contextkeys"
 	"github.com/fxamacker/cbor/v2"
@@ -475,7 +474,7 @@ func (s *Service) VerifyPasskeyAuthentication(ctx context.Context, resp Assertio
 		return TokenPair{}, err
 	}
 
-	return s.finalizeLogin(ctx, user, audit.ActionPasskeyLogin, false)
+	return s.finalizeLogin(ctx, user, domain.ActionPasskeyLogin, false)
 }
 
 func verifyAssertion(authData, clientDataJSON, signature, publicKey []byte) error {

@@ -6,13 +6,10 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/auth/repository"
-	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/alkuwaiti/auth/internal/flags"
 	"github.com/alkuwaiti/auth/internal/mfa"
-	"github.com/alkuwaiti/auth/internal/password"
 	googlesocial "github.com/alkuwaiti/auth/internal/social/google"
 	"github.com/alkuwaiti/auth/internal/testutil"
 	"github.com/alkuwaiti/auth/internal/tokens"
@@ -32,14 +29,6 @@ func setupTestAuthService(t *testing.T) (*auth.Service, *sql.DB, func()) {
 
 	err = testutil.RunMigrations(testDB.DB, "../../db/migrations")
 	require.NoError(t, err)
-
-	passwordService := password.NewService(12)
-
-	queries := postgres.New(testDB.DB)
-
-	auditRepo := audit.NewRepo(queries)
-
-	auditService := audit.New(auditRepo)
 
 	flagsService := flags.New(flags.Config{
 		RefreshTokensEnabled: true,
@@ -64,7 +53,7 @@ func setupTestAuthService(t *testing.T) (*auth.Service, *sql.DB, func()) {
 		StateSecret:  "",
 	})
 
-	service := auth.NewService(authRepo, passwordService, auditService, flagsService, tokenManager, multifactor, googleProvider, auth.Config{
+	service := auth.NewService(authRepo, flagsService, tokenManager, multifactor, googleProvider, auth.Config{
 		MaxChallengeAttempts: 5,
 	})
 

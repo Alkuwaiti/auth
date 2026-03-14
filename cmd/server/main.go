@@ -13,16 +13,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth"
 	"github.com/alkuwaiti/auth/internal/auth/repository"
 	"github.com/alkuwaiti/auth/internal/config"
 	"github.com/alkuwaiti/auth/internal/crypto"
 	"github.com/alkuwaiti/auth/internal/db"
-	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/alkuwaiti/auth/internal/flags"
 	"github.com/alkuwaiti/auth/internal/mfa"
-	"github.com/alkuwaiti/auth/internal/password"
 	"github.com/alkuwaiti/auth/internal/server/grpc"
 	googlesocial "github.com/alkuwaiti/auth/internal/social/google"
 	"github.com/alkuwaiti/auth/internal/tokens"
@@ -82,14 +79,6 @@ func main() {
 		}
 	}()
 
-	passwords := password.NewService(12)
-
-	queries := postgres.New(dbConn)
-
-	auditRepo := audit.NewRepo(queries)
-
-	auditor := audit.New(auditRepo)
-
 	flags := flags.New(flags.Config{
 		RefreshTokensEnabled: cfg.RefreshEnabled,
 	})
@@ -121,8 +110,6 @@ func main() {
 	})
 
 	authService := auth.NewService(authRepo,
-		passwords,
-		auditor,
 		flags,
 		tokens,
 		multifactor,

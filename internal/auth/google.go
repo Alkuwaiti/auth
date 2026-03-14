@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log/slog"
 
-	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 )
 
@@ -36,7 +35,7 @@ func (s *Service) CompleteGoogleLogin(ctx context.Context, code, state string) (
 
 	user, err := s.Repo.GetUserByOAuthProvider(ctx, domain.ProviderGoogle, googleUser.Subject)
 	if err == nil {
-		return s.finalizeLogin(ctx, user, audit.ActionGoogleLogin, true)
+		return s.finalizeLogin(ctx, user, domain.ActionGoogleLogin, true)
 	}
 
 	if !errors.Is(err, domain.ErrNotFound) {
@@ -63,5 +62,5 @@ func (s *Service) CompleteGoogleLogin(ctx context.Context, code, state string) (
 		return TokenPair{}, err
 	}
 
-	return s.finalizeLogin(ctx, user, audit.ActionGoogleRegisteration, true)
+	return s.finalizeLogin(ctx, user, domain.ActionGoogleRegisteration, true)
 }

@@ -1,26 +1,17 @@
-package audit
+package repository
 
 import (
 	"context"
 	"database/sql"
 	"encoding/json"
 
+	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/db/postgres"
 	"github.com/google/uuid"
 	"github.com/sqlc-dev/pqtype"
 )
 
-type repo struct {
-	queries *postgres.Queries
-}
-
-func NewRepo(queries *postgres.Queries) *repo {
-	return &repo{
-		queries: queries,
-	}
-}
-
-func (r *repo) CreateAuditLog(ctx context.Context, input CreateAuditLogInput) error {
+func (r *Repo) CreateAuditLog(ctx context.Context, input domain.CreateAuditLogInput) error {
 	var userID uuid.NullUUID
 	if input.UserID != nil {
 		userID = uuid.NullUUID{

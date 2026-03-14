@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/internal/auth/domain"
+	"github.com/alkuwaiti/auth/internal/passwords"
 	"github.com/alkuwaiti/auth/pkg/contextkeys"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
@@ -36,7 +36,7 @@ func (s *Service) Login(ctx context.Context, email string, password string, reme
 		return LoginResult{}, err
 	}
 
-	match, err := s.Passwords.Compare(*user.PasswordHash, password)
+	match, err := passwords.Compare(*user.PasswordHash, password)
 	if err != nil {
 		slog.WarnContext(ctx, "failed login attempt", "email", user.Email)
 		return LoginResult{}, err
@@ -84,7 +84,7 @@ func (s *Service) Login(ctx context.Context, email string, password string, reme
 		}, nil
 	}
 
-	tokenPair, err := s.finalizeLogin(ctx, user, audit.ActionLogin, rememberMe)
+	tokenPair, err := s.finalizeLogin(ctx, user, domain.ActionLogin, rememberMe)
 	if err != nil {
 		return LoginResult{}, err
 	}
@@ -153,19 +153,19 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 				return err
 			}
 
+			if err = r.CreateAuditLog(ctx, domain.CreateAuditLogInput{
+				UserID:    &session.UserID,
+				Action:    domain.ActionSessionCompromised,
+				IPAddress: &meta.IPAddress,
+				UserAgent: &meta.UserAgent,
+			}); err != nil {
+				slog.ErrorContext(ctx, "failed to create audit log", "err", err)
+			}
+
 			return nil
 		}); err != nil {
 			slog.ErrorContext(ctx, "error in transaction", "err", err)
 			return TokenPair{}, err
-		}
-
-		if err = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
-			UserID:    &session.UserID,
-			Action:    audit.ActionSessionCompromised,
-			IPAddress: &meta.IPAddress,
-			UserAgent: &meta.UserAgent,
-		}); err != nil {
-			slog.ErrorContext(ctx, "failed to create audit log", "err", err)
 		}
 
 		return TokenPair{}, ErrInvalidCredentials
@@ -251,9 +251,9 @@ func (s *Service) Logout(ctx context.Context, refreshToken string) error {
 		slog.ErrorContext(ctx, "failed to revoke session", "err", err)
 	}
 
-	if err = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+	if err = s.Repo.CreateAuditLog(ctx, domain.CreateAuditLogInput{
 		UserID:    &session.UserID,
-		Action:    audit.ActionLogout,
+		Action:    domain.ActionLogout,
 		IPAddress: &meta.IPAddress,
 		UserAgent: &meta.UserAgent,
 	}); err != nil {
@@ -265,7 +265,7 @@ func (s *Service) Logout(ctx context.Context, refreshToken string) error {
 	return nil
 }
 
-func (s *Service) finalizeLogin(ctx context.Context, user domain.User, action audit.AuditAction, rememberMe bool) (TokenPair, error) {
+func (s *Service) finalizeLogin(ctx context.Context, user domain.User, action domain.AuditAction, rememberMe bool) (TokenPair, error) {
 	ctx, span := tracer.Start(ctx, "AuthService.finalizeLogin")
 	defer span.End()
 
@@ -306,7 +306,7 @@ func (s *Service) finalizeLogin(ctx context.Context, user domain.User, action au
 		return TokenPair{}, err
 	}
 
-	if err = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
+	if err = s.Repo.CreateAuditLog(ctx, domain.CreateAuditLogInput{
 		UserID:    &user.ID,
 		Action:    action,
 		IPAddress: &meta.IPAddress,

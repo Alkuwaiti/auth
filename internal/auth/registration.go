@@ -8,8 +8,8 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	authz "github.com/alkuwaiti/auth/internal/authorization"
+	"github.com/alkuwaiti/auth/internal/passwords"
 
-	"github.com/alkuwaiti/auth/internal/audit"
 	"github.com/alkuwaiti/auth/pkg/contextkeys"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -29,11 +29,11 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 		return domain.User{}, err
 	}
 
-	if err := s.Passwords.Validate(input.Password); err != nil {
+	if err := passwords.Validate(input.Password); err != nil {
 		return domain.User{}, err
 	}
 
-	newPasswordHash, err := s.Passwords.Hash(input.Password)
+	newPasswordHash, err := passwords.Hash(input.Password)
 	if err != nil {
 		span.RecordError(err)
 		return domain.User{}, err
@@ -68,18 +68,18 @@ func (s *Service) RegisterUser(ctx context.Context, input RegisterUserInput) (do
 			return err
 		}
 
+		if err = r.CreateAuditLog(ctx, domain.CreateAuditLogInput{
+			UserID:    &user.ID,
+			Action:    domain.ActionCreateUser,
+			IPAddress: &meta.IPAddress,
+			UserAgent: &meta.UserAgent,
+		}); err != nil {
+			slog.WarnContext(ctx, "failed to create audit log", "err", err)
+			return err
+		}
+
 		return nil
 	}); err != nil {
-		return domain.User{}, err
-	}
-
-	if err = s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
-		UserID:    &user.ID,
-		Action:    audit.ActionCreateUser,
-		IPAddress: &meta.IPAddress,
-		UserAgent: &meta.UserAgent,
-	}); err != nil {
-		slog.WarnContext(ctx, "failed to create audit log", "err", err)
 		return domain.User{}, err
 	}
 
@@ -152,27 +152,27 @@ func (s *Service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 			return err
 		}
 
+		if err = r.CreateAuditLog(ctx, domain.CreateAuditLogInput{
+			UserID:    &input.UserID,
+			ActorID:   &actorID,
+			Action:    domain.ActionDeleteUser,
+			IPAddress: &meta.IPAddress,
+			UserAgent: &meta.UserAgent,
+			Context: domain.AuditContext{
+				"deletion": map[string]any{
+					"reason": input.DeletionReason,
+					"note":   input.Note,
+				},
+			},
+		}); err != nil {
+			slog.ErrorContext(ctx, "failed to create audit log", "err", err)
+			return err
+		}
+
 		return nil
 
 	}); err != nil {
 		slog.ErrorContext(ctx, "error in transaction", "err", err)
-		return err
-	}
-
-	if err := s.auditor.CreateAuditLog(ctx, audit.CreateAuditLogInput{
-		UserID:    &input.UserID,
-		ActorID:   &actorID,
-		Action:    audit.ActionDeleteUser,
-		IPAddress: &meta.IPAddress,
-		UserAgent: &meta.UserAgent,
-		Context: audit.AuditContext{
-			"deletion": map[string]any{
-				"reason": input.DeletionReason,
-				"note":   input.Note,
-			},
-		},
-	}); err != nil {
-		slog.ErrorContext(ctx, "failed to create audit log", "err", err)
 		return err
 	}
 
