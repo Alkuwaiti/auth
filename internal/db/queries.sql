@@ -345,3 +345,7 @@ WHERE token_hash = $1
 UPDATE users 
 SET email = $1
 WHERE id = $2;
+
+-- name: DeleteEmailChangeRequest :exec
+DELETE FROM email_change_requests
+WHERE id = $1;

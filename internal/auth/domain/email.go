@@ -3,6 +3,7 @@ package domain
 import "github.com/google/uuid"
 
 type ChangeEmailRequest struct {
-	NewEmail string
+	ID       uuid.UUID
 	UserID   uuid.UUID
+	NewEmail string
 }

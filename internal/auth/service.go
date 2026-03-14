@@ -89,6 +89,7 @@ type Repo interface {
 	CreateEmailChangeRequest(ctx context.Context, userID uuid.UUID, newEmail string, tokenHash string, ExpiresAt time.Time) error
 	GetEmailChangeRequestByTokenHash(ctx context.Context, tokenHash string) (domain.ChangeEmailRequest, error)
 	UpdateUserEmail(ctx context.Context, userID uuid.UUID, email string) error
+	DeleteEmailChangeRequest(ctx context.Context, requestID uuid.UUID) error
 }
 
 type auditor interface {

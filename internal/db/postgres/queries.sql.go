@@ -449,6 +449,16 @@ func (q *Queries) CreateWebAuthnChallenge(ctx context.Context, arg CreateWebAuth
 	return err
 }
 
+const deleteEmailChangeRequest = `-- name: DeleteEmailChangeRequest :exec
+DELETE FROM email_change_requests
+WHERE id = $1
+`
+
+func (q *Queries) DeleteEmailChangeRequest(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteEmailChangeRequest, id)
+	return err
+}
+
 const deleteUser = `-- name: DeleteUser :execrows
 UPDATE users
 SET

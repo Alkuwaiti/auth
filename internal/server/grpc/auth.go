@@ -460,7 +460,7 @@ func (s *server) StartRequestEmailChange(ctx context.Context, req *authv1.StartR
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	if err := s.service.StartRequestEmailChange(ctx, req.NewEmail); err != nil {
+	if err := s.service.StartEmailChange(ctx, req.NewEmail); err != nil {
 		return nil, MapError(err)
 	}
 

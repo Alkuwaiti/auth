@@ -129,7 +129,7 @@ func (s *Service) CreateEmailVerificationToken(ctx context.Context, email string
 	return nil
 }
 
-func (s *Service) StartRequestEmailChange(ctx context.Context, newEmail string) error {
+func (s *Service) StartEmailChange(ctx context.Context, newEmail string) error {
 	userID, err := contextkeys.UserIDFromContext(ctx)
 	if err != nil {
 		return err
@@ -196,7 +196,7 @@ func (s *Service) StartRequestEmailChange(ctx context.Context, newEmail string) 
 	return nil
 }
 
-func (s *Service) CompleteRequestEmailChange(ctx context.Context, token string) error {
+func (s *Service) ConfirmEmailChange(ctx context.Context, token string) error {
 	hashedToken := s.TokenManager.Hash(token)
 
 	return s.Repo.WithTx(ctx, func(r Repo) error {
@@ -209,6 +209,9 @@ func (s *Service) CompleteRequestEmailChange(ctx context.Context, token string) 
 		}
 
 		if err := r.UpdateUserEmail(ctx, req.UserID, req.NewEmail); err != nil {
+			if errors.Is(err, domain.ErrRecordAlreadyExists) {
+				return ErrEmailAlreadyInUse
+			}
 			return err
 		}
 

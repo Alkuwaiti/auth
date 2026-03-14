@@ -46,7 +46,7 @@ type service interface {
 	VerifyPasskeyRegistration(ctx context.Context, req auth.VerifyRequest) error
 	StartPasskeyAuthentication(ctx context.Context) (auth.AssertionOptions, error)
 	VerifyPasskeyAuthentication(ctx context.Context, resp auth.AssertionResponse) (auth.TokenPair, error)
-	StartRequestEmailChange(ctx context.Context, newEmail string) error
+	StartEmailChange(ctx context.Context, newEmail string) error
 }
 
 type Config struct {
