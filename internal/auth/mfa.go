@@ -137,22 +137,21 @@ func (s *Service) ConfirmMFAMethod(ctx context.Context, methodID uuid.UUID, code
 			slog.ErrorContext(ctx, "error inserting backup codes", "err", err, "method_id", methodID)
 			return err
 		}
+		meta := contextkeys.RequestMetaFromContext(ctx)
+		if err = r.CreateAuditLog(ctx, domain.CreateAuditLogInput{
+			UserID: &method.UserID,
+			Action: domain.ActionConfirmMFAMethod,
+			Context: domain.AuditContext{
+				"method_type": "totp",
+				"method_id":   methodID.String(),
+			},
+			IPAddress: &meta.IPAddress,
+			UserAgent: &meta.UserAgent,
+		}); err != nil {
+			return err
+		}
 
 		return nil
-	}); err != nil {
-		return nil, err
-	}
-
-	meta := contextkeys.RequestMetaFromContext(ctx)
-	if err = s.Repo.CreateAuditLog(ctx, domain.CreateAuditLogInput{
-		UserID: &method.UserID,
-		Action: domain.ActionConfirmMFAMethod,
-		Context: domain.AuditContext{
-			"method_type": "totp",
-			"method_id":   methodID.String(),
-		},
-		IPAddress: &meta.IPAddress,
-		UserAgent: &meta.UserAgent,
 	}); err != nil {
 		return nil, err
 	}
@@ -334,21 +333,21 @@ func (s *Service) VerifyAndConsumeChallenge(ctx context.Context, challengeID uui
 			return err
 		}
 
-		return nil
-	}); err != nil {
-		return domain.ActiveTOTPChallenge{}, err
-	}
+		meta := contextkeys.RequestMetaFromContext(ctx)
+		if err = r.CreateAuditLog(ctx, domain.CreateAuditLogInput{
+			UserID: &challenge.UserID,
+			Action: domain.ActionConsumeChallenge,
+			Context: domain.AuditContext{
+				"method_type":  "totp",
+				"challenge_id": challengeID.String(),
+			},
+			IPAddress: &meta.IPAddress,
+			UserAgent: &meta.UserAgent,
+		}); err != nil {
+			return err
+		}
 
-	meta := contextkeys.RequestMetaFromContext(ctx)
-	if err := s.Repo.CreateAuditLog(ctx, domain.CreateAuditLogInput{
-		UserID: &challenge.UserID,
-		Action: domain.ActionConsumeChallenge,
-		Context: domain.AuditContext{
-			"method_type":  "totp",
-			"challenge_id": challengeID.String(),
-		},
-		IPAddress: &meta.IPAddress,
-		UserAgent: &meta.UserAgent,
+		return nil
 	}); err != nil {
 		return domain.ActiveTOTPChallenge{}, err
 	}

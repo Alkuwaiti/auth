@@ -116,19 +116,19 @@ func (s *Service) ChangePassword(ctx context.Context, oldPassword, newPassword s
 			return err
 		}
 
+		if err = r.CreateAuditLog(ctx, domain.CreateAuditLogInput{
+			UserID:    &user.ID,
+			Action:    domain.ActionPasswordChange,
+			IPAddress: &meta.IPAddress,
+			UserAgent: &meta.UserAgent,
+		}); err != nil {
+			slog.ErrorContext(ctx, "failed to create audit log", "err", err)
+		}
+
 		return nil
 	}); err != nil {
 		slog.ErrorContext(ctx, "error in transaction", "err", err)
 		return err
-	}
-
-	if err = s.Repo.CreateAuditLog(ctx, domain.CreateAuditLogInput{
-		UserID:    &user.ID,
-		Action:    domain.ActionPasswordChange,
-		IPAddress: &meta.IPAddress,
-		UserAgent: &meta.UserAgent,
-	}); err != nil {
-		slog.ErrorContext(ctx, "failed to create audit log", "err", err)
 	}
 
 	span.SetAttributes(
@@ -247,21 +247,20 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 			return err
 		}
 
+		meta := contextkeys.RequestMetaFromContext(ctx)
+
+		if err = r.CreateAuditLog(ctx, domain.CreateAuditLogInput{
+			UserID:    &userID,
+			Action:    domain.ActionPasswordReset,
+			IPAddress: &meta.IPAddress,
+			UserAgent: &meta.UserAgent,
+		}); err != nil {
+			slog.ErrorContext(ctx, "failed to create audit log", "err", err)
+			return err
+		}
+
 		return nil
-
 	}); err != nil {
-		return err
-	}
-
-	meta := contextkeys.RequestMetaFromContext(ctx)
-
-	if err := s.Repo.CreateAuditLog(ctx, domain.CreateAuditLogInput{
-		UserID:    &userID,
-		Action:    domain.ActionPasswordReset,
-		IPAddress: &meta.IPAddress,
-		UserAgent: &meta.UserAgent,
-	}); err != nil {
-		slog.ErrorContext(ctx, "failed to create audit log", "err", err)
 		return err
 	}
 

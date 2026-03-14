@@ -153,19 +153,19 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (TokenP
 				return err
 			}
 
+			if err = r.CreateAuditLog(ctx, domain.CreateAuditLogInput{
+				UserID:    &session.UserID,
+				Action:    domain.ActionSessionCompromised,
+				IPAddress: &meta.IPAddress,
+				UserAgent: &meta.UserAgent,
+			}); err != nil {
+				slog.ErrorContext(ctx, "failed to create audit log", "err", err)
+			}
+
 			return nil
 		}); err != nil {
 			slog.ErrorContext(ctx, "error in transaction", "err", err)
 			return TokenPair{}, err
-		}
-
-		if err = s.Repo.CreateAuditLog(ctx, domain.CreateAuditLogInput{
-			UserID:    &session.UserID,
-			Action:    domain.ActionSessionCompromised,
-			IPAddress: &meta.IPAddress,
-			UserAgent: &meta.UserAgent,
-		}); err != nil {
-			slog.ErrorContext(ctx, "failed to create audit log", "err", err)
 		}
 
 		return TokenPair{}, ErrInvalidCredentials

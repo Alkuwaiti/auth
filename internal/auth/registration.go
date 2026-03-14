@@ -152,27 +152,27 @@ func (s *Service) DeleteUser(ctx context.Context, input DeleteUserInput) error {
 			return err
 		}
 
+		if err = r.CreateAuditLog(ctx, domain.CreateAuditLogInput{
+			UserID:    &input.UserID,
+			ActorID:   &actorID,
+			Action:    domain.ActionDeleteUser,
+			IPAddress: &meta.IPAddress,
+			UserAgent: &meta.UserAgent,
+			Context: domain.AuditContext{
+				"deletion": map[string]any{
+					"reason": input.DeletionReason,
+					"note":   input.Note,
+				},
+			},
+		}); err != nil {
+			slog.ErrorContext(ctx, "failed to create audit log", "err", err)
+			return err
+		}
+
 		return nil
 
 	}); err != nil {
 		slog.ErrorContext(ctx, "error in transaction", "err", err)
-		return err
-	}
-
-	if err := s.Repo.CreateAuditLog(ctx, domain.CreateAuditLogInput{
-		UserID:    &input.UserID,
-		ActorID:   &actorID,
-		Action:    domain.ActionDeleteUser,
-		IPAddress: &meta.IPAddress,
-		UserAgent: &meta.UserAgent,
-		Context: domain.AuditContext{
-			"deletion": map[string]any{
-				"reason": input.DeletionReason,
-				"note":   input.Note,
-			},
-		},
-	}); err != nil {
-		slog.ErrorContext(ctx, "failed to create audit log", "err", err)
 		return err
 	}
 
