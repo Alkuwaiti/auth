@@ -42,7 +42,8 @@ const (
 	AuthService_VerifyPasskeyRegistration_FullMethodName    = "/auth.v1.AuthService/VerifyPasskeyRegistration"
 	AuthService_StartPasskeyAuthentication_FullMethodName   = "/auth.v1.AuthService/StartPasskeyAuthentication"
 	AuthService_VerifyPasskeyAuthentication_FullMethodName  = "/auth.v1.AuthService/VerifyPasskeyAuthentication"
-	AuthService_StartRequestEmailChange_FullMethodName      = "/auth.v1.AuthService/StartRequestEmailChange"
+	AuthService_StartEmailChange_FullMethodName             = "/auth.v1.AuthService/StartEmailChange"
+	AuthService_ConfirmEmailChange_FullMethodName           = "/auth.v1.AuthService/ConfirmEmailChange"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -71,7 +72,8 @@ type AuthServiceClient interface {
 	VerifyPasskeyRegistration(ctx context.Context, in *VerifyPasskeyRegistrationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	StartPasskeyAuthentication(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*StartPasskeyAuthenticationResponse, error)
 	VerifyPasskeyAuthentication(ctx context.Context, in *VerifyPasskeyAuthenticationRequest, opts ...grpc.CallOption) (*TokenPair, error)
-	StartRequestEmailChange(ctx context.Context, in *StartRequestEmailChangeRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	StartEmailChange(ctx context.Context, in *StartEmailChangeRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	ConfirmEmailChange(ctx context.Context, in *ConfirmEmailChangeRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type authServiceClient struct {
@@ -302,10 +304,20 @@ func (c *authServiceClient) VerifyPasskeyAuthentication(ctx context.Context, in 
 	return out, nil
 }
 
-func (c *authServiceClient) StartRequestEmailChange(ctx context.Context, in *StartRequestEmailChangeRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *authServiceClient) StartEmailChange(ctx context.Context, in *StartEmailChangeRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, AuthService_StartRequestEmailChange_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, AuthService_StartEmailChange_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) ConfirmEmailChange(ctx context.Context, in *ConfirmEmailChangeRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, AuthService_ConfirmEmailChange_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -338,7 +350,8 @@ type AuthServiceServer interface {
 	VerifyPasskeyRegistration(context.Context, *VerifyPasskeyRegistrationRequest) (*emptypb.Empty, error)
 	StartPasskeyAuthentication(context.Context, *emptypb.Empty) (*StartPasskeyAuthenticationResponse, error)
 	VerifyPasskeyAuthentication(context.Context, *VerifyPasskeyAuthenticationRequest) (*TokenPair, error)
-	StartRequestEmailChange(context.Context, *StartRequestEmailChangeRequest) (*emptypb.Empty, error)
+	StartEmailChange(context.Context, *StartEmailChangeRequest) (*emptypb.Empty, error)
+	ConfirmEmailChange(context.Context, *ConfirmEmailChangeRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -415,8 +428,11 @@ func (UnimplementedAuthServiceServer) StartPasskeyAuthentication(context.Context
 func (UnimplementedAuthServiceServer) VerifyPasskeyAuthentication(context.Context, *VerifyPasskeyAuthenticationRequest) (*TokenPair, error) {
 	return nil, status.Error(codes.Unimplemented, "method VerifyPasskeyAuthentication not implemented")
 }
-func (UnimplementedAuthServiceServer) StartRequestEmailChange(context.Context, *StartRequestEmailChangeRequest) (*emptypb.Empty, error) {
-	return nil, status.Error(codes.Unimplemented, "method StartRequestEmailChange not implemented")
+func (UnimplementedAuthServiceServer) StartEmailChange(context.Context, *StartEmailChangeRequest) (*emptypb.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method StartEmailChange not implemented")
+}
+func (UnimplementedAuthServiceServer) ConfirmEmailChange(context.Context, *ConfirmEmailChangeRequest) (*emptypb.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method ConfirmEmailChange not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -835,20 +851,38 @@ func _AuthService_VerifyPasskeyAuthentication_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthService_StartRequestEmailChange_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(StartRequestEmailChangeRequest)
+func _AuthService_StartEmailChange_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StartEmailChangeRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthServiceServer).StartRequestEmailChange(ctx, in)
+		return srv.(AuthServiceServer).StartEmailChange(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AuthService_StartRequestEmailChange_FullMethodName,
+		FullMethod: AuthService_StartEmailChange_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).StartRequestEmailChange(ctx, req.(*StartRequestEmailChangeRequest))
+		return srv.(AuthServiceServer).StartEmailChange(ctx, req.(*StartEmailChangeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_ConfirmEmailChange_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConfirmEmailChangeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).ConfirmEmailChange(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_ConfirmEmailChange_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).ConfirmEmailChange(ctx, req.(*ConfirmEmailChangeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -949,8 +983,12 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _AuthService_VerifyPasskeyAuthentication_Handler,
 		},
 		{
-			MethodName: "StartRequestEmailChange",
-			Handler:    _AuthService_StartRequestEmailChange_Handler,
+			MethodName: "StartEmailChange",
+			Handler:    _AuthService_StartEmailChange_Handler,
+		},
+		{
+			MethodName: "ConfirmEmailChange",
+			Handler:    _AuthService_ConfirmEmailChange_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
