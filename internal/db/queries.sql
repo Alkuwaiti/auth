@@ -335,3 +335,8 @@ WHERE id = $2;
 -- name: CreateEmailChangeRequest :exec
 INSERT INTO email_change_requests (user_id, new_email, token_hash, expires_at)
 VALUES ($1, $2, $3, $4);
+
+-- name: GetEmailChangeRequestByTokenHash :one
+SELECT * FROM email_change_requests 
+WHERE token_hash = $1
+  AND expires_at > NOW ();

@@ -48,3 +48,16 @@ func (r *Repo) CreateEmailChangeRequest(ctx context.Context, userID uuid.UUID, n
 		ExpiresAt: ExpiresAt,
 	})
 }
+
+func (r *Repo) GetEmailChangeRequestByTokenHash(ctx context.Context, tokenHash string) (string, error) {
+	changeEmailRequestRow, err := r.queries.GetEmailChangeRequestByTokenHash(ctx, tokenHash)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", domain.ErrNotFound
+		}
+
+		return "", err
+	}
+
+	return changeEmailRequestRow.NewEmail, nil
+}

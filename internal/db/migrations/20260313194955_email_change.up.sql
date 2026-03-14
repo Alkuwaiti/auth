@@ -8,3 +8,5 @@ CREATE TABLE email_change_requests (
 );
 
 CREATE INDEX idx_email_change_requests_user_id ON email_change_requests (user_id);
+
+CREATE INDEX idx_email_change_requests_token_hash ON email_change_requests (token_hash);

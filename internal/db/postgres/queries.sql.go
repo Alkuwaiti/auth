@@ -586,6 +586,26 @@ func (q *Queries) GetConfirmedMFAMethodByType(ctx context.Context, arg GetConfir
 	return i, err
 }
 
+const getEmailChangeRequestByTokenHash = `-- name: GetEmailChangeRequestByTokenHash :one
+SELECT id, user_id, new_email, token_hash, expires_at, created_at FROM email_change_requests 
+WHERE token_hash = $1
+  AND expires_at > NOW ()
+`
+
+func (q *Queries) GetEmailChangeRequestByTokenHash(ctx context.Context, tokenHash string) (EmailChangeRequest, error) {
+	row := q.db.QueryRowContext(ctx, getEmailChangeRequestByTokenHash, tokenHash)
+	var i EmailChangeRequest
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.NewEmail,
+		&i.TokenHash,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getMFAMethodsConfirmedByUser = `-- name: GetMFAMethodsConfirmedByUser :many
 SELECT id, user_id, type, confirmed_at, created_at
 FROM user_mfa_methods

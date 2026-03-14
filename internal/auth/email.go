@@ -195,3 +195,12 @@ func (s *Service) StartRequestEmailChange(ctx context.Context, newEmail string) 
 
 	return nil
 }
+
+func (s *Service) CompleteRequestEmailChange(ctx context.Context, token string) error {
+	hashedToken := s.TokenManager.Hash(token)
+
+	newEmail, err := s.Repo.GetEmailChangeRequestByTokenHash(ctx, hashedToken)
+	if err != nil {
+		return err
+	}
+}
