@@ -23,8 +23,8 @@ import (
 	"github.com/alkuwaiti/auth/internal/server/grpc"
 	googlesocial "github.com/alkuwaiti/auth/internal/social/google"
 	"github.com/alkuwaiti/auth/internal/tokens"
-	"github.com/alkuwaiti/auth/pkg/observability/logging"
-	"github.com/alkuwaiti/auth/pkg/observability/tracing"
+	"github.com/alkuwaiti/shared/observability/logging"
+	"github.com/alkuwaiti/shared/observability/tracing"
 )
 
 var (

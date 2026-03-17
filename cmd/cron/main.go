@@ -11,7 +11,7 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/config"
 	"github.com/alkuwaiti/auth/internal/db"
-	"github.com/alkuwaiti/auth/pkg/observability/logging"
+	"github.com/alkuwaiti/shared/observability/logging"
 )
 
 const batchSize = 1000

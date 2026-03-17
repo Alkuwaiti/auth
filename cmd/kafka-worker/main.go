@@ -13,7 +13,7 @@ import (
 	"github.com/alkuwaiti/auth/internal/db"
 	"github.com/alkuwaiti/auth/internal/infra/kafka"
 	"github.com/alkuwaiti/auth/internal/infra/outbox"
-	"github.com/alkuwaiti/auth/pkg/observability/logging"
+	"github.com/alkuwaiti/shared/observability/logging"
 )
 
 func main() {
