@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16
-    container_name: app-postgres
+    container_name: auth-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: authdb
@@ -10,7 +10,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - auth_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U localuser"]
       interval: 5s
@@ -43,4 +43,4 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
 
 volumes:
-  postgres_data:
+  auth_data:
