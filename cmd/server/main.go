@@ -147,11 +147,11 @@ func main() {
 	// This hangs the server.
 	<-sigChan
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	slog.InfoContext(ctx, "Shutting down server")
-	if err := srv.Stop(ctx); err != nil {
+	if err := srv.Stop(shutdownCtx); err != nil {
 		panic(err)
 	}
 

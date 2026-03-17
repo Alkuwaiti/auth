@@ -4,7 +4,6 @@ package grpc
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"net"
 
 	"github.com/alkuwaiti/auth/internal/auth"
@@ -64,7 +63,6 @@ func NewServer(
 	cfg Config,
 	interceptors ...grpc.UnaryServerInterceptor,
 ) *server {
-
 	if authService == nil {
 		panic("auth service is nil")
 	}
@@ -110,20 +108,6 @@ func (s *server) Start(ctx context.Context) error {
 }
 
 func (s *server) Stop(ctx context.Context) error {
-	if s.srv == nil {
-		return fmt.Errorf("server not started")
-	}
-
-	go func() {
-		<-ctx.Done()
-
-		if s.srv != nil {
-			slog.InfoContext(ctx, "Stopping server forcefully")
-			s.srv.Stop()
-			s.srv = nil
-		}
-	}()
-
 	s.srv.GracefulStop()
 	s.srv = nil
 
