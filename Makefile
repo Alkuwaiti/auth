@@ -22,14 +22,6 @@ clean:
 	@echo "cleaning up .bin/"
 	rm -rf bin/
 
-short-test:
-	@echo "Running short test"
-	go test -short -race ./...
-
-test:
-	@echo "Running test"
-	go test -race -p 12 ./...
-
 test-integration:
 	@echo "Running Integration tests..."
 	go test -tags=integration ./internal/... -v
