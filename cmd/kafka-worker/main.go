@@ -10,9 +10,9 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/auth/repository"
 	"github.com/alkuwaiti/auth/internal/config"
-	"github.com/alkuwaiti/auth/internal/db"
 	"github.com/alkuwaiti/auth/internal/infra/kafka"
 	"github.com/alkuwaiti/auth/internal/infra/outbox"
+	"github.com/alkuwaiti/shared/db"
 	"github.com/alkuwaiti/shared/observability/logging"
 )
 

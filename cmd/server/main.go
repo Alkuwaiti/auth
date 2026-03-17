@@ -17,12 +17,12 @@ import (
 	"github.com/alkuwaiti/auth/internal/auth/repository"
 	"github.com/alkuwaiti/auth/internal/config"
 	"github.com/alkuwaiti/auth/internal/crypto"
-	"github.com/alkuwaiti/auth/internal/db"
 	"github.com/alkuwaiti/auth/internal/flags"
 	"github.com/alkuwaiti/auth/internal/mfa"
 	"github.com/alkuwaiti/auth/internal/server/grpc"
 	googlesocial "github.com/alkuwaiti/auth/internal/social/google"
 	"github.com/alkuwaiti/auth/internal/tokens"
+	"github.com/alkuwaiti/shared/db"
 	"github.com/alkuwaiti/shared/observability/logging"
 	"github.com/alkuwaiti/shared/observability/tracing"
 )

@@ -4,12 +4,12 @@ go 1.25.6
 
 require (
 	github.com/XSAM/otelsql v0.41.0
-	github.com/alkuwaiti/shared v0.0.0-20260317145651-c4a599159eb1
+	github.com/alkuwaiti/shared v0.0.0-20260317172845-fcfe6e0dc1e7
 	github.com/fxamacker/cbor/v2 v2.9.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/golang-migrate/migrate/v4 v4.19.1
 	github.com/google/uuid v1.6.0
-	github.com/lib/pq v1.10.9
+	github.com/lib/pq v1.11.2
 	github.com/pquerna/otp v1.5.0
 	github.com/segmentio/kafka-go v0.4.50
 	github.com/spf13/viper v1.21.0

@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/alkuwaiti/auth/internal/config"
-	"github.com/alkuwaiti/auth/internal/db"
+	"github.com/alkuwaiti/shared/db"
 	"github.com/alkuwaiti/shared/observability/logging"
 )
 
