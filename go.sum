@@ -14,8 +14,8 @@ github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERo
 github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU=
 github.com/XSAM/otelsql v0.41.0 h1:uZifjQhZhv5EDYJh+IVk1DiYxQZJBlNSen0MBFnfxB8=
 github.com/XSAM/otelsql v0.41.0/go.mod h1:NMQT0PiKoFILp9QgjQz+D5mvW+9mT0suR7OejqrtMaM=
-github.com/alkuwaiti/shared v0.0.0-20260317172845-fcfe6e0dc1e7 h1:/ER1K5r+BadZbX6ZljfUq5xrUefBJ0rdFUSYiFWFyyA=
-github.com/alkuwaiti/shared v0.0.0-20260317172845-fcfe6e0dc1e7/go.mod h1:SVRCC/DmHsPNg1rQPZUvsQh4oVGoNr462OdUv4lcIgI=
+github.com/alkuwaiti/shared v0.1.0 h1:v9lDp6KqJmy+Ydsv+4I639f9CSd83bLtsjEvlS8ifDc=
+github.com/alkuwaiti/shared v0.1.0/go.mod h1:SVRCC/DmHsPNg1rQPZUvsQh4oVGoNr462OdUv4lcIgI=
 github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc h1:biVzkmvwrH8WK8raXaxBx6fRVTlJILwEwQGL1I/ByEI=
 github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc/go.mod h1:paBWMcWSl3LHKBqUq+rly7CNSldXjb2rDl3JlRe0mD8=
 github.com/cenkalti/backoff/v4 v4.3.0 h1:MyRJ/UdXutAwSAT+s3wNd7MfTIcy71VQueUuFK343L8=

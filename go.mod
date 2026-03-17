@@ -3,8 +3,7 @@ module github.com/alkuwaiti/auth
 go 1.25.6
 
 require (
-	github.com/XSAM/otelsql v0.41.0
-	github.com/alkuwaiti/shared v0.0.0-20260317172845-fcfe6e0dc1e7
+	github.com/alkuwaiti/shared v0.1.0
 	github.com/fxamacker/cbor/v2 v2.9.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/golang-migrate/migrate/v4 v4.19.1
@@ -33,6 +32,7 @@ require (
 	dario.cat/mergo v1.0.2 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
+	github.com/XSAM/otelsql v0.41.0 // indirect
 	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
