@@ -3,7 +3,7 @@ package grpc
 import (
 	"context"
 
-	"github.com/alkuwaiti/auth/pkg/contextkeys"
+	"github.com/alkuwaiti/shared/contextkeys"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 )

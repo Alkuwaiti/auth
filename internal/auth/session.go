@@ -8,7 +8,7 @@ import (
 
 	"github.com/alkuwaiti/auth/internal/auth/domain"
 	"github.com/alkuwaiti/auth/internal/passwords"
-	"github.com/alkuwaiti/auth/pkg/contextkeys"
+	"github.com/alkuwaiti/shared/contextkeys"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"

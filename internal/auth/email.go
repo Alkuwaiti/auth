@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/auth/domain"
-	"github.com/alkuwaiti/auth/pkg/contextkeys"
+	"github.com/alkuwaiti/shared/contextkeys"
 )
 
 func (s *Service) VerifyEmail(ctx context.Context, rawToken string) error {

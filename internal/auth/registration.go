@@ -10,7 +10,7 @@ import (
 	authz "github.com/alkuwaiti/auth/internal/authorization"
 	"github.com/alkuwaiti/auth/internal/passwords"
 
-	"github.com/alkuwaiti/auth/pkg/contextkeys"
+	"github.com/alkuwaiti/shared/contextkeys"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 )

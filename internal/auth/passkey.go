@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/alkuwaiti/auth/internal/auth/domain"
-	"github.com/alkuwaiti/auth/pkg/contextkeys"
+	"github.com/alkuwaiti/shared/contextkeys"
 	"github.com/fxamacker/cbor/v2"
 	"github.com/google/uuid"
 )

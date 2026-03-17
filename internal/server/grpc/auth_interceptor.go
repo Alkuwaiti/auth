@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/alkuwaiti/auth/internal/tokens"
-	"github.com/alkuwaiti/auth/pkg/contextkeys"
+	"github.com/alkuwaiti/shared/contextkeys"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
