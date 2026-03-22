@@ -32,4 +32,5 @@ jobs:
     - name: Run golangci-lint
       uses: golangci/golangci-lint-action@v6
       with:
+        version: latest
         args: --build-tags=integration
